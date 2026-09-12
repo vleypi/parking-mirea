@@ -34,14 +34,29 @@ public class ParkingRequestRepository implements CrudRepository<ParkingRequest> 
             }
             return requests;
         } 
-        catch (SQLException e) {
-            throw new DataAccessException("Не удалось получить список заявок", e);
+        catch (SQLException err) {
+            throw new DataAccessException("Не удалось получить список заявок", err);
         }
     }
 
     @Override
     public Optional<ParkingRequest> findById(long id) {
-        throw new UnsupportedOperationException("Не реализовано");
+        String sql = "SELECT id, user_id, license_plate, spot_number, start_time, end_time, status, created_at FROM parking_requests WHERE id = ?";
+
+        try (Connection connection = DatabaseManager.getConnection();
+            PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setLong(1, id);
+
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (resultSet.next()) {
+                    return Optional.of(mapRow(resultSet));
+                }
+                return Optional.empty();
+            }
+        } 
+        catch (SQLException err) {
+            throw new DataAccessException("Не удалось получить заявку", err);
+        }
     }
 
     @Override
