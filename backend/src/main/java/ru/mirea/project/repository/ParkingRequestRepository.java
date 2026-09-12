@@ -6,6 +6,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.Statement;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 
 import ru.mirea.project.exception.DataAccessException;
@@ -17,7 +19,28 @@ public class ParkingRequestRepository implements CrudRepository<ParkingRequest> 
 
     @Override
     public ParkingRequest create(ParkingRequest request) {
-        throw new UnsupportedOperationException("Не реализовано");
+        String sql = "INSERT INTO parking_requests (user_id, license_plate, spot_number, start_time, end_time, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)";
+
+        try (Connection connection = DatabaseManager.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            statement.setLong(1, request.getUserId());
+            statement.setString(2, request.getLicensePlate());
+            statement.setInt(3, request.getSpotNumber());
+            statement.setTimestamp(4, Timestamp.valueOf(request.getStartTime()));
+            statement.setTimestamp(5, Timestamp.valueOf(request.getEndTime()));
+            statement.setString(6, request.getStatus().name());
+            statement.setTimestamp(7, Timestamp.valueOf(request.getCreatedAt()));
+            statement.executeUpdate();
+
+            try (ResultSet keys = statement.getGeneratedKeys()) {
+                if (keys.next()) {
+                    request.setId(keys.getLong(1));
+                }
+            }
+            return request;
+        } catch (SQLException err) {
+            throw new DataAccessException("Не удалось создать заявку", err);
+        }
     }
 
     @Override
@@ -61,12 +84,34 @@ public class ParkingRequestRepository implements CrudRepository<ParkingRequest> 
 
     @Override
     public void update(ParkingRequest request) {
-        throw new UnsupportedOperationException("Не реализовано");
+        String sql = "UPDATE parking_requests SET user_id = ?, license_plate = ?, spot_number = ?, start_time = ?, end_time = ?, status = ? WHERE id = ?";
+
+        try (Connection connection = DatabaseManager.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setLong(1, request.getUserId());
+            statement.setString(2, request.getLicensePlate());
+            statement.setInt(3, request.getSpotNumber());
+            statement.setTimestamp(4, Timestamp.valueOf(request.getStartTime()));
+            statement.setTimestamp(5, Timestamp.valueOf(request.getEndTime()));
+            statement.setString(6, request.getStatus().name());
+            statement.setLong(7, request.getId());
+            statement.executeUpdate();
+        } catch (SQLException err) {
+            throw new DataAccessException("Не удалось обновить заявку", err);
+        }
     }
 
     @Override
     public void delete(long id) {
-        throw new UnsupportedOperationException("Не реализовано");
+        String sql = "DELETE FROM parking_requests WHERE id = ?";
+
+        try (Connection connection = DatabaseManager.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setLong(1, id);
+            statement.executeUpdate();
+        } catch (SQLException err) {
+            throw new DataAccessException("Не удалось удалить заявку", err);
+        }
     }
 
     private ParkingRequest mapRow(ResultSet rs) throws SQLException {
