@@ -39,7 +39,7 @@ public class ParkingRequestService {
     }
 
     public List<ParkingRequest> getAll() {
-        throw new UnsupportedOperationException("Не реализовано");
+        return parkingRequestRepository.findAll();
     }
 
     public ParkingRequest getById(long id) {
@@ -75,7 +75,8 @@ public class ParkingRequestService {
     }
 
     public void delete(long id) {
-        throw new UnsupportedOperationException("Не реализовано");
+        getById(id);
+        parkingRequestRepository.delete(id);
     }
 
     private void validatePlateAndTimes(String licensePlate, LocalDateTime startTime, LocalDateTime endTime) {
