@@ -2,6 +2,8 @@ package ru.mirea.project.service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import ru.mirea.project.exception.BusinessException;
 import ru.mirea.project.exception.EntityNotFoundException;
@@ -10,6 +12,13 @@ import ru.mirea.project.model.RequestStatus;
 import ru.mirea.project.repository.ParkingRequestRepository;
 
 public class ParkingRequestService {
+    private static final Map<RequestStatus, Set<RequestStatus>> ALLOWED_STATUS_TRANSITIONS = Map.of(
+        RequestStatus.NEW, Set.of(RequestStatus.CONFIRMED, RequestStatus.CANCELLED),
+        RequestStatus.CONFIRMED, Set.of(RequestStatus.COMPLETED, RequestStatus.CANCELLED),
+        RequestStatus.COMPLETED, Set.of(),
+        RequestStatus.CANCELLED, Set.of()
+    );
+
     private final ParkingRequestRepository parkingRequestRepository;
     private final UserService userService;
 
@@ -53,7 +62,16 @@ public class ParkingRequestService {
     }
 
     public ParkingRequest changeStatus(long id, RequestStatus newStatus) {
-        throw new UnsupportedOperationException("Не реализовано");
+        ParkingRequest request = getById(id);
+        RequestStatus currentStatus = request.getStatus();
+
+        if (!ALLOWED_STATUS_TRANSITIONS.get(currentStatus).contains(newStatus)) {
+            throw new BusinessException("Недопустимый переход статуса: " + currentStatus + " -> " + newStatus);
+        }
+
+        request.setStatus(newStatus);
+        parkingRequestRepository.update(request);
+        return request;
     }
 
     public void delete(long id) {
