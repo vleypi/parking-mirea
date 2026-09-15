@@ -3,6 +3,8 @@ package ru.mirea.project.service;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import ru.mirea.project.exception.BusinessException;
+import ru.mirea.project.exception.EntityNotFoundException;
 import ru.mirea.project.model.ParkingRequest;
 import ru.mirea.project.model.RequestStatus;
 import ru.mirea.project.repository.ParkingRequestRepository;
@@ -18,7 +20,12 @@ public class ParkingRequestService {
 
     public ParkingRequest create(long userId, String licensePlate, int spotNumber,
                                  LocalDateTime startTime, LocalDateTime endTime) {
-        throw new UnsupportedOperationException("Не реализовано");
+        validatePlateAndTimes(licensePlate, startTime, endTime);
+        userService.getById(userId);
+
+        ParkingRequest request = new ParkingRequest(0, userId, licensePlate, spotNumber,
+            startTime, endTime, RequestStatus.NEW, LocalDateTime.now());
+        return parkingRequestRepository.create(request);
     }
 
     public List<ParkingRequest> getAll() {
@@ -26,12 +33,21 @@ public class ParkingRequestService {
     }
 
     public ParkingRequest getById(long id) {
-        throw new UnsupportedOperationException("Не реализовано");
+        return parkingRequestRepository.findById(id)
+            .orElseThrow(() -> new EntityNotFoundException("Заявка с id " + id + " не найдена"));
     }
 
     public ParkingRequest update(long id, String licensePlate, int spotNumber,
                                  LocalDateTime startTime, LocalDateTime endTime) {
-        throw new UnsupportedOperationException("Не реализовано");
+        validatePlateAndTimes(licensePlate, startTime, endTime);
+
+        ParkingRequest existing = getById(id);
+        existing.setLicensePlate(licensePlate);
+        existing.setSpotNumber(spotNumber);
+        existing.setStartTime(startTime);
+        existing.setEndTime(endTime);
+        parkingRequestRepository.update(existing);
+        return existing;
     }
 
     public ParkingRequest changeStatus(long id, RequestStatus newStatus) {
@@ -40,5 +56,14 @@ public class ParkingRequestService {
 
     public void delete(long id) {
         throw new UnsupportedOperationException("Не реализовано");
+    }
+
+    private void validatePlateAndTimes(String licensePlate, LocalDateTime startTime, LocalDateTime endTime) {
+        if (licensePlate == null || licensePlate.isBlank()) {
+            throw new BusinessException("Гос. номер обязателен для заполнения");
+        }
+        if (!endTime.isAfter(startTime)) {
+            throw new BusinessException("Дата и время окончания должны быть позже даты и времени начала");
+        }
     }
 }
