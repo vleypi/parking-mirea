@@ -21,6 +21,7 @@ public class ParkingRequestService {
     public ParkingRequest create(long userId, String licensePlate, int spotNumber,
                                  LocalDateTime startTime, LocalDateTime endTime) {
         validatePlateAndTimes(licensePlate, startTime, endTime);
+        checkSpotAvailability(0, spotNumber, startTime, endTime);
         userService.getById(userId);
 
         ParkingRequest request = new ParkingRequest(0, userId, licensePlate, spotNumber,
@@ -40,6 +41,7 @@ public class ParkingRequestService {
     public ParkingRequest update(long id, String licensePlate, int spotNumber,
                                  LocalDateTime startTime, LocalDateTime endTime) {
         validatePlateAndTimes(licensePlate, startTime, endTime);
+        checkSpotAvailability(id, spotNumber, startTime, endTime);
 
         ParkingRequest existing = getById(id);
         existing.setLicensePlate(licensePlate);
@@ -64,6 +66,18 @@ public class ParkingRequestService {
         }
         if (!endTime.isAfter(startTime)) {
             throw new BusinessException("Дата и время окончания должны быть позже даты и времени начала");
+        }
+    }
+
+    private void checkSpotAvailability(long excludeId, int spotNumber, LocalDateTime startTime, LocalDateTime endTime) {
+        boolean occupied = parkingRequestRepository.findAll().stream()
+            .filter(r -> r.getId() != excludeId)
+            .filter(r -> r.getSpotNumber() == spotNumber)
+            .filter(r -> r.getStatus() == RequestStatus.NEW || r.getStatus() == RequestStatus.CONFIRMED)
+            .anyMatch(r -> startTime.isBefore(r.getEndTime()) && endTime.isAfter(r.getStartTime()));
+
+        if (occupied) {
+            throw new BusinessException("Место " + spotNumber + " уже занято на указанный период");
         }
     }
 }
