@@ -139,3 +139,4 @@ docker compose -f docker/docker-compose.yml down
 ## Лицензия
 
 Код распространяется по лицензии [MIT](LICENSE).
+
