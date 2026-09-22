@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Comparator;
 
 import ru.mirea.project.exception.BusinessException;
 import ru.mirea.project.exception.EntityNotFoundException;
@@ -42,6 +43,42 @@ public class ParkingRequestService {
         return parkingRequestRepository.findAll();
     }
 
+    public List<ParkingRequest> searchByLicensePlate(String fragment) {
+    String needle = fragment.toLowerCase();
+    return parkingRequestRepository.findAll().stream()
+        .filter(r -> r.getLicensePlate().toLowerCase().contains(needle))
+        .toList();
+    }
+    
+    public List<ParkingRequest> filterByStatus(RequestStatus status) {
+    return parkingRequestRepository.findAll().stream()
+        .filter(r -> r.getStatus() == status)
+        .toList();
+    }
+
+    public List<ParkingRequest> filterByDateRange(LocalDateTime from, LocalDateTime to) {
+        if (from.isAfter(to)) {
+            throw new BusinessException("Начало диапазона не может быть позже конца");
+        }
+        return parkingRequestRepository.findAll().stream()
+            .filter(r -> !r.getStartTime().isBefore(from) && !r.getStartTime().isAfter(to))
+            .toList();
+    }
+
+    public List<ParkingRequest> sortByStartTime(boolean ascending) {
+        Comparator<ParkingRequest> comparator = Comparator.comparing(ParkingRequest::getStartTime);
+        return parkingRequestRepository.findAll().stream()
+            .sorted(ascending ? comparator : comparator.reversed())
+            .toList();
+    }
+
+    public List<ParkingRequest> sortByCreatedAt(boolean ascending) {
+        Comparator<ParkingRequest> comparator = Comparator.comparing(ParkingRequest::getCreatedAt);
+        return parkingRequestRepository.findAll().stream()
+            .sorted(ascending ? comparator : comparator.reversed())
+            .toList();
+    }
+    
     public ParkingRequest getById(long id) {
         return parkingRequestRepository.findById(id)
             .orElseThrow(() -> new EntityNotFoundException("Заявка с id " + id + " не найдена"));
