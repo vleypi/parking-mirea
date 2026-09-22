@@ -42,7 +42,9 @@ public class ConsoleUI {
             System.out.println("0. Выход");
             int choice = readInt("Выберите действие: ");
             switch (choice) {
-                case 1, 3, 4, 5, 6, 7 -> System.out.println("Пока не реализовано");
+                case 1, 5, 6, 7 -> System.out.println("Пока не реализовано");
+                case 3 -> searchMenu();
+                case 4 -> filterMenu();
                 case 2 -> parkingRequestsMenu();
                 case 0 -> {
                     System.out.println("До свидания!");
@@ -152,6 +154,112 @@ public class ConsoleUI {
         } catch (EntityNotFoundException | DataAccessException e) {
             System.out.println("Ошибка: " + e.getMessage());
         }
+    }
+
+    
+    private void searchMenu() {
+    while (true) {
+        System.out.println();
+        System.out.println("---- Поиск ----");
+        System.out.println("1. По гос. номеру");
+        System.out.println("0. Назад");
+        int choice = readInt("Выберите действие: ");
+        switch (choice) {
+            case 1 -> searchByLicensePlate();
+            case 0 -> {
+                return;
+            }
+            default -> System.out.println("Неизвестный пункт меню");
+        }
+    }
+}
+
+    private void searchByLicensePlate() {
+        try {
+            String fragment = readLine("Фрагмент гос. номера: ");
+            printResults(parkingRequestService.searchByLicensePlate(fragment));
+        } catch (DataAccessException e) {
+            System.out.println("Ошибка: " + e.getMessage());
+        }
+    }
+
+    private void filterMenu() {
+        while (true) {
+            System.out.println();
+            System.out.println("---- Фильтрация и сортировка ----");
+            System.out.println("1. По статусу");
+            System.out.println("2. По диапазону дат");
+            System.out.println("3. Сортировка по времени начала");
+            System.out.println("4. Сортировка по дате создания");
+            System.out.println("0. Назад");
+            int choice = readInt("Выберите действие: ");
+            switch (choice) {
+                case 1 -> filterByStatus();
+                case 2 -> filterByDateRange();
+                case 3 -> sortByStartTime();
+                case 4 -> sortByCreatedAt();
+                case 0 -> {
+                    return;
+                }
+                default -> System.out.println("Неизвестный пункт меню");
+            }
+        }
+    }
+
+    private void filterByStatus() {
+        try {
+            RequestStatus status = readStatus("Статус " + Arrays.toString(RequestStatus.values()) + ": ");
+            printResults(parkingRequestService.filterByStatus(status));
+        } catch (DataAccessException e) {
+            System.out.println("Ошибка: " + e.getMessage());
+        }
+    }
+
+    private void filterByDateRange() {
+        try {
+            LocalDateTime from = readDateTime("Начало диапазона (" + DATE_TIME_HINT + "): ");
+            LocalDateTime to = readDateTime("Конец диапазона (" + DATE_TIME_HINT + "): ");
+            printResults(parkingRequestService.filterByDateRange(from, to));
+        } catch (BusinessException | DataAccessException e) {
+            System.out.println("Ошибка: " + e.getMessage());
+        }
+    }
+
+    private void sortByStartTime() {
+        try {
+            printResults(parkingRequestService.sortByStartTime(readAscending()));
+        } catch (DataAccessException e) {
+            System.out.println("Ошибка: " + e.getMessage());
+        }
+    }
+
+    private void sortByCreatedAt() {
+        try {
+            printResults(parkingRequestService.sortByCreatedAt(readAscending()));
+        } catch (DataAccessException e) {
+            System.out.println("Ошибка: " + e.getMessage());
+        }
+    }
+
+    private boolean readAscending() {
+        while (true) {
+            int choice = readInt("Порядок (1 - по возрастанию, 2 - по убыванию): ");
+            if (choice == 1) {
+                return true;
+            }
+            if (choice == 2) {
+                return false;
+            }
+            System.out.println("Ошибка: введите 1 или 2");
+        }
+    }
+
+    private void printResults(List<ParkingRequest> requests) {
+        if (requests.isEmpty()) {
+            System.out.println("Ничего не найдено");
+            return;
+        }
+        requests.forEach(System.out::println);
     }
 
     private String readLine(String prompt) {
