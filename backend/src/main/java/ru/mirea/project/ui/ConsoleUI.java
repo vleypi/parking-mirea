@@ -40,7 +40,7 @@ public class ConsoleUI {
     public void run() {
         while (true) {
             System.out.println();
-            System.out.println("========== ПАРКОВОЧНАЯ СИСТЕМА ==========");
+            System.out.println("ПАРКОВОЧНАЯ СИСТЕМА");
             System.out.println("1. Владельцы автомобилей");
             System.out.println("2. Заявки на парковку");
             System.out.println("3. Поиск");
@@ -70,7 +70,7 @@ public class ConsoleUI {
     private void parkingRequestsMenu() {
         while (true) {
             System.out.println();
-            System.out.println("---- Заявки на парковку ----");
+            System.out.println("Заявки на парковку");
             System.out.println("1. Показать все");
             System.out.println("2. Создать");
             System.out.println("3. Найти по ID");
@@ -171,7 +171,7 @@ public class ConsoleUI {
     private void usersMenu() {
         while (true) {
             System.out.println();
-            System.out.println("---- Владельцы автомобилей ----");
+            System.out.println("Владельцы автомобилей");
             System.out.println("1. Показать всех");
             System.out.println("2. Создать");
             System.out.println("3. Найти по ID");
@@ -254,7 +254,7 @@ public class ConsoleUI {
     private void searchMenu() {
     while (true) {
         System.out.println();
-        System.out.println("---- Поиск ----");
+        System.out.println("Поиск");
         System.out.println("1. По гос. номеру");
         System.out.println("2. По имени владельца");
         System.out.println("0. Назад");
@@ -303,7 +303,7 @@ public class ConsoleUI {
     private void filterMenu() {
         while (true) {
             System.out.println();
-            System.out.println("---- Фильтрация и сортировка ----");
+            System.out.println("Фильтрация и сортировка");
             System.out.println("1. По статусу");
             System.out.println("2. По диапазону дат");
             System.out.println("3. Сортировка по времени начала");
@@ -383,7 +383,7 @@ public class ConsoleUI {
         try {
             Statistics statistics = parkingRequestService.getStatistics();
             System.out.println();
-            System.out.println("---- Статистика ----");
+            System.out.println("Статистика");
             System.out.println("Всего владельцев: " + statistics.totalUsers());
             System.out.println("Всего заявок: " + statistics.totalRequests());
             System.out.println("Активных (NEW + CONFIRMED): " + statistics.active());
@@ -411,7 +411,7 @@ public class ConsoleUI {
             List<ParkingRequest> requests = parkingRequestService.getAll();
 
             System.out.println();
-            System.out.println("---- Таблица users ----");
+            System.out.println("Таблица users");
             printTable(new String[] {"ID", "Имя", "Телефон", "Создан"},
                 users.stream()
                     .map(u -> new String[] {
@@ -420,7 +420,7 @@ public class ConsoleUI {
                     .toList());
 
             System.out.println();
-            System.out.println("---- Таблица parking_requests ----");
+            System.out.println("Таблица parking_requests");
             printTable(new String[] {"ID", "Владелец", "Гос. номер", "Место", "Начало", "Окончание", "Статус", "Создана"},
                 requests.stream()
                     .map(r -> new String[] {
