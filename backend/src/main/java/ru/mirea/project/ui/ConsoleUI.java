@@ -5,6 +5,7 @@ import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.time.format.ResolverStyle;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -22,7 +23,8 @@ import ru.mirea.project.service.UserService;
 import ru.mirea.project.util.ExcelExporter;
 
 public class ConsoleUI {
-    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
+    private static final DateTimeFormatter DATE_TIME_FORMATTER =
+        DateTimeFormatter.ofPattern("dd.MM.uuuu HH:mm").withResolverStyle(ResolverStyle.STRICT);
     private static final String DATE_TIME_HINT = "дд.мм.гггг чч:мм";
     private static final String EXPORT_FILE_NAME = "parking_export.xlsx";
 
@@ -466,6 +468,11 @@ public class ConsoleUI {
 
     private String readLine(String prompt) {
         System.out.print(prompt);
+        if (!scanner.hasNextLine()) {
+            System.out.println();
+            System.out.println("Ввод завершён. До свидания!");
+            System.exit(0);
+        }
         return scanner.nextLine();
     }
 
