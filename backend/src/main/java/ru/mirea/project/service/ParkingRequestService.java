@@ -16,7 +16,6 @@ import ru.mirea.project.model.User;
 import ru.mirea.project.repository.ParkingRequestRepository;
 
 public class ParkingRequestService {
-    private static final int MAX_LICENSE_PLATE_LENGTH = 12;
     private static final Map<RequestStatus, Set<RequestStatus>> ALLOWED_STATUS_TRANSITIONS = Map.of(
         RequestStatus.NEW, Set.of(RequestStatus.CONFIRMED, RequestStatus.CANCELLED),
         RequestStatus.CONFIRMED, Set.of(RequestStatus.COMPLETED, RequestStatus.CANCELLED),
@@ -34,11 +33,11 @@ public class ParkingRequestService {
 
     public ParkingRequest create(long userId, String licensePlate, int spotNumber,
                                  LocalDateTime startTime, LocalDateTime endTime) {
-        validateRequestData(licensePlate, spotNumber, startTime, endTime);
+        String plate = validateRequestData(licensePlate, spotNumber, startTime, endTime);
         checkSpotAvailability(0, spotNumber, startTime, endTime);
         userService.getById(userId);
 
-        ParkingRequest request = new ParkingRequest(0, userId, licensePlate, spotNumber,
+        ParkingRequest request = new ParkingRequest(0, userId, plate, spotNumber,
             startTime, endTime, RequestStatus.NEW, LocalDateTime.now());
         return parkingRequestRepository.create(request);
     }
@@ -48,10 +47,10 @@ public class ParkingRequestService {
     }
 
     public List<ParkingRequest> searchByLicensePlate(String fragment) {
-    String needle = fragment.toLowerCase();
-    return parkingRequestRepository.findAll().stream()
-        .filter(r -> r.getLicensePlate().toLowerCase().contains(needle))
-        .toList();
+        String needle = InputFormats.normalizePlateText(fragment);
+        return parkingRequestRepository.findAll().stream()
+            .filter(r -> InputFormats.normalizePlateText(r.getLicensePlate()).contains(needle))
+            .toList();
     }
     
     public Map<User, List<ParkingRequest>> searchByOwnerName(String fragment) {
@@ -124,10 +123,10 @@ public class ParkingRequestService {
     public ParkingRequest update(long id, String licensePlate, int spotNumber,
                                  LocalDateTime startTime, LocalDateTime endTime) {
         ParkingRequest existing = getById(id);
-        validateRequestData(licensePlate, spotNumber, startTime, endTime);
+        String plate = validateRequestData(licensePlate, spotNumber, startTime, endTime);
         checkSpotAvailability(id, spotNumber, startTime, endTime);
 
-        existing.setLicensePlate(licensePlate);
+        existing.setLicensePlate(plate);
         existing.setSpotNumber(spotNumber);
         existing.setStartTime(startTime);
         existing.setEndTime(endTime);
@@ -153,19 +152,18 @@ public class ParkingRequestService {
         parkingRequestRepository.delete(id);
     }
 
-    private void validateRequestData(String licensePlate, int spotNumber, LocalDateTime startTime, LocalDateTime endTime) {
+    private String validateRequestData(String licensePlate, int spotNumber, LocalDateTime startTime, LocalDateTime endTime) {
         if (licensePlate == null || licensePlate.isBlank()) {
             throw new BusinessException("Гос. номер обязателен для заполнения");
         }
-        if (licensePlate.length() > MAX_LICENSE_PLATE_LENGTH) {
-            throw new BusinessException("Гос. номер не должен быть длиннее " + MAX_LICENSE_PLATE_LENGTH + " символов");
-        }
+        String plate = InputFormats.normalizePlate(licensePlate);
         if (spotNumber <= 0) {
             throw new BusinessException("Номер места должен быть положительным числом");
         }
         if (!endTime.isAfter(startTime)) {
             throw new BusinessException("Дата и время окончания должны быть позже даты и времени начала");
         }
+        return plate;
     }
 
     private void checkSpotAvailability(long excludeId, int spotNumber, LocalDateTime startTime, LocalDateTime endTime) {

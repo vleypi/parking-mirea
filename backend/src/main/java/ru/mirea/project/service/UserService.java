@@ -10,7 +10,6 @@ import ru.mirea.project.repository.UserRepository;
 
 public class UserService {
     private static final int MAX_NAME_LENGTH = 100;
-    private static final int MAX_PHONE_LENGTH = 20;
 
     private final UserRepository userRepository;
 
@@ -19,12 +18,12 @@ public class UserService {
     }
 
     public User create(String name, String phone) {
-        validateNameAndPhone(name, phone);
-        String trimmedName = name.trim();
-        String trimmedPhone = phone.trim();
-        checkPhoneUnique(0, trimmedPhone);
+        validateRequired(name, phone);
+        String normalizedName = normalizeName(name);
+        String normalizedPhone = InputFormats.normalizePhone(phone);
+        checkPhoneUnique(0, normalizedPhone);
 
-        User user = new User(0, trimmedName, trimmedPhone, LocalDateTime.now());
+        User user = new User(0, normalizedName, normalizedPhone, LocalDateTime.now());
         return userRepository.create(user);
     }
 
@@ -38,15 +37,14 @@ public class UserService {
     }
 
     public User update(long id, String name, String phone) {
-        validateNameAndPhone(name, phone);
-        String trimmedName = name.trim();
-        String trimmedPhone = phone.trim();
-
         User existing = getById(id);
-        checkPhoneUnique(id, trimmedPhone);
+        validateRequired(name, phone);
+        String normalizedName = normalizeName(name);
+        String normalizedPhone = InputFormats.normalizePhone(phone);
+        checkPhoneUnique(id, normalizedPhone);
 
-        existing.setName(trimmedName);
-        existing.setPhone(trimmedPhone);
+        existing.setName(normalizedName);
+        existing.setPhone(normalizedPhone);
         userRepository.update(existing);
         return existing;
     }
@@ -56,19 +54,21 @@ public class UserService {
         userRepository.delete(id);
     }
 
-    private void validateNameAndPhone(String name, String phone) {
+    private void validateRequired(String name, String phone) {
         if (name == null || name.isBlank()) {
             throw new BusinessException("Имя владельца обязательно для заполнения");
         }
         if (phone == null || phone.isBlank()) {
             throw new BusinessException("Телефон владельца обязателен для заполнения");
         }
-        if (name.trim().length() > MAX_NAME_LENGTH) {
+    }
+
+    private String normalizeName(String name) {
+        String normalized = InputFormats.normalizeName(name);
+        if (normalized.length() > MAX_NAME_LENGTH) {
             throw new BusinessException("Имя владельца не должно быть длиннее " + MAX_NAME_LENGTH + " символов");
         }
-        if (phone.trim().length() > MAX_PHONE_LENGTH) {
-            throw new BusinessException("Телефон не должен быть длиннее " + MAX_PHONE_LENGTH + " символов");
-        }
+        return normalized;
     }
 
     private void checkPhoneUnique(long excludeId, String phone) {

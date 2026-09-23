@@ -110,7 +110,7 @@ public class ConsoleUI {
     private void createParkingRequest() {
         try {
             long userId = readLong("ID владельца: ");
-            String licensePlate = readLine("Гос. номер: ");
+            String licensePlate = readLine("Гос. номер (например А123ВС777): ");
             int spotNumber = readInt("Номер места: ");
             LocalDateTime startTime = readDateTime("Начало (" + DATE_TIME_HINT + "): ");
             LocalDateTime endTime = readDateTime("Окончание (" + DATE_TIME_HINT + "): ");
@@ -134,7 +134,7 @@ public class ConsoleUI {
     private void updateParkingRequest() {
         try {
             long id = readLong("ID заявки: ");
-            String licensePlate = readLine("Новый гос. номер: ");
+            String licensePlate = readLine("Новый гос. номер (например А123ВС777): ");
             int spotNumber = readInt("Новый номер места: ");
             LocalDateTime startTime = readDateTime("Новое начало (" + DATE_TIME_HINT + "): ");
             LocalDateTime endTime = readDateTime("Новое окончание (" + DATE_TIME_HINT + "): ");
@@ -209,7 +209,7 @@ public class ConsoleUI {
     private void createUser() {
         try {
             String name = readLine("Имя: ");
-            String phone = readLine("Телефон: ");
+            String phone = readLine("Телефон (например 89991234567): ");
 
             User created = userService.create(name, phone);
             System.out.println("Владелец создан: " + created);
@@ -231,7 +231,7 @@ public class ConsoleUI {
         try {
             long id = readLong("ID владельца: ");
             String name = readLine("Новое имя: ");
-            String phone = readLine("Новый телефон: ");
+            String phone = readLine("Новый телефон (например 89991234567): ");
 
             User updated = userService.update(id, name, phone);
             System.out.println("Владелец обновлён: " + updated);
