@@ -16,6 +16,7 @@ import ru.mirea.project.model.User;
 import ru.mirea.project.repository.ParkingRequestRepository;
 
 public class ParkingRequestService {
+    private static final int MAX_LICENSE_PLATE_LENGTH = 12;
     private static final Map<RequestStatus, Set<RequestStatus>> ALLOWED_STATUS_TRANSITIONS = Map.of(
         RequestStatus.NEW, Set.of(RequestStatus.CONFIRMED, RequestStatus.CANCELLED),
         RequestStatus.CONFIRMED, Set.of(RequestStatus.COMPLETED, RequestStatus.CANCELLED),
@@ -33,7 +34,7 @@ public class ParkingRequestService {
 
     public ParkingRequest create(long userId, String licensePlate, int spotNumber,
                                  LocalDateTime startTime, LocalDateTime endTime) {
-        validatePlateAndTimes(licensePlate, startTime, endTime);
+        validateRequestData(licensePlate, spotNumber, startTime, endTime);
         checkSpotAvailability(0, spotNumber, startTime, endTime);
         userService.getById(userId);
 
@@ -122,10 +123,10 @@ public class ParkingRequestService {
 
     public ParkingRequest update(long id, String licensePlate, int spotNumber,
                                  LocalDateTime startTime, LocalDateTime endTime) {
-        validatePlateAndTimes(licensePlate, startTime, endTime);
+        ParkingRequest existing = getById(id);
+        validateRequestData(licensePlate, spotNumber, startTime, endTime);
         checkSpotAvailability(id, spotNumber, startTime, endTime);
 
-        ParkingRequest existing = getById(id);
         existing.setLicensePlate(licensePlate);
         existing.setSpotNumber(spotNumber);
         existing.setStartTime(startTime);
@@ -152,9 +153,15 @@ public class ParkingRequestService {
         parkingRequestRepository.delete(id);
     }
 
-    private void validatePlateAndTimes(String licensePlate, LocalDateTime startTime, LocalDateTime endTime) {
+    private void validateRequestData(String licensePlate, int spotNumber, LocalDateTime startTime, LocalDateTime endTime) {
         if (licensePlate == null || licensePlate.isBlank()) {
             throw new BusinessException("Гос. номер обязателен для заполнения");
+        }
+        if (licensePlate.length() > MAX_LICENSE_PLATE_LENGTH) {
+            throw new BusinessException("Гос. номер не должен быть длиннее " + MAX_LICENSE_PLATE_LENGTH + " символов");
+        }
+        if (spotNumber <= 0) {
+            throw new BusinessException("Номер места должен быть положительным числом");
         }
         if (!endTime.isAfter(startTime)) {
             throw new BusinessException("Дата и время окончания должны быть позже даты и времени начала");
