@@ -12,6 +12,7 @@ import ru.mirea.project.exception.DataAccessException;
 import ru.mirea.project.exception.EntityNotFoundException;
 import ru.mirea.project.model.ParkingRequest;
 import ru.mirea.project.model.RequestStatus;
+import ru.mirea.project.model.User;
 import ru.mirea.project.service.ParkingRequestService;
 import ru.mirea.project.service.UserService;
 
@@ -42,7 +43,8 @@ public class ConsoleUI {
             System.out.println("0. Выход");
             int choice = readInt("Выберите действие: ");
             switch (choice) {
-                case 1, 5, 6, 7 -> System.out.println("Пока не реализовано");
+                case 5, 6, 7 -> System.out.println("Пока не реализовано");
+                case 1 -> usersMenu();
                 case 3 -> searchMenu();
                 case 4 -> filterMenu();
                 case 2 -> parkingRequestsMenu();
@@ -151,6 +153,88 @@ public class ConsoleUI {
             long id = readLong("ID заявки: ");
             parkingRequestService.delete(id);
             System.out.println("Заявка удалена");
+        } catch (EntityNotFoundException | DataAccessException e) {
+            System.out.println("Ошибка: " + e.getMessage());
+        }
+    }
+
+    private void usersMenu() {
+        while (true) {
+            System.out.println();
+            System.out.println("---- Владельцы автомобилей ----");
+            System.out.println("1. Показать всех");
+            System.out.println("2. Создать");
+            System.out.println("3. Найти по ID");
+            System.out.println("4. Изменить");
+            System.out.println("5. Удалить");
+            System.out.println("0. Назад");
+            int choice = readInt("Выберите действие: ");
+            switch (choice) {
+                case 1 -> showAllUsers();
+                case 2 -> createUser();
+                case 3 -> findUserById();
+                case 4 -> updateUser();
+                case 5 -> deleteUser();
+                case 0 -> {
+                    return;
+                }
+                default -> System.out.println("Неизвестный пункт меню");
+            }
+        }
+    }
+
+    private void showAllUsers() {
+        try {
+            List<User> users = userService.getAll();
+            if (users.isEmpty()) {
+                System.out.println("Владельцев пока нет");
+                return;
+            }
+            users.forEach(System.out::println);
+        } catch (DataAccessException e) {
+            System.out.println("Ошибка: " + e.getMessage());
+        }
+    }
+
+    private void createUser() {
+        try {
+            String name = readLine("Имя: ");
+            String phone = readLine("Телефон: ");
+
+            User created = userService.create(name, phone);
+            System.out.println("Владелец создан: " + created);
+        } catch (BusinessException | DataAccessException e) {
+            System.out.println("Ошибка: " + e.getMessage());
+        }
+    }
+
+    private void findUserById() {
+        try {
+            long id = readLong("ID владельца: ");
+            System.out.println(userService.getById(id));
+        } catch (EntityNotFoundException | DataAccessException e) {
+            System.out.println("Ошибка: " + e.getMessage());
+        }
+    }
+
+    private void updateUser() {
+        try {
+            long id = readLong("ID владельца: ");
+            String name = readLine("Новое имя: ");
+            String phone = readLine("Новый телефон: ");
+
+            User updated = userService.update(id, name, phone);
+            System.out.println("Владелец обновлён: " + updated);
+        } catch (BusinessException | EntityNotFoundException | DataAccessException e) {
+            System.out.println("Ошибка: " + e.getMessage());
+        }
+    }
+
+    private void deleteUser() {
+        try {
+            long id = readLong("ID владельца: ");
+            userService.delete(id);
+            System.out.println("Владелец удалён");
         } catch (EntityNotFoundException | DataAccessException e) {
             System.out.println("Ошибка: " + e.getMessage());
         }
