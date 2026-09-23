@@ -1,5 +1,7 @@
 package ru.mirea.project.ui;
 
+import java.io.UncheckedIOException;
+import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -15,11 +17,14 @@ import ru.mirea.project.model.ParkingRequest;
 import ru.mirea.project.model.RequestStatus;
 import ru.mirea.project.model.User;
 import ru.mirea.project.service.ParkingRequestService;
+import ru.mirea.project.service.Statistics;
 import ru.mirea.project.service.UserService;
+import ru.mirea.project.util.ExcelExporter;
 
 public class ConsoleUI {
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
     private static final String DATE_TIME_HINT = "дд.мм.гггг чч:мм";
+    private static final String EXPORT_FILE_NAME = "parking_export.xlsx";
 
     private final Scanner scanner = new Scanner(System.in);
     private final UserService userService;
@@ -44,7 +49,9 @@ public class ConsoleUI {
             System.out.println("0. Выход");
             int choice = readInt("Выберите действие: ");
             switch (choice) {
-                case 5, 6, 7 -> System.out.println("Пока не реализовано");
+                case 5 -> showStatistics();
+                case 6 -> exportData();
+                case 7 -> showTables();
                 case 1 -> usersMenu();
                 case 3 -> searchMenu();
                 case 4 -> filterMenu();
@@ -368,6 +375,93 @@ public class ConsoleUI {
             return;
         }
         requests.forEach(System.out::println);
+    }
+
+    private void showStatistics() {
+        try {
+            Statistics statistics = parkingRequestService.getStatistics();
+            System.out.println();
+            System.out.println("---- Статистика ----");
+            System.out.println("Всего владельцев: " + statistics.totalUsers());
+            System.out.println("Всего заявок: " + statistics.totalRequests());
+            System.out.println("Активных (NEW + CONFIRMED): " + statistics.active());
+            System.out.println("Завершённых: " + statistics.completed());
+            System.out.println("Отменённых: " + statistics.cancelled());
+            System.out.println("Занятых мест сейчас: " + statistics.occupiedNow());
+        } catch (DataAccessException e) {
+            System.out.println("Ошибка: " + e.getMessage());
+        }
+    }
+
+    private void exportData() {
+        try {
+            Path file = Path.of(EXPORT_FILE_NAME).toAbsolutePath();
+            ExcelExporter.export(userService.getAll(), parkingRequestService.getAll(), file);
+            System.out.println("Экспорт выполнен: " + file);
+        } catch (DataAccessException | UncheckedIOException e) {
+            System.out.println("Ошибка: " + e.getMessage());
+        }
+    }
+
+    private void showTables() {
+        try {
+            List<User> users = userService.getAll();
+            List<ParkingRequest> requests = parkingRequestService.getAll();
+
+            System.out.println();
+            System.out.println("---- Таблица users ----");
+            printTable(new String[] {"ID", "Имя", "Телефон", "Создан"},
+                users.stream()
+                    .map(u -> new String[] {
+                        String.valueOf(u.getId()), u.getName(), u.getPhone(),
+                        DATE_TIME_FORMATTER.format(u.getCreatedAt())})
+                    .toList());
+
+            System.out.println();
+            System.out.println("---- Таблица parking_requests ----");
+            printTable(new String[] {"ID", "Владелец", "Гос. номер", "Место", "Начало", "Окончание", "Статус", "Создана"},
+                requests.stream()
+                    .map(r -> new String[] {
+                        String.valueOf(r.getId()), String.valueOf(r.getUserId()), r.getLicensePlate(),
+                        String.valueOf(r.getSpotNumber()), DATE_TIME_FORMATTER.format(r.getStartTime()),
+                        DATE_TIME_FORMATTER.format(r.getEndTime()), r.getStatus().name(),
+                        DATE_TIME_FORMATTER.format(r.getCreatedAt())})
+                    .toList());
+        } catch (DataAccessException e) {
+            System.out.println("Ошибка: " + e.getMessage());
+        }
+    }
+
+    private void printTable(String[] headers, List<String[]> rows) {
+        int[] widths = new int[headers.length];
+        for (int i = 0; i < headers.length; i++) {
+            widths[i] = headers[i].length();
+        }
+        for (String[] row : rows) {
+            for (int i = 0; i < row.length; i++) {
+                widths[i] = Math.max(widths[i], row[i].length());
+            }
+        }
+
+        printTableRow(headers, widths);
+        int totalWidth = Arrays.stream(widths).sum() + 3 * (headers.length - 1);
+        System.out.println("-".repeat(totalWidth));
+        if (rows.isEmpty()) {
+            System.out.println("(записей нет)");
+            return;
+        }
+        rows.forEach(row -> printTableRow(row, widths));
+    }
+
+    private void printTableRow(String[] cells, int[] widths) {
+        StringBuilder line = new StringBuilder();
+        for (int i = 0; i < cells.length; i++) {
+            line.append(String.format("%-" + widths[i] + "s", cells[i]));
+            if (i < cells.length - 1) {
+                line.append(" | ");
+            }
+        }
+        System.out.println(line);
     }
 
     private String readLine(String prompt) {
