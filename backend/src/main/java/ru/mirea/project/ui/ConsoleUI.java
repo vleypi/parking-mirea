@@ -10,6 +10,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
+import java.util.function.Function;
 
 import ru.mirea.project.exception.BusinessException;
 import ru.mirea.project.exception.DataAccessException;
@@ -110,10 +111,11 @@ public class ConsoleUI {
     private void createParkingRequest() {
         try {
             long userId = readLong("ID владельца: ");
-            String licensePlate = readLine("Гос. номер (например А123ВС777): ");
-            int spotNumber = readInt("Номер места: ");
+            userService.getById(userId);
+            String licensePlate = readValid("Гос. номер (например А123ВС777): ", parkingRequestService::checkLicensePlate);
+            int spotNumber = readSpotNumber("Номер места: ");
             LocalDateTime startTime = readDateTime("Начало (" + DATE_TIME_HINT + "): ");
-            LocalDateTime endTime = readDateTime("Окончание (" + DATE_TIME_HINT + "): ");
+            LocalDateTime endTime = readEndTime("Окончание (" + DATE_TIME_HINT + "): ", startTime);
 
             ParkingRequest created = parkingRequestService.create(userId, licensePlate, spotNumber, startTime, endTime);
             System.out.println("Заявка создана: " + created);
@@ -134,10 +136,11 @@ public class ConsoleUI {
     private void updateParkingRequest() {
         try {
             long id = readLong("ID заявки: ");
-            String licensePlate = readLine("Новый гос. номер (например А123ВС777): ");
-            int spotNumber = readInt("Новый номер места: ");
+            parkingRequestService.getById(id);
+            String licensePlate = readValid("Новый гос. номер (например А123ВС777): ", parkingRequestService::checkLicensePlate);
+            int spotNumber = readSpotNumber("Новый номер места: ");
             LocalDateTime startTime = readDateTime("Новое начало (" + DATE_TIME_HINT + "): ");
-            LocalDateTime endTime = readDateTime("Новое окончание (" + DATE_TIME_HINT + "): ");
+            LocalDateTime endTime = readEndTime("Новое окончание (" + DATE_TIME_HINT + "): ", startTime);
 
             ParkingRequest updated = parkingRequestService.update(id, licensePlate, spotNumber, startTime, endTime);
             System.out.println("Заявка обновлена: " + updated);
@@ -208,8 +211,8 @@ public class ConsoleUI {
 
     private void createUser() {
         try {
-            String name = readLine("Имя: ");
-            String phone = readLine("Телефон (например 89991234567): ");
+            String name = readValid("Имя: ", userService::checkName);
+            String phone = readValid("Телефон (например 89991234567): ", input -> userService.checkPhone(0, input));
 
             User created = userService.create(name, phone);
             System.out.println("Владелец создан: " + created);
@@ -230,8 +233,9 @@ public class ConsoleUI {
     private void updateUser() {
         try {
             long id = readLong("ID владельца: ");
-            String name = readLine("Новое имя: ");
-            String phone = readLine("Новый телефон (например 89991234567): ");
+            userService.getById(id);
+            String name = readValid("Новое имя: ", userService::checkName);
+            String phone = readValid("Новый телефон (например 89991234567): ", input -> userService.checkPhone(id, input));
 
             User updated = userService.update(id, name, phone);
             System.out.println("Владелец обновлён: " + updated);
@@ -474,6 +478,40 @@ public class ConsoleUI {
             System.exit(0);
         }
         return scanner.nextLine();
+    }
+
+    private <T> T readValid(String prompt, Function<String, T> check) {
+        while (true) {
+            try {
+                return check.apply(readLine(prompt));
+            } catch (BusinessException e) {
+                System.out.println("Ошибка: " + e.getMessage());
+            }
+        }
+    }
+
+    private int readSpotNumber(String prompt) {
+        while (true) {
+            int spotNumber = readInt(prompt);
+            try {
+                parkingRequestService.checkSpotNumber(spotNumber);
+                return spotNumber;
+            } catch (BusinessException e) {
+                System.out.println("Ошибка: " + e.getMessage());
+            }
+        }
+    }
+
+    private LocalDateTime readEndTime(String prompt, LocalDateTime startTime) {
+        while (true) {
+            LocalDateTime endTime = readDateTime(prompt);
+            try {
+                parkingRequestService.checkPeriod(startTime, endTime);
+                return endTime;
+            } catch (BusinessException e) {
+                System.out.println("Ошибка: " + e.getMessage());
+            }
+        }
     }
 
     private int readInt(String prompt) {
