@@ -18,10 +18,8 @@ public class UserService {
     }
 
     public User create(String name, String phone) {
-        validateRequired(name, phone);
-        String normalizedName = normalizeName(name);
-        String normalizedPhone = InputFormats.normalizePhone(phone);
-        checkPhoneUnique(0, normalizedPhone);
+        String normalizedName = checkName(name);
+        String normalizedPhone = checkPhone(0, phone);
 
         User user = new User(0, normalizedName, normalizedPhone, LocalDateTime.now());
         return userRepository.create(user);
@@ -38,10 +36,8 @@ public class UserService {
 
     public User update(long id, String name, String phone) {
         User existing = getById(id);
-        validateRequired(name, phone);
-        String normalizedName = normalizeName(name);
-        String normalizedPhone = InputFormats.normalizePhone(phone);
-        checkPhoneUnique(id, normalizedPhone);
+        String normalizedName = checkName(name);
+        String normalizedPhone = checkPhone(id, phone);
 
         existing.setName(normalizedName);
         existing.setPhone(normalizedPhone);
@@ -54,20 +50,23 @@ public class UserService {
         userRepository.delete(id);
     }
 
-    private void validateRequired(String name, String phone) {
+    public String checkName(String name) {
         if (name == null || name.isBlank()) {
             throw new BusinessException("Имя владельца обязательно для заполнения");
         }
-        if (phone == null || phone.isBlank()) {
-            throw new BusinessException("Телефон владельца обязателен для заполнения");
-        }
-    }
-
-    private String normalizeName(String name) {
         String normalized = InputFormats.normalizeName(name);
         if (normalized.length() > MAX_NAME_LENGTH) {
             throw new BusinessException("Имя владельца не должно быть длиннее " + MAX_NAME_LENGTH + " символов");
         }
+        return normalized;
+    }
+
+    public String checkPhone(long ownerId, String phone) {
+        if (phone == null || phone.isBlank()) {
+            throw new BusinessException("Телефон владельца обязателен для заполнения");
+        }
+        String normalized = InputFormats.normalizePhone(phone);
+        checkPhoneUnique(ownerId, normalized);
         return normalized;
     }
 

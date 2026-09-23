@@ -152,17 +152,29 @@ public class ParkingRequestService {
         parkingRequestRepository.delete(id);
     }
 
-    private String validateRequestData(String licensePlate, int spotNumber, LocalDateTime startTime, LocalDateTime endTime) {
+    public String checkLicensePlate(String licensePlate) {
         if (licensePlate == null || licensePlate.isBlank()) {
             throw new BusinessException("Гос. номер обязателен для заполнения");
         }
-        String plate = InputFormats.normalizePlate(licensePlate);
+        return InputFormats.normalizePlate(licensePlate);
+    }
+
+    public void checkSpotNumber(int spotNumber) {
         if (spotNumber <= 0) {
             throw new BusinessException("Номер места должен быть положительным числом");
         }
+    }
+
+    public void checkPeriod(LocalDateTime startTime, LocalDateTime endTime) {
         if (!endTime.isAfter(startTime)) {
             throw new BusinessException("Дата и время окончания должны быть позже даты и времени начала");
         }
+    }
+
+    private String validateRequestData(String licensePlate, int spotNumber, LocalDateTime startTime, LocalDateTime endTime) {
+        String plate = checkLicensePlate(licensePlate);
+        checkSpotNumber(spotNumber);
+        checkPeriod(startTime, endTime);
         return plate;
     }
 
