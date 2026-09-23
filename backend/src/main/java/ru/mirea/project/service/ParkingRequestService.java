@@ -66,6 +66,26 @@ public class ParkingRequestService {
                 LinkedHashMap::new));
     }
 
+    public Statistics getStatistics() {
+        List<ParkingRequest> requests = parkingRequestRepository.findAll();
+        LocalDateTime now = LocalDateTime.now();
+
+        long occupiedNow = requests.stream()
+            .filter(ParkingRequestService::isActive)
+            .filter(r -> !r.getStartTime().isAfter(now) && r.getEndTime().isAfter(now))
+            .map(ParkingRequest::getSpotNumber)
+            .distinct()
+            .count();
+
+        return new Statistics(
+            userService.getAll().size(),
+            requests.size(),
+            requests.stream().filter(ParkingRequestService::isActive).count(),
+            requests.stream().filter(r -> r.getStatus() == RequestStatus.COMPLETED).count(),
+            requests.stream().filter(r -> r.getStatus() == RequestStatus.CANCELLED).count(),
+            occupiedNow);
+    }
+
     public List<ParkingRequest> filterByStatus(RequestStatus status) {
     return parkingRequestRepository.findAll().stream()
         .filter(r -> r.getStatus() == status)
@@ -145,11 +165,15 @@ public class ParkingRequestService {
         boolean occupied = parkingRequestRepository.findAll().stream()
             .filter(r -> r.getId() != excludeId)
             .filter(r -> r.getSpotNumber() == spotNumber)
-            .filter(r -> r.getStatus() == RequestStatus.NEW || r.getStatus() == RequestStatus.CONFIRMED)
+            .filter(ParkingRequestService::isActive)
             .anyMatch(r -> startTime.isBefore(r.getEndTime()) && endTime.isAfter(r.getStartTime()));
 
         if (occupied) {
             throw new BusinessException("Место " + spotNumber + " уже занято на указанный период");
         }
+    }
+
+    private static boolean isActive(ParkingRequest request) {
+        return request.getStatus() == RequestStatus.NEW || request.getStatus() == RequestStatus.CONFIRMED;
     }
 }
