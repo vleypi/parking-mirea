@@ -5,6 +5,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Scanner;
 
 import ru.mirea.project.exception.BusinessException;
@@ -246,10 +247,12 @@ public class ConsoleUI {
         System.out.println();
         System.out.println("---- Поиск ----");
         System.out.println("1. По гос. номеру");
+        System.out.println("2. По имени владельца");
         System.out.println("0. Назад");
         int choice = readInt("Выберите действие: ");
         switch (choice) {
             case 1 -> searchByLicensePlate();
+            case 2 -> searchByOwnerName();
             case 0 -> {
                 return;
             }
@@ -262,6 +265,27 @@ public class ConsoleUI {
         try {
             String fragment = readLine("Фрагмент гос. номера: ");
             printResults(parkingRequestService.searchByLicensePlate(fragment));
+        } catch (DataAccessException e) {
+            System.out.println("Ошибка: " + e.getMessage());
+        }
+    }
+
+    private void searchByOwnerName() {
+        try {
+            String fragment = readLine("Фрагмент имени владельца: ");
+            Map<User, List<ParkingRequest>> found = parkingRequestService.searchByOwnerName(fragment);
+            if (found.isEmpty()) {
+                System.out.println("Ничего не найдено");
+                return;
+            }
+            found.forEach((user, requests) -> {
+                System.out.println(user);
+                if (requests.isEmpty()) {
+                    System.out.println("  Заявок нет");
+                } else {
+                    requests.forEach(request -> System.out.println("  " + request));
+                }
+            });
         } catch (DataAccessException e) {
             System.out.println("Ошибка: " + e.getMessage());
         }

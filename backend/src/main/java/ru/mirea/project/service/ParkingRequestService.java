@@ -1,15 +1,18 @@
 package ru.mirea.project.service;
 
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Comparator;
+import java.util.stream.Collectors;
 
 import ru.mirea.project.exception.BusinessException;
 import ru.mirea.project.exception.EntityNotFoundException;
 import ru.mirea.project.model.ParkingRequest;
 import ru.mirea.project.model.RequestStatus;
+import ru.mirea.project.model.User;
 import ru.mirea.project.repository.ParkingRequestRepository;
 
 public class ParkingRequestService {
@@ -50,6 +53,19 @@ public class ParkingRequestService {
         .toList();
     }
     
+    public Map<User, List<ParkingRequest>> searchByOwnerName(String fragment) {
+        String needle = fragment.trim().toLowerCase();
+        List<ParkingRequest> allRequests = parkingRequestRepository.findAll();
+
+        return userService.getAll().stream()
+            .filter(u -> u.getName().toLowerCase().contains(needle))
+            .collect(Collectors.toMap(
+                u -> u,
+                u -> allRequests.stream().filter(r -> r.getUserId() == u.getId()).toList(),
+                (a, b) -> a,
+                LinkedHashMap::new));
+    }
+
     public List<ParkingRequest> filterByStatus(RequestStatus status) {
     return parkingRequestRepository.findAll().stream()
         .filter(r -> r.getStatus() == status)
