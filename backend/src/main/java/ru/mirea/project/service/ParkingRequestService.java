@@ -1,5 +1,8 @@
 package ru.mirea.project.service;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -89,13 +92,27 @@ public class ParkingRequestService {
             .distinct()
             .count();
 
+        List<ParkingSpot> spots = parkingSpotService.getAll();
+        Map<Long, BigDecimal> rates = spots.stream()
+            .collect(Collectors.toMap(ParkingSpot::getId, ParkingSpot::getHourlyRate));
+
+        BigDecimal completedRevenue = requests.stream()
+            .filter(r -> r.getStatus() == RequestStatus.COMPLETED)
+            .map(r -> rates.get(r.getSpotId())
+                .multiply(BigDecimal.valueOf(Duration.between(r.getStartTime(), r.getEndTime()).toMinutes()))
+                .divide(BigDecimal.valueOf(60), 2, RoundingMode.HALF_UP))
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+
         return new Statistics(
             userService.getAll().size(),
+            vehicleService.getAll().size(),
+            spots.size(),
             requests.size(),
             requests.stream().filter(ParkingRequestService::isActive).count(),
             requests.stream().filter(r -> r.getStatus() == RequestStatus.COMPLETED).count(),
             requests.stream().filter(r -> r.getStatus() == RequestStatus.CANCELLED).count(),
-            occupiedNow);
+            occupiedNow,
+            completedRevenue);
     }
 
     public List<ParkingRequest> filterByStatus(RequestStatus status) {
