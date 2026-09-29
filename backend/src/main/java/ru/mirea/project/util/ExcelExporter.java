@@ -23,7 +23,7 @@ public final class ExcelExporter {
     private static final String[] USER_HEADERS = {"ID", "Имя", "Телефон", "Создан"};
     private static final int[] USER_WIDTHS = {8, 30, 20, 20};
     private static final String[] REQUEST_HEADERS =
-        {"ID", "ID владельца", "Гос. номер", "Место", "Начало", "Окончание", "Статус", "Создана"};
+        {"ID", "ID владельца", "ID автомобиля", "ID места", "Начало", "Окончание", "Статус", "Создана"};
     private static final int[] REQUEST_WIDTHS = {8, 14, 16, 8, 20, 20, 14, 20};
     private static final String DATE_FORMAT = "dd.mm.yyyy hh:mm";
 
@@ -72,8 +72,8 @@ public final class ExcelExporter {
             Row row = sheet.createRow(rowIndex++);
             row.createCell(0).setCellValue(request.getId());
             row.createCell(1).setCellValue(request.getUserId());
-            row.createCell(2).setCellValue(request.getLicensePlate());
-            row.createCell(3).setCellValue(request.getSpotNumber());
+            row.createCell(2).setCellValue(request.getVehicleId());
+            row.createCell(3).setCellValue(request.getSpotId());
             setDate(row.createCell(4), request.getStartTime(), dateStyle);
             setDate(row.createCell(5), request.getEndTime(), dateStyle);
             row.createCell(6).setCellValue(request.getStatus().name());

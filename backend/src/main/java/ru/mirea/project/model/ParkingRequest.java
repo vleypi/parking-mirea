@@ -5,20 +5,20 @@ import java.time.LocalDateTime;
 public class ParkingRequest {
     private long id;
     private long userId;
-    private String licensePlate;
-    private int spotNumber;
+    private long vehicleId;
+    private long spotId;
     private LocalDateTime startTime;
     private LocalDateTime endTime;
     private RequestStatus status;
     private LocalDateTime createdAt;
 
-    public ParkingRequest(long id, long userId, String licensePlate, int spotNumber,
+    public ParkingRequest(long id, long userId, long vehicleId, long spotId,
                           LocalDateTime startTime, LocalDateTime endTime,
                           RequestStatus status, LocalDateTime createdAt) {
         this.id = id;
         this.userId = userId;
-        this.licensePlate = licensePlate;
-        this.spotNumber = spotNumber;
+        this.vehicleId = vehicleId;
+        this.spotId = spotId;
         this.startTime = startTime;
         this.endTime = endTime;
         this.status = status;
@@ -41,20 +41,20 @@ public class ParkingRequest {
         this.userId = userId;
     }
 
-    public String getLicensePlate() {
-        return licensePlate;
+    public long getVehicleId() {
+        return vehicleId;
     }
 
-    public void setLicensePlate(String licensePlate) {
-        this.licensePlate = licensePlate;
+    public void setVehicleId(long vehicleId) {
+        this.vehicleId = vehicleId;
     }
 
-    public int getSpotNumber() {
-        return spotNumber;
+    public long getSpotId() {
+        return spotId;
     }
 
-    public void setSpotNumber(int spotNumber) {
-        this.spotNumber = spotNumber;
+    public void setSpotId(long spotId) {
+        this.spotId = spotId;
     }
 
     public LocalDateTime getStartTime() {
@@ -87,7 +87,7 @@ public class ParkingRequest {
 
     @Override
     public String toString() {
-        return "[%d] место %d | %s | %s - %s | статус: %s | владелец: %d"
-                .formatted(id, spotNumber, licensePlate, startTime, endTime, status, userId);
+        return "[%d] владелец: %d | авто: %d | место: %d | %s - %s | статус: %s"
+                .formatted(id, userId, vehicleId, spotId, startTime, endTime, status);
     }
 }

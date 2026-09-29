@@ -17,8 +17,9 @@ public class Main {
         VehicleRepository vehicleRepository = new VehicleRepository();
         UserService userService = new UserService(userRepository);
         VehicleService vehicleService = new VehicleService(vehicleRepository, userService);
-        ParkingRequestService parkingRequestService = new ParkingRequestService(parkingRequestRepository, userService);
         ParkingSpotService parkingSpotService = new ParkingSpotService(new ParkingSpotRepository());
+        ParkingRequestService parkingRequestService = new ParkingRequestService(
+            parkingRequestRepository, userService, vehicleService, parkingSpotService);
         new ConsoleUI(userService, vehicleService, parkingSpotService, parkingRequestService).run();
     }
 }

@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import ru.mirea.project.exception.BusinessException;
 import ru.mirea.project.exception.DataAccessException;
@@ -117,7 +118,7 @@ public class ConsoleUI {
                 System.out.println("Заявок пока нет");
                 return;
             }
-            requests.forEach(System.out::println);
+            describeRequests(requests).forEach(System.out::println);
         } catch (DataAccessException e) {
             System.out.println("Ошибка: " + e.getMessage());
         }
@@ -127,13 +128,22 @@ public class ConsoleUI {
         try {
             long userId = readLong("ID владельца: ");
             userService.getById(userId);
-            String licensePlate = readValid("Гос. номер (например А123ВС777): ", parkingRequestService::checkLicensePlate);
-            int spotNumber = readSpotNumber("Номер места: ");
+            List<Vehicle> vehicles = vehicleService.getByUserId(userId);
+            if (vehicles.isEmpty()) {
+                System.out.println("У владельца нет автомобилей. Сначала добавьте автомобиль в разделе «Автомобили»");
+                return;
+            }
+            System.out.println("Автомобили владельца:");
+            vehicles.forEach(System.out::println);
+            long vehicleId = readLong("ID автомобиля: ");
+            System.out.println("Парковочные места:");
+            parkingSpotService.getAll().forEach(System.out::println);
+            long spotId = readLong("ID места: ");
             LocalDateTime startTime = readDateTime("Начало (" + DATE_TIME_HINT + "): ");
             LocalDateTime endTime = readEndTime("Окончание (" + DATE_TIME_HINT + "): ", startTime);
 
-            ParkingRequest created = parkingRequestService.create(userId, licensePlate, spotNumber, startTime, endTime);
-            System.out.println("Заявка создана: " + created);
+            ParkingRequest created = parkingRequestService.create(userId, vehicleId, spotId, startTime, endTime);
+            System.out.println("Заявка создана: " + describeRequest(created));
         } catch (BusinessException | EntityNotFoundException | DataAccessException e) {
             System.out.println("Ошибка: " + e.getMessage());
         }
@@ -142,7 +152,7 @@ public class ConsoleUI {
     private void findParkingRequestById() {
         try {
             long id = readLong("ID заявки: ");
-            System.out.println(parkingRequestService.getById(id));
+            System.out.println(describeRequest(parkingRequestService.getById(id)));
         } catch (EntityNotFoundException | DataAccessException e) {
             System.out.println("Ошибка: " + e.getMessage());
         }
@@ -151,14 +161,18 @@ public class ConsoleUI {
     private void updateParkingRequest() {
         try {
             long id = readLong("ID заявки: ");
-            parkingRequestService.getById(id);
-            String licensePlate = readValid("Новый гос. номер (например А123ВС777): ", parkingRequestService::checkLicensePlate);
-            int spotNumber = readSpotNumber("Новый номер места: ");
+            ParkingRequest existing = parkingRequestService.getById(id);
+            System.out.println("Автомобили владельца:");
+            vehicleService.getByUserId(existing.getUserId()).forEach(System.out::println);
+            long vehicleId = readLong("ID нового автомобиля: ");
+            System.out.println("Парковочные места:");
+            parkingSpotService.getAll().forEach(System.out::println);
+            long spotId = readLong("ID нового места: ");
             LocalDateTime startTime = readDateTime("Новое начало (" + DATE_TIME_HINT + "): ");
             LocalDateTime endTime = readEndTime("Новое окончание (" + DATE_TIME_HINT + "): ", startTime);
 
-            ParkingRequest updated = parkingRequestService.update(id, licensePlate, spotNumber, startTime, endTime);
-            System.out.println("Заявка обновлена: " + updated);
+            ParkingRequest updated = parkingRequestService.update(id, vehicleId, spotId, startTime, endTime);
+            System.out.println("Заявка обновлена: " + describeRequest(updated));
         } catch (BusinessException | EntityNotFoundException | DataAccessException e) {
             System.out.println("Ошибка: " + e.getMessage());
         }
@@ -170,7 +184,7 @@ public class ConsoleUI {
             RequestStatus newStatus = readStatus("Новый статус " + Arrays.toString(RequestStatus.values()) + ": ");
 
             ParkingRequest updated = parkingRequestService.changeStatus(id, newStatus);
-            System.out.println("Статус обновлён: " + updated);
+            System.out.println("Статус обновлён: " + describeRequest(updated));
         } catch (BusinessException | EntityNotFoundException | DataAccessException e) {
             System.out.println("Ошибка: " + e.getMessage());
         }
@@ -517,7 +531,7 @@ public class ConsoleUI {
                 if (requests.isEmpty()) {
                     System.out.println("  Заявок нет");
                 } else {
-                    requests.forEach(request -> System.out.println("  " + request));
+                    describeRequests(requests).forEach(line -> System.out.println("  " + line));
                 }
             });
         } catch (DataAccessException e) {
@@ -601,7 +615,25 @@ public class ConsoleUI {
             System.out.println("Ничего не найдено");
             return;
         }
-        requests.forEach(System.out::println);
+        describeRequests(requests).forEach(System.out::println);
+    }
+
+    private List<String> describeRequests(List<ParkingRequest> requests) {
+        Map<Long, String> plates = vehicleService.getAll().stream()
+            .collect(Collectors.toMap(Vehicle::getId, Vehicle::getLicensePlate));
+        Map<Long, Integer> spotNumbers = parkingSpotService.getAll().stream()
+            .collect(Collectors.toMap(ParkingSpot::getId, ParkingSpot::getSpotNumber));
+
+        return requests.stream()
+            .map(r -> "[%d] место %s | %s | %s - %s | статус: %s | владелец: %d".formatted(
+                r.getId(), spotNumbers.get(r.getSpotId()), plates.get(r.getVehicleId()),
+                DATE_TIME_FORMATTER.format(r.getStartTime()), DATE_TIME_FORMATTER.format(r.getEndTime()),
+                r.getStatus(), r.getUserId()))
+            .toList();
+    }
+
+    private String describeRequest(ParkingRequest request) {
+        return describeRequests(List.of(request)).get(0);
     }
 
     private void showStatistics() {
@@ -646,11 +678,11 @@ public class ConsoleUI {
 
             System.out.println();
             System.out.println("Таблица parking_requests");
-            printTable(new String[] {"ID", "Владелец", "Гос. номер", "Место", "Начало", "Окончание", "Статус", "Создана"},
+            printTable(new String[] {"ID", "Владелец", "Автомобиль", "Место", "Начало", "Окончание", "Статус", "Создана"},
                 requests.stream()
                     .map(r -> new String[] {
-                        String.valueOf(r.getId()), String.valueOf(r.getUserId()), r.getLicensePlate(),
-                        String.valueOf(r.getSpotNumber()), DATE_TIME_FORMATTER.format(r.getStartTime()),
+                        String.valueOf(r.getId()), String.valueOf(r.getUserId()), String.valueOf(r.getVehicleId()),
+                        String.valueOf(r.getSpotId()), DATE_TIME_FORMATTER.format(r.getStartTime()),
                         DATE_TIME_FORMATTER.format(r.getEndTime()), r.getStatus().name(),
                         DATE_TIME_FORMATTER.format(r.getCreatedAt())})
                     .toList());
@@ -705,18 +737,6 @@ public class ConsoleUI {
         while (true) {
             try {
                 return check.apply(readLine(prompt));
-            } catch (BusinessException e) {
-                System.out.println("Ошибка: " + e.getMessage());
-            }
-        }
-    }
-
-    private int readSpotNumber(String prompt) {
-        while (true) {
-            int spotNumber = readInt(prompt);
-            try {
-                parkingRequestService.checkSpotNumber(spotNumber);
-                return spotNumber;
             } catch (BusinessException e) {
                 System.out.println("Ошибка: " + e.getMessage());
             }
