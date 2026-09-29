@@ -11,8 +11,10 @@ import java.util.stream.Collectors;
 import ru.mirea.project.exception.BusinessException;
 import ru.mirea.project.exception.EntityNotFoundException;
 import ru.mirea.project.model.ParkingRequest;
+import ru.mirea.project.model.ParkingSpot;
 import ru.mirea.project.model.RequestStatus;
 import ru.mirea.project.model.User;
+import ru.mirea.project.model.Vehicle;
 import ru.mirea.project.repository.ParkingRequestRepository;
 
 public class ParkingRequestService {
@@ -25,19 +27,27 @@ public class ParkingRequestService {
 
     private final ParkingRequestRepository parkingRequestRepository;
     private final UserService userService;
+    private final VehicleService vehicleService;
+    private final ParkingSpotService parkingSpotService;
 
-    public ParkingRequestService(ParkingRequestRepository parkingRequestRepository, UserService userService) {
+    public ParkingRequestService(ParkingRequestRepository parkingRequestRepository, UserService userService,
+                                 VehicleService vehicleService, ParkingSpotService parkingSpotService) {
         this.parkingRequestRepository = parkingRequestRepository;
         this.userService = userService;
+        this.vehicleService = vehicleService;
+        this.parkingSpotService = parkingSpotService;
     }
 
-    public ParkingRequest create(long userId, String licensePlate, int spotNumber,
+    public ParkingRequest create(long userId, long vehicleId, long spotId,
                                  LocalDateTime startTime, LocalDateTime endTime) {
-        String plate = validateRequestData(licensePlate, spotNumber, startTime, endTime);
-        checkSpotAvailability(0, spotNumber, startTime, endTime);
         userService.getById(userId);
+        checkVehicleBelongsToUser(userId, vehicleId);
+        ParkingSpot spot = parkingSpotService.getById(spotId);
+        checkPeriod(startTime, endTime);
+        checkSpotAvailability(0, spot, startTime, endTime);
+        checkVehicleAvailability(0, vehicleId, startTime, endTime);
 
-        ParkingRequest request = new ParkingRequest(0, userId, plate, spotNumber,
+        ParkingRequest request = new ParkingRequest(0, userId, vehicleId, spotId,
             startTime, endTime, RequestStatus.NEW, LocalDateTime.now());
         return parkingRequestRepository.create(request);
     }
@@ -47,9 +57,11 @@ public class ParkingRequestService {
     }
 
     public List<ParkingRequest> searchByLicensePlate(String fragment) {
-        String needle = InputFormats.normalizePlateText(fragment);
+        Set<Long> vehicleIds = vehicleService.searchByLicensePlate(fragment).stream()
+            .map(Vehicle::getId)
+            .collect(Collectors.toSet());
         return parkingRequestRepository.findAll().stream()
-            .filter(r -> InputFormats.normalizePlateText(r.getLicensePlate()).contains(needle))
+            .filter(r -> vehicleIds.contains(r.getVehicleId()))
             .toList();
     }
     
@@ -73,7 +85,7 @@ public class ParkingRequestService {
         long occupiedNow = requests.stream()
             .filter(ParkingRequestService::isActive)
             .filter(r -> !r.getStartTime().isAfter(now) && r.getEndTime().isAfter(now))
-            .map(ParkingRequest::getSpotNumber)
+            .map(ParkingRequest::getSpotId)
             .distinct()
             .count();
 
@@ -120,14 +132,17 @@ public class ParkingRequestService {
             .orElseThrow(() -> new EntityNotFoundException("Заявка с id " + id + " не найдена"));
     }
 
-    public ParkingRequest update(long id, String licensePlate, int spotNumber,
+    public ParkingRequest update(long id, long vehicleId, long spotId,
                                  LocalDateTime startTime, LocalDateTime endTime) {
         ParkingRequest existing = getById(id);
-        String plate = validateRequestData(licensePlate, spotNumber, startTime, endTime);
-        checkSpotAvailability(id, spotNumber, startTime, endTime);
+        checkVehicleBelongsToUser(existing.getUserId(), vehicleId);
+        ParkingSpot spot = parkingSpotService.getById(spotId);
+        checkPeriod(startTime, endTime);
+        checkSpotAvailability(id, spot, startTime, endTime);
+        checkVehicleAvailability(id, vehicleId, startTime, endTime);
 
-        existing.setLicensePlate(plate);
-        existing.setSpotNumber(spotNumber);
+        existing.setVehicleId(vehicleId);
+        existing.setSpotId(spotId);
         existing.setStartTime(startTime);
         existing.setEndTime(endTime);
         parkingRequestRepository.update(existing);
@@ -152,41 +167,40 @@ public class ParkingRequestService {
         parkingRequestRepository.delete(id);
     }
 
-    public String checkLicensePlate(String licensePlate) {
-        if (licensePlate == null || licensePlate.isBlank()) {
-            throw new BusinessException("Гос. номер обязателен для заполнения");
-        }
-        return InputFormats.normalizePlate(licensePlate);
-    }
-
-    public void checkSpotNumber(int spotNumber) {
-        if (spotNumber <= 0) {
-            throw new BusinessException("Номер места должен быть положительным числом");
-        }
-    }
-
     public void checkPeriod(LocalDateTime startTime, LocalDateTime endTime) {
         if (!endTime.isAfter(startTime)) {
             throw new BusinessException("Дата и время окончания должны быть позже даты и времени начала");
         }
     }
 
-    private String validateRequestData(String licensePlate, int spotNumber, LocalDateTime startTime, LocalDateTime endTime) {
-        String plate = checkLicensePlate(licensePlate);
-        checkSpotNumber(spotNumber);
-        checkPeriod(startTime, endTime);
-        return plate;
+    private void checkVehicleBelongsToUser(long userId, long vehicleId) {
+        Vehicle vehicle = vehicleService.getById(vehicleId);
+        if (vehicle.getUserId() != userId) {
+            throw new BusinessException("Автомобиль " + vehicle.getLicensePlate() + " не принадлежит владельцу с id " + userId);
+        }
     }
 
-    private void checkSpotAvailability(long excludeId, int spotNumber, LocalDateTime startTime, LocalDateTime endTime) {
+    private void checkSpotAvailability(long excludeId, ParkingSpot spot, LocalDateTime startTime, LocalDateTime endTime) {
         boolean occupied = parkingRequestRepository.findAll().stream()
             .filter(r -> r.getId() != excludeId)
-            .filter(r -> r.getSpotNumber() == spotNumber)
+            .filter(r -> r.getSpotId() == spot.getId())
             .filter(ParkingRequestService::isActive)
             .anyMatch(r -> startTime.isBefore(r.getEndTime()) && endTime.isAfter(r.getStartTime()));
 
         if (occupied) {
-            throw new BusinessException("Место " + spotNumber + " уже занято на указанный период");
+            throw new BusinessException("Место " + spot.getSpotNumber() + " уже занято на указанный период");
+        }
+    }
+
+    private void checkVehicleAvailability(long excludeId, long vehicleId, LocalDateTime startTime, LocalDateTime endTime) {
+        boolean busy = parkingRequestRepository.findAll().stream()
+            .filter(r -> r.getId() != excludeId)
+            .filter(r -> r.getVehicleId() == vehicleId)
+            .filter(ParkingRequestService::isActive)
+            .anyMatch(r -> startTime.isBefore(r.getEndTime()) && endTime.isAfter(r.getStartTime()));
+
+        if (busy) {
+            throw new BusinessException("Этот автомобиль уже припаркован на указанный период");
         }
     }
 
