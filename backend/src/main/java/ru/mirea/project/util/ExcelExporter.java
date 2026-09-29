@@ -17,11 +17,17 @@ import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import ru.mirea.project.model.ParkingRequest;
+import ru.mirea.project.model.ParkingSpot;
 import ru.mirea.project.model.User;
+import ru.mirea.project.model.Vehicle;
 
 public final class ExcelExporter {
     private static final String[] USER_HEADERS = {"ID", "Имя", "Телефон", "Создан"};
     private static final int[] USER_WIDTHS = {8, 30, 20, 20};
+    private static final String[] VEHICLE_HEADERS = {"ID", "ID владельца", "Гос. номер", "Марка", "Модель"};
+    private static final int[] VEHICLE_WIDTHS = {8, 14, 16, 20, 20};
+    private static final String[] SPOT_HEADERS = {"ID", "Номер места", "Тип", "Тариф, руб/ч"};
+    private static final int[] SPOT_WIDTHS = {8, 14, 14, 16};
     private static final String[] REQUEST_HEADERS =
         {"ID", "ID владельца", "ID автомобиля", "ID места", "Начало", "Окончание", "Статус", "Создана"};
     private static final int[] REQUEST_WIDTHS = {8, 14, 16, 8, 20, 20, 14, 20};
@@ -35,12 +41,15 @@ public final class ExcelExporter {
     private ExcelExporter() {
     }
 
-    public static void export(List<User> users, List<ParkingRequest> requests, Path file) {
+    public static void export(List<User> users, List<Vehicle> vehicles, List<ParkingSpot> spots,
+                              List<ParkingRequest> requests, Path file) {
         try (Workbook workbook = new XSSFWorkbook()) {
             CellStyle headerStyle = createHeaderStyle(workbook);
             CellStyle dateStyle = createDateStyle(workbook);
 
             writeUsers(workbook.createSheet("Владельцы"), users, headerStyle, dateStyle);
+            writeVehicles(workbook.createSheet("Автомобили"), vehicles, headerStyle);
+            writeSpots(workbook.createSheet("Парковочные места"), spots, headerStyle);
             writeRequests(workbook.createSheet("Заявки"), requests, headerStyle, dateStyle);
 
             try (OutputStream out = Files.newOutputStream(file)) {
@@ -61,6 +70,33 @@ public final class ExcelExporter {
             row.createCell(1).setCellValue(user.getName());
             row.createCell(2).setCellValue(user.getPhone());
             setDate(row.createCell(3), user.getCreatedAt(), dateStyle);
+        }
+    }
+
+    private static void writeVehicles(Sheet sheet, List<Vehicle> vehicles, CellStyle headerStyle) {
+        writeHeader(sheet, VEHICLE_HEADERS, VEHICLE_WIDTHS, headerStyle);
+
+        int rowIndex = 1;
+        for (Vehicle vehicle : vehicles) {
+            Row row = sheet.createRow(rowIndex++);
+            row.createCell(0).setCellValue(vehicle.getId());
+            row.createCell(1).setCellValue(vehicle.getUserId());
+            row.createCell(2).setCellValue(vehicle.getLicensePlate());
+            row.createCell(3).setCellValue(vehicle.getBrand());
+            row.createCell(4).setCellValue(vehicle.getModel());
+        }
+    }
+
+    private static void writeSpots(Sheet sheet, List<ParkingSpot> spots, CellStyle headerStyle) {
+        writeHeader(sheet, SPOT_HEADERS, SPOT_WIDTHS, headerStyle);
+
+        int rowIndex = 1;
+        for (ParkingSpot spot : spots) {
+            Row row = sheet.createRow(rowIndex++);
+            row.createCell(0).setCellValue(spot.getId());
+            row.createCell(1).setCellValue(spot.getSpotNumber());
+            row.createCell(2).setCellValue(spot.getSpotType().name());
+            row.createCell(3).setCellValue(spot.getHourlyRate().doubleValue());
         }
     }
 

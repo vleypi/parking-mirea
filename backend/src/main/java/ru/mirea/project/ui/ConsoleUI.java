@@ -642,11 +642,14 @@ public class ConsoleUI {
             System.out.println();
             System.out.println("Статистика");
             System.out.println("Всего владельцев: " + statistics.totalUsers());
+            System.out.println("Всего автомобилей: " + statistics.totalVehicles());
+            System.out.println("Всего парковочных мест: " + statistics.totalSpots());
             System.out.println("Всего заявок: " + statistics.totalRequests());
             System.out.println("Активных (NEW + CONFIRMED): " + statistics.active());
             System.out.println("Завершённых: " + statistics.completed());
             System.out.println("Отменённых: " + statistics.cancelled());
             System.out.println("Занятых мест сейчас: " + statistics.occupiedNow());
+            System.out.println("Выручка по завершённым заявкам: " + statistics.completedRevenue() + " руб.");
         } catch (DataAccessException e) {
             System.out.println("Ошибка: " + e.getMessage());
         }
@@ -655,7 +658,8 @@ public class ConsoleUI {
     private void exportData() {
         try {
             Path file = Path.of(EXPORT_FILE_NAME).toAbsolutePath();
-            ExcelExporter.export(userService.getAll(), parkingRequestService.getAll(), file);
+            ExcelExporter.export(userService.getAll(), vehicleService.getAll(),
+                parkingSpotService.getAll(), parkingRequestService.getAll(), file);
             System.out.println("Экспорт выполнен: " + file);
         } catch (DataAccessException | UncheckedIOException e) {
             System.out.println("Ошибка: " + e.getMessage());
@@ -665,6 +669,8 @@ public class ConsoleUI {
     private void showTables() {
         try {
             List<User> users = userService.getAll();
+            List<Vehicle> vehicles = vehicleService.getAll();
+            List<ParkingSpot> spots = parkingSpotService.getAll();
             List<ParkingRequest> requests = parkingRequestService.getAll();
 
             System.out.println();
@@ -674,6 +680,24 @@ public class ConsoleUI {
                     .map(u -> new String[] {
                         String.valueOf(u.getId()), u.getName(), u.getPhone(),
                         DATE_TIME_FORMATTER.format(u.getCreatedAt())})
+                    .toList());
+
+            System.out.println();
+            System.out.println("Таблица vehicles");
+            printTable(new String[] {"ID", "Владелец", "Гос. номер", "Марка", "Модель"},
+                vehicles.stream()
+                    .map(v -> new String[] {
+                        String.valueOf(v.getId()), String.valueOf(v.getUserId()), v.getLicensePlate(),
+                        v.getBrand(), v.getModel()})
+                    .toList());
+
+            System.out.println();
+            System.out.println("Таблица parking_spots");
+            printTable(new String[] {"ID", "Номер места", "Тип", "Тариф, руб/ч"},
+                spots.stream()
+                    .map(s -> new String[] {
+                        String.valueOf(s.getId()), String.valueOf(s.getSpotNumber()), s.getSpotType().name(),
+                        s.getHourlyRate().toPlainString()})
                     .toList());
 
             System.out.println();
