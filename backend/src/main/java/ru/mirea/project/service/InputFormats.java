@@ -73,7 +73,21 @@ final class InputFormats {
         if (!NAME_PATTERN.matcher(name).matches()) {
             throw new BusinessException("Имя может содержать только буквы, пробелы, дефис, точку и апостроф");
         }
-        return name;
+        StringBuilder result = new StringBuilder(name.length());
+        boolean wordStart = true;
+        for (char c : name.toCharArray()) {
+            result.append(wordStart ? Character.toUpperCase(c) : Character.toLowerCase(c));
+            wordStart = !Character.isLetter(c);
+        }
+        return result.toString();
+    }
+
+    static String normalizeTitle(String raw) {
+        String text = raw.trim().replaceAll("\\s+", " ");
+        if (text.isEmpty()) {
+            return text;
+        }
+        return Character.toUpperCase(text.charAt(0)) + text.substring(1);
     }
 
     private static BusinessException invalidPhone(String input) {

@@ -45,7 +45,10 @@ public class VehicleService {
     }
 
     public List<Vehicle> searchByLicensePlate(String fragment) {
-        String needle = InputFormats.normalizePlateText(fragment);
+        String needle = fragment == null ? "" : InputFormats.normalizePlateText(fragment);
+        if (needle.isEmpty()) {
+            throw new BusinessException("Введите фрагмент гос. номера для поиска");
+        }
         return vehicleRepository.findAll().stream()
             .filter(v -> v.getLicensePlate().contains(needle))
             .toList();
@@ -90,7 +93,7 @@ public class VehicleService {
         if (value == null || value.isBlank()) {
             throw new BusinessException(fieldName + " автомобиля обязательна для заполнения");
         }
-        String normalized = value.trim().replaceAll("\\s+", " ");
+        String normalized = InputFormats.normalizeTitle(value);
         if (normalized.length() > maxLength) {
             throw new BusinessException(fieldName + " автомобиля не должна быть длиннее " + maxLength + " символов");
         }

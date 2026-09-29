@@ -162,6 +162,7 @@ public class ConsoleUI {
         try {
             long id = readLong("ID заявки: ");
             ParkingRequest existing = parkingRequestService.getById(id);
+            parkingRequestService.checkEditable(existing);
             System.out.println("Автомобили владельца:");
             vehicleService.getByUserId(existing.getUserId()).forEach(System.out::println);
             long vehicleId = readLong("ID нового автомобиля: ");
@@ -491,29 +492,29 @@ public class ConsoleUI {
     }
 
     private void searchMenu() {
-    while (true) {
-        System.out.println();
-        System.out.println("Поиск");
-        System.out.println("1. По гос. номеру");
-        System.out.println("2. По имени владельца");
-        System.out.println("0. Назад");
-        int choice = readInt("Выберите действие: ");
-        switch (choice) {
-            case 1 -> searchByLicensePlate();
-            case 2 -> searchByOwnerName();
-            case 0 -> {
-                return;
+        while (true) {
+            System.out.println();
+            System.out.println("Поиск");
+            System.out.println("1. По гос. номеру");
+            System.out.println("2. По имени владельца");
+            System.out.println("0. Назад");
+            int choice = readInt("Выберите действие: ");
+            switch (choice) {
+                case 1 -> searchByLicensePlate();
+                case 2 -> searchByOwnerName();
+                case 0 -> {
+                    return;
+                }
+                default -> System.out.println("Неизвестный пункт меню");
             }
-            default -> System.out.println("Неизвестный пункт меню");
         }
     }
-}
 
     private void searchByLicensePlate() {
         try {
             String fragment = readLine("Фрагмент гос. номера: ");
             printResults(parkingRequestService.searchByLicensePlate(fragment));
-        } catch (DataAccessException e) {
+        } catch (BusinessException | DataAccessException e) {
             System.out.println("Ошибка: " + e.getMessage());
         }
     }
@@ -534,7 +535,7 @@ public class ConsoleUI {
                     describeRequests(requests).forEach(line -> System.out.println("  " + line));
                 }
             });
-        } catch (DataAccessException e) {
+        } catch (BusinessException | DataAccessException e) {
             System.out.println("Ошибка: " + e.getMessage());
         }
     }
