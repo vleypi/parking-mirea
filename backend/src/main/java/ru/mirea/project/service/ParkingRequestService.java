@@ -69,7 +69,10 @@ public class ParkingRequestService {
     }
     
     public Map<User, List<ParkingRequest>> searchByOwnerName(String fragment) {
-        String needle = fragment.trim().toLowerCase();
+        String needle = fragment == null ? "" : fragment.trim().toLowerCase();
+        if (needle.isEmpty()) {
+            throw new BusinessException("Введите фрагмент имени владельца для поиска");
+        }
         List<ParkingRequest> allRequests = parkingRequestRepository.findAll();
 
         return userService.getAll().stream()
@@ -116,12 +119,15 @@ public class ParkingRequestService {
     }
 
     public List<ParkingRequest> filterByStatus(RequestStatus status) {
-    return parkingRequestRepository.findAll().stream()
-        .filter(r -> r.getStatus() == status)
-        .toList();
+        return parkingRequestRepository.findAll().stream()
+            .filter(r -> r.getStatus() == status)
+            .toList();
     }
 
     public List<ParkingRequest> filterByDateRange(LocalDateTime from, LocalDateTime to) {
+        if (from == null || to == null) {
+            throw new BusinessException("Укажите начало и конец диапазона");
+        }
         if (from.isAfter(to)) {
             throw new BusinessException("Начало диапазона не может быть позже конца");
         }
@@ -152,6 +158,7 @@ public class ParkingRequestService {
     public ParkingRequest update(long id, long vehicleId, long spotId,
                                  LocalDateTime startTime, LocalDateTime endTime) {
         ParkingRequest existing = getById(id);
+        checkEditable(existing);
         checkVehicleBelongsToUser(existing.getUserId(), vehicleId);
         ParkingSpot spot = parkingSpotService.getById(spotId);
         checkPeriod(startTime, endTime);
@@ -170,6 +177,9 @@ public class ParkingRequestService {
         ParkingRequest request = getById(id);
         RequestStatus currentStatus = request.getStatus();
 
+        if (newStatus == null) {
+            throw new BusinessException("Новый статус обязателен");
+        }
         if (!ALLOWED_STATUS_TRANSITIONS.get(currentStatus).contains(newStatus)) {
             throw new BusinessException("Недопустимый переход статуса: " + currentStatus + " -> " + newStatus);
         }
@@ -184,7 +194,17 @@ public class ParkingRequestService {
         parkingRequestRepository.delete(id);
     }
 
+    public void checkEditable(ParkingRequest request) {
+        if (!isActive(request)) {
+            throw new BusinessException("Заявку в статусе " + request.getStatus()
+                + " изменить нельзя: редактируются только заявки в статусе NEW или CONFIRMED");
+        }
+    }
+
     public void checkPeriod(LocalDateTime startTime, LocalDateTime endTime) {
+        if (startTime == null || endTime == null) {
+            throw new BusinessException("Дата и время начала и окончания обязательны");
+        }
         if (!endTime.isAfter(startTime)) {
             throw new BusinessException("Дата и время окончания должны быть позже даты и времени начала");
         }

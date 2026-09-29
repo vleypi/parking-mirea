@@ -21,8 +21,11 @@ public class ParkingSpotService {
     }
 
     public ParkingSpot create(int spotNumber, SpotType spotType, BigDecimal hourlyRate) {
+        checkSpotNumber(spotNumber);
+        checkSpotType(spotType);
+        BigDecimal rate = checkHourlyRate(hourlyRate);
         checkSpotNumberUnique(0, spotNumber);
-        ParkingSpot spot = new ParkingSpot(0, spotNumber, spotType, hourlyRate);
+        ParkingSpot spot = new ParkingSpot(0, spotNumber, spotType, rate);
         return parkingSpotRepository.create(spot);
     }
 
@@ -43,11 +46,14 @@ public class ParkingSpotService {
 
     public ParkingSpot update(long id, int spotNumber, SpotType spotType, BigDecimal hourlyRate) {
         ParkingSpot existing = getById(id);
+        checkSpotNumber(spotNumber);
+        checkSpotType(spotType);
+        BigDecimal rate = checkHourlyRate(hourlyRate);
         checkSpotNumberUnique(id, spotNumber);
 
         existing.setSpotNumber(spotNumber);
         existing.setSpotType(spotType);
-        existing.setHourlyRate(hourlyRate);
+        existing.setHourlyRate(rate);
         parkingSpotRepository.update(existing);
         return existing;
     }
@@ -64,9 +70,7 @@ public class ParkingSpotService {
         } catch (NumberFormatException e) {
             throw new BusinessException("Номер места должен быть целым числом");
         }
-        if (spotNumber <= 0) {
-            throw new BusinessException("Номер места должен быть положительным числом");
-        }
+        checkSpotNumber(spotNumber);
         return spotNumber;
     }
 
@@ -85,13 +89,33 @@ public class ParkingSpotService {
         } catch (NumberFormatException e) {
             throw new BusinessException("Тариф должен быть числом, например 100 или 99.50");
         }
+        return checkHourlyRate(rate);
+    }
+
+    public void checkSpotNumber(int spotNumber) {
+        if (spotNumber <= 0) {
+            throw new BusinessException("Номер места должен быть положительным числом");
+        }
+    }
+
+    public void checkSpotType(SpotType spotType) {
+        if (spotType == null) {
+            throw new BusinessException("Тип места обязателен для заполнения");
+        }
+    }
+
+    public BigDecimal checkHourlyRate(BigDecimal rate) {
+        if (rate == null) {
+            throw new BusinessException("Тариф обязателен для заполнения");
+        }
         if (rate.signum() < 0) {
             throw new BusinessException("Тариф не может быть отрицательным");
         }
-        if (rate.compareTo(MAX_HOURLY_RATE) > 0) {
+        BigDecimal rounded = rate.setScale(2, RoundingMode.HALF_UP);
+        if (rounded.compareTo(MAX_HOURLY_RATE) > 0) {
             throw new BusinessException("Тариф не должен превышать " + MAX_HOURLY_RATE);
         }
-        return rate.setScale(2, RoundingMode.HALF_UP);
+        return rounded;
     }
 
     public int checkSpotNumberUnique(long spotId, int spotNumber) {
