@@ -18,9 +18,11 @@ import ru.mirea.project.exception.EntityNotFoundException;
 import ru.mirea.project.model.ParkingRequest;
 import ru.mirea.project.model.RequestStatus;
 import ru.mirea.project.model.User;
+import ru.mirea.project.model.Vehicle;
 import ru.mirea.project.service.ParkingRequestService;
 import ru.mirea.project.service.Statistics;
 import ru.mirea.project.service.UserService;
+import ru.mirea.project.service.VehicleService;
 import ru.mirea.project.util.ExcelExporter;
 
 public class ConsoleUI {
@@ -31,10 +33,13 @@ public class ConsoleUI {
 
     private final Scanner scanner = new Scanner(System.in);
     private final UserService userService;
+    private final VehicleService vehicleService;
     private final ParkingRequestService parkingRequestService;
 
-    public ConsoleUI(UserService userService, ParkingRequestService parkingRequestService) {
+    public ConsoleUI(UserService userService, VehicleService vehicleService,
+                     ParkingRequestService parkingRequestService) {
         this.userService = userService;
+        this.vehicleService = vehicleService;
         this.parkingRequestService = parkingRequestService;
     }
 
@@ -43,22 +48,24 @@ public class ConsoleUI {
             System.out.println();
             System.out.println("ПАРКОВОЧНАЯ СИСТЕМА");
             System.out.println("1. Владельцы автомобилей");
-            System.out.println("2. Заявки на парковку");
-            System.out.println("3. Поиск");
-            System.out.println("4. Фильтрация");
-            System.out.println("5. Статистика");
-            System.out.println("6. Экспорт данных");
-            System.out.println("7. Вывести таблицы базы данных");
+            System.out.println("2. Автомобили");
+            System.out.println("3. Заявки на парковку");
+            System.out.println("4. Поиск");
+            System.out.println("5. Фильтрация");
+            System.out.println("6. Статистика");
+            System.out.println("7. Экспорт данных");
+            System.out.println("8. Вывести таблицы базы данных");
             System.out.println("0. Выход");
             int choice = readInt("Выберите действие: ");
             switch (choice) {
-                case 5 -> showStatistics();
-                case 6 -> exportData();
-                case 7 -> showTables();
+                case 6 -> showStatistics();
+                case 7 -> exportData();
+                case 8 -> showTables();
                 case 1 -> usersMenu();
-                case 3 -> searchMenu();
-                case 4 -> filterMenu();
-                case 2 -> parkingRequestsMenu();
+                case 2 -> vehiclesMenu();
+                case 4 -> searchMenu();
+                case 5 -> filterMenu();
+                case 3 -> parkingRequestsMenu();
                 case 0 -> {
                     System.out.println("До свидания!");
                     return;
@@ -254,7 +261,110 @@ public class ConsoleUI {
         }
     }
 
-    
+    private void vehiclesMenu() {
+        while (true) {
+            System.out.println();
+            System.out.println("Автомобили");
+            System.out.println("1. Показать все");
+            System.out.println("2. Создать");
+            System.out.println("3. Найти по ID");
+            System.out.println("4. Изменить");
+            System.out.println("5. Удалить");
+            System.out.println("6. Автомобили владельца");
+            System.out.println("0. Назад");
+            int choice = readInt("Выберите действие: ");
+            switch (choice) {
+                case 1 -> showAllVehicles();
+                case 2 -> createVehicle();
+                case 3 -> findVehicleById();
+                case 4 -> updateVehicle();
+                case 5 -> deleteVehicle();
+                case 6 -> showVehiclesByOwner();
+                case 0 -> {
+                    return;
+                }
+                default -> System.out.println("Неизвестный пункт меню");
+            }
+        }
+    }
+
+    private void showAllVehicles() {
+        try {
+            List<Vehicle> vehicles = vehicleService.getAll();
+            if (vehicles.isEmpty()) {
+                System.out.println("Автомобилей пока нет");
+                return;
+            }
+            vehicles.forEach(System.out::println);
+        } catch (DataAccessException e) {
+            System.out.println("Ошибка: " + e.getMessage());
+        }
+    }
+
+    private void createVehicle() {
+        try {
+            long userId = readLong("ID владельца: ");
+            userService.getById(userId);
+            String plate = readValid("Гос. номер (например А123ВС777): ", input -> vehicleService.checkLicensePlate(0, input));
+            String brand = readValid("Марка: ", vehicleService::checkBrand);
+            String model = readValid("Модель: ", vehicleService::checkModel);
+
+            Vehicle created = vehicleService.create(userId, plate, brand, model);
+            System.out.println("Автомобиль создан: " + created);
+        } catch (BusinessException | EntityNotFoundException | DataAccessException e) {
+            System.out.println("Ошибка: " + e.getMessage());
+        }
+    }
+
+    private void findVehicleById() {
+        try {
+            long id = readLong("ID автомобиля: ");
+            System.out.println(vehicleService.getById(id));
+        } catch (EntityNotFoundException | DataAccessException e) {
+            System.out.println("Ошибка: " + e.getMessage());
+        }
+    }
+
+    private void updateVehicle() {
+        try {
+            long id = readLong("ID автомобиля: ");
+            vehicleService.getById(id);
+            String plate = readValid("Новый гос. номер (например А123ВС777): ", input -> vehicleService.checkLicensePlate(id, input));
+            String brand = readValid("Новая марка: ", vehicleService::checkBrand);
+            String model = readValid("Новая модель: ", vehicleService::checkModel);
+
+            Vehicle updated = vehicleService.update(id, plate, brand, model);
+            System.out.println("Автомобиль обновлён: " + updated);
+        } catch (BusinessException | EntityNotFoundException | DataAccessException e) {
+            System.out.println("Ошибка: " + e.getMessage());
+        }
+    }
+
+    private void deleteVehicle() {
+        try {
+            long id = readLong("ID автомобиля: ");
+            vehicleService.delete(id);
+            System.out.println("Автомобиль удалён");
+        } catch (EntityNotFoundException | DataAccessException e) {
+            System.out.println("Ошибка: " + e.getMessage());
+        }
+    }
+
+    private void showVehiclesByOwner() {
+        try {
+            long userId = readLong("ID владельца: ");
+            User owner = userService.getById(userId);
+            List<Vehicle> vehicles = vehicleService.getByUserId(userId);
+            if (vehicles.isEmpty()) {
+                System.out.println("У владельца " + owner.getName() + " нет автомобилей");
+                return;
+            }
+            vehicles.forEach(System.out::println);
+        } catch (EntityNotFoundException | DataAccessException e) {
+            System.out.println("Ошибка: " + e.getMessage());
+        }
+    }
+
     private void searchMenu() {
     while (true) {
         System.out.println();
