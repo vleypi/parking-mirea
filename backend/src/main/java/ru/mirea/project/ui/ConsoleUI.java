@@ -1,6 +1,7 @@
 package ru.mirea.project.ui;
 
 import java.io.UncheckedIOException;
+import java.math.BigDecimal;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -16,10 +17,13 @@ import ru.mirea.project.exception.BusinessException;
 import ru.mirea.project.exception.DataAccessException;
 import ru.mirea.project.exception.EntityNotFoundException;
 import ru.mirea.project.model.ParkingRequest;
+import ru.mirea.project.model.ParkingSpot;
 import ru.mirea.project.model.RequestStatus;
+import ru.mirea.project.model.SpotType;
 import ru.mirea.project.model.User;
 import ru.mirea.project.model.Vehicle;
 import ru.mirea.project.service.ParkingRequestService;
+import ru.mirea.project.service.ParkingSpotService;
 import ru.mirea.project.service.Statistics;
 import ru.mirea.project.service.UserService;
 import ru.mirea.project.service.VehicleService;
@@ -34,12 +38,14 @@ public class ConsoleUI {
     private final Scanner scanner = new Scanner(System.in);
     private final UserService userService;
     private final VehicleService vehicleService;
+    private final ParkingSpotService parkingSpotService;
     private final ParkingRequestService parkingRequestService;
 
     public ConsoleUI(UserService userService, VehicleService vehicleService,
-                     ParkingRequestService parkingRequestService) {
+                     ParkingSpotService parkingSpotService, ParkingRequestService parkingRequestService) {
         this.userService = userService;
         this.vehicleService = vehicleService;
+        this.parkingSpotService = parkingSpotService;
         this.parkingRequestService = parkingRequestService;
     }
 
@@ -49,23 +55,25 @@ public class ConsoleUI {
             System.out.println("ПАРКОВОЧНАЯ СИСТЕМА");
             System.out.println("1. Владельцы автомобилей");
             System.out.println("2. Автомобили");
-            System.out.println("3. Заявки на парковку");
-            System.out.println("4. Поиск");
-            System.out.println("5. Фильтрация");
-            System.out.println("6. Статистика");
-            System.out.println("7. Экспорт данных");
-            System.out.println("8. Вывести таблицы базы данных");
+            System.out.println("3. Парковочные места");
+            System.out.println("4. Заявки на парковку");
+            System.out.println("5. Поиск");
+            System.out.println("6. Фильтрация");
+            System.out.println("7. Статистика");
+            System.out.println("8. Экспорт данных");
+            System.out.println("9. Вывести таблицы базы данных");
             System.out.println("0. Выход");
             int choice = readInt("Выберите действие: ");
             switch (choice) {
-                case 6 -> showStatistics();
-                case 7 -> exportData();
-                case 8 -> showTables();
+                case 7 -> showStatistics();
+                case 8 -> exportData();
+                case 9 -> showTables();
                 case 1 -> usersMenu();
                 case 2 -> vehiclesMenu();
-                case 4 -> searchMenu();
-                case 5 -> filterMenu();
-                case 3 -> parkingRequestsMenu();
+                case 3 -> parkingSpotsMenu();
+                case 5 -> searchMenu();
+                case 6 -> filterMenu();
+                case 4 -> parkingRequestsMenu();
                 case 0 -> {
                     System.out.println("До свидания!");
                     return;
@@ -361,6 +369,109 @@ public class ConsoleUI {
             }
             vehicles.forEach(System.out::println);
         } catch (EntityNotFoundException | DataAccessException e) {
+            System.out.println("Ошибка: " + e.getMessage());
+        }
+    }
+
+    private void parkingSpotsMenu() {
+        while (true) {
+            System.out.println();
+            System.out.println("Парковочные места");
+            System.out.println("1. Показать все");
+            System.out.println("2. Создать");
+            System.out.println("3. Найти по ID");
+            System.out.println("4. Изменить");
+            System.out.println("5. Удалить");
+            System.out.println("6. Места по типу");
+            System.out.println("0. Назад");
+            int choice = readInt("Выберите действие: ");
+            switch (choice) {
+                case 1 -> showAllParkingSpots();
+                case 2 -> createParkingSpot();
+                case 3 -> findParkingSpotById();
+                case 4 -> updateParkingSpot();
+                case 5 -> deleteParkingSpot();
+                case 6 -> showParkingSpotsByType();
+                case 0 -> {
+                    return;
+                }
+                default -> System.out.println("Неизвестный пункт меню");
+            }
+        }
+    }
+
+    private void showAllParkingSpots() {
+        try {
+            List<ParkingSpot> spots = parkingSpotService.getAll();
+            if (spots.isEmpty()) {
+                System.out.println("Парковочных мест пока нет");
+                return;
+            }
+            spots.forEach(System.out::println);
+        } catch (DataAccessException e) {
+            System.out.println("Ошибка: " + e.getMessage());
+        }
+    }
+
+    private void createParkingSpot() {
+        try {
+            int spotNumber = readValid("Номер места: ",
+                input -> parkingSpotService.checkSpotNumberUnique(0, parkingSpotService.parseSpotNumber(input)));
+            SpotType spotType = readValid("Тип места (STANDARD, DISABLED, ELECTRIC): ", parkingSpotService::parseSpotType);
+            BigDecimal rate = readValid("Тариф, руб/час: ", parkingSpotService::parseHourlyRate);
+
+            ParkingSpot created = parkingSpotService.create(spotNumber, spotType, rate);
+            System.out.println("Место создано: " + created);
+        } catch (BusinessException | DataAccessException e) {
+            System.out.println("Ошибка: " + e.getMessage());
+        }
+    }
+
+    private void findParkingSpotById() {
+        try {
+            long id = readLong("ID места: ");
+            System.out.println(parkingSpotService.getById(id));
+        } catch (EntityNotFoundException | DataAccessException e) {
+            System.out.println("Ошибка: " + e.getMessage());
+        }
+    }
+
+    private void updateParkingSpot() {
+        try {
+            long id = readLong("ID места: ");
+            parkingSpotService.getById(id);
+            int spotNumber = readValid("Новый номер места: ",
+                input -> parkingSpotService.checkSpotNumberUnique(id, parkingSpotService.parseSpotNumber(input)));
+            SpotType spotType = readValid("Новый тип места (STANDARD, DISABLED, ELECTRIC): ", parkingSpotService::parseSpotType);
+            BigDecimal rate = readValid("Новый тариф, руб/час: ", parkingSpotService::parseHourlyRate);
+
+            ParkingSpot updated = parkingSpotService.update(id, spotNumber, spotType, rate);
+            System.out.println("Место обновлено: " + updated);
+        } catch (BusinessException | EntityNotFoundException | DataAccessException e) {
+            System.out.println("Ошибка: " + e.getMessage());
+        }
+    }
+
+    private void deleteParkingSpot() {
+        try {
+            long id = readLong("ID места: ");
+            parkingSpotService.delete(id);
+            System.out.println("Место удалено");
+        } catch (EntityNotFoundException | DataAccessException e) {
+            System.out.println("Ошибка: " + e.getMessage());
+        }
+    }
+
+    private void showParkingSpotsByType() {
+        try {
+            SpotType spotType = readValid("Тип места (STANDARD, DISABLED, ELECTRIC): ", parkingSpotService::parseSpotType);
+            List<ParkingSpot> spots = parkingSpotService.filterByType(spotType);
+            if (spots.isEmpty()) {
+                System.out.println("Ничего не найдено");
+                return;
+            }
+            spots.forEach(System.out::println);
+        } catch (DataAccessException e) {
             System.out.println("Ошибка: " + e.getMessage());
         }
     }

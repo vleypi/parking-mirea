@@ -1,9 +1,11 @@
 package ru.mirea.project;
 
 import ru.mirea.project.repository.ParkingRequestRepository;
+import ru.mirea.project.repository.ParkingSpotRepository;
 import ru.mirea.project.repository.UserRepository;
 import ru.mirea.project.repository.VehicleRepository;
 import ru.mirea.project.service.ParkingRequestService;
+import ru.mirea.project.service.ParkingSpotService;
 import ru.mirea.project.service.UserService;
 import ru.mirea.project.service.VehicleService;
 import ru.mirea.project.ui.ConsoleUI;
@@ -16,6 +18,7 @@ public class Main {
         UserService userService = new UserService(userRepository);
         VehicleService vehicleService = new VehicleService(vehicleRepository, userService);
         ParkingRequestService parkingRequestService = new ParkingRequestService(parkingRequestRepository, userService);
-        new ConsoleUI(userService, vehicleService, parkingRequestService).run();
+        ParkingSpotService parkingSpotService = new ParkingSpotService(new ParkingSpotRepository());
+        new ConsoleUI(userService, vehicleService, parkingSpotService, parkingRequestService).run();
     }
 }
