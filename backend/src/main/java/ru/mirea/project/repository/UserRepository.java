@@ -101,7 +101,7 @@ public class UserRepository implements CrudRepository<User> {
             statement.executeUpdate();
         } catch (SQLException err) {
             if (FOREIGN_KEY_VIOLATION.equals(err.getSQLState())) {
-                throw new DataAccessException("Нельзя удалить владельца: у него есть заявки на парковку", err);
+                throw new DataAccessException("Нельзя удалить владельца: у него есть автомобили или заявки на парковку", err);
             }
             throw new DataAccessException("Не удалось удалить владельца", err);
         }
