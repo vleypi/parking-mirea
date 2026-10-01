@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import ru.mirea.project.exception.BusinessException;
@@ -35,6 +36,9 @@ public class ConsoleUI {
         DateTimeFormatter.ofPattern("dd.MM.uuuu HH:mm").withResolverStyle(ResolverStyle.STRICT);
     private static final String DATE_TIME_HINT = "дд.мм.гггг чч:мм";
     private static final String EXPORT_FILE_NAME = "parking_export.xlsx";
+    private static final String CANCEL_COMMAND = "q";
+    private static final String CREATE_HINT = "Введите q в любом поле, чтобы отменить";
+    private static final String EDIT_HINT = "Enter: оставить текущее значение, q: отменить изменение";
 
     private final Scanner scanner = new Scanner(System.in);
     private final UserService userService;
@@ -97,12 +101,12 @@ public class ConsoleUI {
             System.out.println("0. Назад");
             int choice = readInt("Выберите действие: ");
             switch (choice) {
-                case 1 -> showAllParkingRequests();
-                case 2 -> createParkingRequest();
-                case 3 -> findParkingRequestById();
-                case 4 -> updateParkingRequest();
-                case 5 -> changeParkingRequestStatus();
-                case 6 -> deleteParkingRequest();
+                case 1 -> perform(this::showAllParkingRequests);
+                case 2 -> perform(this::createParkingRequest);
+                case 3 -> perform(this::findParkingRequestById);
+                case 4 -> perform(this::updateParkingRequest);
+                case 5 -> perform(this::changeParkingRequestStatus);
+                case 6 -> perform(this::deleteParkingRequest);
                 case 0 -> {
                     return;
                 }
@@ -126,6 +130,7 @@ public class ConsoleUI {
 
     private void createParkingRequest() {
         try {
+            System.out.println(CREATE_HINT);
             long userId = readLong("ID владельца: ");
             userService.getById(userId);
             List<Vehicle> vehicles = vehicleService.getByUserId(userId);
@@ -140,7 +145,7 @@ public class ConsoleUI {
             parkingSpotService.getAll().forEach(System.out::println);
             long spotId = readLong("ID места: ");
             LocalDateTime startTime = readDateTime("Начало (" + DATE_TIME_HINT + "): ");
-            LocalDateTime endTime = readEndTime("Окончание (" + DATE_TIME_HINT + "): ", startTime);
+            LocalDateTime endTime = readEndTime(() -> readDateTime("Окончание (" + DATE_TIME_HINT + "): "), startTime);
 
             ParkingRequest created = parkingRequestService.create(userId, vehicleId, spotId, startTime, endTime);
             System.out.println("Заявка создана: " + describeRequest(created));
@@ -163,14 +168,16 @@ public class ConsoleUI {
             long id = readLong("ID заявки: ");
             ParkingRequest existing = parkingRequestService.getById(id);
             parkingRequestService.checkEditable(existing);
+            System.out.println(EDIT_HINT);
             System.out.println("Автомобили владельца:");
             vehicleService.getByUserId(existing.getUserId()).forEach(System.out::println);
-            long vehicleId = readLong("ID нового автомобиля: ");
+            long vehicleId = readValidOrKeep("ID автомобиля", existing.getVehicleId(), this::parseLong);
             System.out.println("Парковочные места:");
             parkingSpotService.getAll().forEach(System.out::println);
-            long spotId = readLong("ID нового места: ");
-            LocalDateTime startTime = readDateTime("Новое начало (" + DATE_TIME_HINT + "): ");
-            LocalDateTime endTime = readEndTime("Новое окончание (" + DATE_TIME_HINT + "): ", startTime);
+            long spotId = readValidOrKeep("ID места", existing.getSpotId(), this::parseLong);
+            LocalDateTime startTime = readDateTimeOrKeep("Начало (" + DATE_TIME_HINT + ")", existing.getStartTime());
+            LocalDateTime endTime = readEndTime(
+                () -> readDateTimeOrKeep("Окончание (" + DATE_TIME_HINT + ")", existing.getEndTime()), startTime);
 
             ParkingRequest updated = parkingRequestService.update(id, vehicleId, spotId, startTime, endTime);
             System.out.println("Заявка обновлена: " + describeRequest(updated));
@@ -213,11 +220,11 @@ public class ConsoleUI {
             System.out.println("0. Назад");
             int choice = readInt("Выберите действие: ");
             switch (choice) {
-                case 1 -> showAllUsers();
-                case 2 -> createUser();
-                case 3 -> findUserById();
-                case 4 -> updateUser();
-                case 5 -> deleteUser();
+                case 1 -> perform(this::showAllUsers);
+                case 2 -> perform(this::createUser);
+                case 3 -> perform(this::findUserById);
+                case 4 -> perform(this::updateUser);
+                case 5 -> perform(this::deleteUser);
                 case 0 -> {
                     return;
                 }
@@ -241,6 +248,7 @@ public class ConsoleUI {
 
     private void createUser() {
         try {
+            System.out.println(CREATE_HINT);
             String name = readValid("Имя: ", userService::checkName);
             String phone = readValid("Телефон (например 89991234567): ", input -> userService.checkPhone(0, input));
 
@@ -263,9 +271,10 @@ public class ConsoleUI {
     private void updateUser() {
         try {
             long id = readLong("ID владельца: ");
-            userService.getById(id);
-            String name = readValid("Новое имя: ", userService::checkName);
-            String phone = readValid("Новый телефон (например 89991234567): ", input -> userService.checkPhone(id, input));
+            User existing = userService.getById(id);
+            System.out.println(EDIT_HINT);
+            String name = readValidOrKeep("Имя", existing.getName(), userService::checkName);
+            String phone = readValidOrKeep("Телефон", existing.getPhone(), input -> userService.checkPhone(id, input));
 
             User updated = userService.update(id, name, phone);
             System.out.println("Владелец обновлён: " + updated);
@@ -297,12 +306,12 @@ public class ConsoleUI {
             System.out.println("0. Назад");
             int choice = readInt("Выберите действие: ");
             switch (choice) {
-                case 1 -> showAllVehicles();
-                case 2 -> createVehicle();
-                case 3 -> findVehicleById();
-                case 4 -> updateVehicle();
-                case 5 -> deleteVehicle();
-                case 6 -> showVehiclesByOwner();
+                case 1 -> perform(this::showAllVehicles);
+                case 2 -> perform(this::createVehicle);
+                case 3 -> perform(this::findVehicleById);
+                case 4 -> perform(this::updateVehicle);
+                case 5 -> perform(this::deleteVehicle);
+                case 6 -> perform(this::showVehiclesByOwner);
                 case 0 -> {
                     return;
                 }
@@ -326,6 +335,7 @@ public class ConsoleUI {
 
     private void createVehicle() {
         try {
+            System.out.println(CREATE_HINT);
             long userId = readLong("ID владельца: ");
             userService.getById(userId);
             String plate = readValid("Гос. номер (например А123ВС777): ", input -> vehicleService.checkLicensePlate(0, input));
@@ -351,10 +361,12 @@ public class ConsoleUI {
     private void updateVehicle() {
         try {
             long id = readLong("ID автомобиля: ");
-            vehicleService.getById(id);
-            String plate = readValid("Новый гос. номер (например А123ВС777): ", input -> vehicleService.checkLicensePlate(id, input));
-            String brand = readValid("Новая марка: ", vehicleService::checkBrand);
-            String model = readValid("Новая модель: ", vehicleService::checkModel);
+            Vehicle existing = vehicleService.getById(id);
+            System.out.println(EDIT_HINT);
+            String plate = readValidOrKeep("Гос. номер", existing.getLicensePlate(),
+                input -> vehicleService.checkLicensePlate(id, input));
+            String brand = readValidOrKeep("Марка", existing.getBrand(), vehicleService::checkBrand);
+            String model = readValidOrKeep("Модель", existing.getModel(), vehicleService::checkModel);
 
             Vehicle updated = vehicleService.update(id, plate, brand, model);
             System.out.println("Автомобиль обновлён: " + updated);
@@ -401,12 +413,12 @@ public class ConsoleUI {
             System.out.println("0. Назад");
             int choice = readInt("Выберите действие: ");
             switch (choice) {
-                case 1 -> showAllParkingSpots();
-                case 2 -> createParkingSpot();
-                case 3 -> findParkingSpotById();
-                case 4 -> updateParkingSpot();
-                case 5 -> deleteParkingSpot();
-                case 6 -> showParkingSpotsByType();
+                case 1 -> perform(this::showAllParkingSpots);
+                case 2 -> perform(this::createParkingSpot);
+                case 3 -> perform(this::findParkingSpotById);
+                case 4 -> perform(this::updateParkingSpot);
+                case 5 -> perform(this::deleteParkingSpot);
+                case 6 -> perform(this::showParkingSpotsByType);
                 case 0 -> {
                     return;
                 }
@@ -430,6 +442,7 @@ public class ConsoleUI {
 
     private void createParkingSpot() {
         try {
+            System.out.println(CREATE_HINT);
             int spotNumber = readValid("Номер места: ",
                 input -> parkingSpotService.checkSpotNumberUnique(0, parkingSpotService.parseSpotNumber(input)));
             SpotType spotType = readValid("Тип места (STANDARD, DISABLED, ELECTRIC): ", parkingSpotService::parseSpotType);
@@ -454,11 +467,13 @@ public class ConsoleUI {
     private void updateParkingSpot() {
         try {
             long id = readLong("ID места: ");
-            parkingSpotService.getById(id);
-            int spotNumber = readValid("Новый номер места: ",
+            ParkingSpot existing = parkingSpotService.getById(id);
+            System.out.println(EDIT_HINT);
+            int spotNumber = readValidOrKeep("Номер места", existing.getSpotNumber(),
                 input -> parkingSpotService.checkSpotNumberUnique(id, parkingSpotService.parseSpotNumber(input)));
-            SpotType spotType = readValid("Новый тип места (STANDARD, DISABLED, ELECTRIC): ", parkingSpotService::parseSpotType);
-            BigDecimal rate = readValid("Новый тариф, руб/час: ", parkingSpotService::parseHourlyRate);
+            SpotType spotType = readValidOrKeep("Тип места (STANDARD, DISABLED, ELECTRIC)", existing.getSpotType(),
+                parkingSpotService::parseSpotType);
+            BigDecimal rate = readValidOrKeep("Тариф, руб/час", existing.getHourlyRate(), parkingSpotService::parseHourlyRate);
 
             ParkingSpot updated = parkingSpotService.update(id, spotNumber, spotType, rate);
             System.out.println("Место обновлено: " + updated);
@@ -500,8 +515,8 @@ public class ConsoleUI {
             System.out.println("0. Назад");
             int choice = readInt("Выберите действие: ");
             switch (choice) {
-                case 1 -> searchByLicensePlate();
-                case 2 -> searchByOwnerName();
+                case 1 -> perform(this::searchByLicensePlate);
+                case 2 -> perform(this::searchByOwnerName);
                 case 0 -> {
                     return;
                 }
@@ -551,10 +566,10 @@ public class ConsoleUI {
             System.out.println("0. Назад");
             int choice = readInt("Выберите действие: ");
             switch (choice) {
-                case 1 -> filterByStatus();
-                case 2 -> filterByDateRange();
-                case 3 -> sortByStartTime();
-                case 4 -> sortByCreatedAt();
+                case 1 -> perform(this::filterByStatus);
+                case 2 -> perform(this::filterByDateRange);
+                case 3 -> perform(this::sortByStartTime);
+                case 4 -> perform(this::sortByCreatedAt);
                 case 0 -> {
                     return;
                 }
@@ -758,19 +773,54 @@ public class ConsoleUI {
         return scanner.nextLine();
     }
 
+    private String readInput(String prompt) {
+        String input = readLine(prompt);
+        if (input.trim().equalsIgnoreCase(CANCEL_COMMAND)) {
+            throw new InputCancelledException();
+        }
+        return input;
+    }
+
+    private void perform(Runnable action) {
+        try {
+            action.run();
+        } catch (InputCancelledException e) {
+            System.out.println("Действие отменено");
+        }
+    }
+
     private <T> T readValid(String prompt, Function<String, T> check) {
         while (true) {
             try {
-                return check.apply(readLine(prompt));
+                return check.apply(readInput(prompt));
             } catch (BusinessException e) {
                 System.out.println("Ошибка: " + e.getMessage());
             }
         }
     }
 
-    private LocalDateTime readEndTime(String prompt, LocalDateTime startTime) {
+    private <T> T readValidOrKeep(String prompt, T current, Function<String, T> check) {
+        return readValidOrKeep(prompt, String.valueOf(current), current, check);
+    }
+
+    private <T> T readValidOrKeep(String prompt, String shown, T current, Function<String, T> check) {
         while (true) {
-            LocalDateTime endTime = readDateTime(prompt);
+            try {
+                String input = readInput(prompt + " [" + shown + "]: ");
+                return input.isBlank() ? current : check.apply(input);
+            } catch (BusinessException e) {
+                System.out.println("Ошибка: " + e.getMessage());
+            }
+        }
+    }
+
+    private LocalDateTime readDateTimeOrKeep(String prompt, LocalDateTime current) {
+        return readValidOrKeep(prompt, DATE_TIME_FORMATTER.format(current), current, this::parseDateTime);
+    }
+
+    private LocalDateTime readEndTime(Supplier<LocalDateTime> reader, LocalDateTime startTime) {
+        while (true) {
+            LocalDateTime endTime = reader.get();
             try {
                 parkingRequestService.checkPeriod(startTime, endTime);
                 return endTime;
@@ -791,32 +841,41 @@ public class ConsoleUI {
     }
 
     private long readLong(String prompt) {
-        while (true) {
-            try {
-                return Long.parseLong(readLine(prompt).trim());
-            } catch (NumberFormatException e) {
-                System.out.println("Ошибка: введите целое число");
-            }
-        }
+        return readValid(prompt, this::parseLong);
     }
 
     private LocalDateTime readDateTime(String prompt) {
-        while (true) {
-            try {
-                return LocalDateTime.parse(readLine(prompt).trim(), DATE_TIME_FORMATTER);
-            } catch (DateTimeParseException e) {
-                System.out.println("Ошибка: некорректный формат даты/времени, ожидается " + DATE_TIME_HINT);
-            }
-        }
+        return readValid(prompt, this::parseDateTime);
     }
 
     private RequestStatus readStatus(String prompt) {
-        while (true) {
-            try {
-                return RequestStatus.valueOf(readLine(prompt).trim().toUpperCase());
-            } catch (IllegalArgumentException e) {
-                System.out.println("Ошибка: неизвестный статус");
-            }
+        return readValid(prompt, this::parseStatus);
+    }
+
+    private long parseLong(String input) {
+        try {
+            return Long.parseLong(input.trim());
+        } catch (NumberFormatException e) {
+            throw new BusinessException("введите целое число");
         }
+    }
+
+    private LocalDateTime parseDateTime(String input) {
+        try {
+            return LocalDateTime.parse(input.trim(), DATE_TIME_FORMATTER);
+        } catch (DateTimeParseException e) {
+            throw new BusinessException("некорректный формат даты/времени, ожидается " + DATE_TIME_HINT);
+        }
+    }
+
+    private RequestStatus parseStatus(String input) {
+        try {
+            return RequestStatus.valueOf(input.trim().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new BusinessException("неизвестный статус");
+        }
+    }
+
+    private static class InputCancelledException extends RuntimeException {
     }
 }
