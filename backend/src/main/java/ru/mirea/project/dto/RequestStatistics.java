@@ -6,7 +6,7 @@ import java.util.Map;
 import ru.mirea.project.model.enums.RequestStatus;
 import ru.mirea.project.model.value.Period;
 
-public record ParkingRequestStatistics(
+public record RequestStatistics(
     Period period,
     Map<RequestStatus, Long> requestsByStatus,
     BigDecimal revenue,

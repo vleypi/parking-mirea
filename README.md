@@ -76,11 +76,11 @@
 Консольный клиент обращается к сервисному слою с бизнес-правилами, а тот обращается к репозиториям, работающим с PostgreSQL напрямую через JDBC. Меню каждой сущности наследуется от абстрактного `EntityMenu`, который задаёт общий каркас пунктов и обрабатывает ошибки в одном месте; `MainMenu` работает со списком `EntityMenu`, не зная конкретных классов.
 
 ```text
-MainMenu ─ UserMenu / VehicleMenu / ParkingSpotMenu / ParkingRequestMenu (extends EntityMenu, ввод через ConsoleInput)
+MainMenu ─ UserMenu / VehicleMenu / SpotMenu / RequestMenu (extends EntityMenu, ввод через ConsoleInput)
        |
-UserService / VehicleService / ParkingSpotService / ParkingRequestService / StatisticsService (валидация и бизнес-правила)
+UserService / VehicleService / SpotService / RequestService / StatisticsService (валидация и бизнес-правила)
        |
-UserRepository / VehicleRepository / ParkingSpotRepository / ParkingRequestRepository (JDBC, PreparedStatement)
+UserRepository / VehicleRepository / SpotRepository / RequestRepository (JDBC, PreparedStatement)
        |
 PostgreSQL
 ```
@@ -91,8 +91,8 @@ PostgreSQL
 
 - **User**: владелец автомобиля.
 - **Vehicle**: автомобиль, принадлежит владельцу (`vehicles.user_id → users.id`).
-- **ParkingSpot**: парковочное место с типом и тарифом за час, ссылается на справочник типов (`parking_spots.spot_type_id → spot_types.id`).
-- **ParkingRequest**: заявка на парковку, ссылается на владельца, автомобиль, место и справочник статусов (`user_id`, `vehicle_id`, `spot_id`, `status_id → request_statuses.id`).
+- **Spot**: парковочное место с типом и тарифом за час, ссылается на справочник типов (`spots.spot_type_id → spot_types.id`).
+- **Request**: заявка на парковку, ссылается на владельца, автомобиль, место и справочник статусов (`user_id`, `vehicle_id`, `spot_id`, `status_id → request_statuses.id`).
 - **Справочники `request_statuses` и `spot_types`**: id, английский код и русское название. В Java им соответствуют enum `RequestStatus` и `SpotType` с теми же id; оба реализуют общий интерфейс `LookupValue`.
 
 ![ER-диаграмма](docs/er_diagram.png)
@@ -104,7 +104,7 @@ PostgreSQL
 ├── backend/                          # Java-проект (Maven) для КР1, КР2 и КР3
 │   ├── src/main/java/ru/mirea/project/
 │   │   ├── model/
-│   │   │   ├── entity/               # Сущности: User, Vehicle, ParkingSpot, ParkingRequest
+│   │   │   ├── entity/               # Сущности: User, Vehicle, Spot, Request
 │   │   │   ├── enums/                # Справочники RequestStatus, SpotType и интерфейс LookupValue
 │   │   │   └── value/                # Объекты-значения: Period (период «с … по …»)
 │   │   ├── dto/                      # Результаты статистики, которые сервисы передают в интерфейс
@@ -188,7 +188,7 @@ docker compose -f docker/docker-compose.yml up -d
 - **Заявки на парковку**: при создании программа покажет автомобили владельца и список мест. При нарушении бизнес-правил (чужой автомобиль, занятое место, автомобиль уже на парковке, некорректные даты) выводится понятное сообщение. Пункт `9. Сменить статус`: новый статус выбирается номером из списка, недопустимый переход (например, из «Завершена») отклоняется.
 - При изменении Enter оставляет текущее значение поля, `q` в любом поле отменяет действие.
 - **Экспорт в Excel**: файл `parking_export.xlsx` с четырьмя листами сохраняется в папке, из которой запущено приложение.
-- **Таблицы базы данных**: справочники `request_statuses`, `spot_types` и таблицы `users`, `vehicles`, `parking_spots`, `parking_requests`.
+- **Таблицы базы данных**: справочники `request_statuses`, `spot_types` и таблицы `users`, `vehicles`, `spots`, `requests`.
 
 ## Итоги
 

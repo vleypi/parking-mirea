@@ -7,111 +7,111 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import ru.mirea.project.dto.ParkingSpotStatistics;
+import ru.mirea.project.dto.SpotStatistics;
 import ru.mirea.project.exception.BusinessException;
 import ru.mirea.project.exception.EntityNotFoundException;
-import ru.mirea.project.model.entity.ParkingRequest;
-import ru.mirea.project.model.entity.ParkingSpot;
+import ru.mirea.project.model.entity.Request;
+import ru.mirea.project.model.entity.Spot;
 import ru.mirea.project.model.enums.SpotType;
 import ru.mirea.project.model.value.Period;
-import ru.mirea.project.repository.ParkingRequestRepository;
-import ru.mirea.project.repository.ParkingSpotRepository;
+import ru.mirea.project.repository.RequestRepository;
+import ru.mirea.project.repository.SpotRepository;
 
-public class ParkingSpotService {
+public class SpotService {
     private static final BigDecimal MAX_HOURLY_RATE = new BigDecimal("99999.99");
 
-    private final ParkingSpotRepository parkingSpotRepository;
-    private final ParkingRequestRepository parkingRequestRepository;
+    private final SpotRepository spotRepository;
+    private final RequestRepository requestRepository;
 
-    public ParkingSpotService(ParkingSpotRepository parkingSpotRepository, ParkingRequestRepository parkingRequestRepository) {
-        this.parkingSpotRepository = parkingSpotRepository;
-        this.parkingRequestRepository = parkingRequestRepository;
+    public SpotService(SpotRepository spotRepository, RequestRepository requestRepository) {
+        this.spotRepository = spotRepository;
+        this.requestRepository = requestRepository;
     }
 
-    public ParkingSpot create(int spotNumber, SpotType spotType, BigDecimal hourlyRate) {
+    public Spot create(int spotNumber, SpotType spotType, BigDecimal hourlyRate) {
         checkSpotNumber(spotNumber);
         checkSpotType(spotType);
         BigDecimal rate = checkHourlyRate(hourlyRate);
         checkSpotNumberUnique(0, spotNumber);
-        ParkingSpot spot = new ParkingSpot(0, spotNumber, spotType, rate);
-        return parkingSpotRepository.create(spot);
+        Spot spot = new Spot(0, spotNumber, spotType, rate);
+        return spotRepository.create(spot);
     }
 
-    public List<ParkingSpot> getAll() {
-        return parkingSpotRepository.findAll();
+    public List<Spot> getAll() {
+        return spotRepository.findAll();
     }
 
-    public ParkingSpot getById(long id) {
-        return parkingSpotRepository.findById(id)
+    public Spot getById(long id) {
+        return spotRepository.findById(id)
             .orElseThrow(() -> new EntityNotFoundException("Парковочное место с id " + id + " не найдено"));
     }
 
-    public List<ParkingSpot> filterByType(SpotType spotType) {
-        return parkingSpotRepository.findAll().stream()
+    public List<Spot> filterByType(SpotType spotType) {
+        return spotRepository.findAll().stream()
             .filter(s -> s.getSpotType() == spotType)
             .toList();
     }
 
-    public ParkingSpot findByNumber(int spotNumber) {
-        return parkingSpotRepository.findAll().stream()
+    public Spot findByNumber(int spotNumber) {
+        return spotRepository.findAll().stream()
             .filter(s -> s.getSpotNumber() == spotNumber)
             .findFirst()
             .orElseThrow(() -> new EntityNotFoundException("Место с номером " + spotNumber + " не найдено"));
     }
 
-    public List<ParkingSpot> findFreeDuring(Period period) {
+    public List<Spot> findFreeDuring(Period period) {
         if (!period.isBounded()) {
             throw new BusinessException("Укажите начало и конец периода");
         }
-        Set<Long> busySpotIds = parkingRequestRepository.findAll().stream()
-            .filter(ParkingRequest::isActive)
+        Set<Long> busySpotIds = requestRepository.findAll().stream()
+            .filter(Request::isActive)
             .filter(r -> r.overlaps(period))
-            .map(ParkingRequest::getSpotId)
+            .map(Request::getSpotId)
             .collect(Collectors.toSet());
-        return parkingSpotRepository.findAll().stream()
+        return spotRepository.findAll().stream()
             .filter(s -> !busySpotIds.contains(s.getId()))
             .toList();
     }
 
-    public List<ParkingSpot> filterByRateRange(BigDecimal min, BigDecimal max) {
+    public List<Spot> filterByRateRange(BigDecimal min, BigDecimal max) {
         if (min == null || max == null) {
             throw new BusinessException("Укажите обе границы тарифа");
         }
         if (min.compareTo(max) > 0) {
             throw new BusinessException("Нижняя граница тарифа не может быть больше верхней");
         }
-        return parkingSpotRepository.findAll().stream()
+        return spotRepository.findAll().stream()
             .filter(s -> s.getHourlyRate().compareTo(min) >= 0 && s.getHourlyRate().compareTo(max) <= 0)
             .toList();
     }
 
-    public List<ParkingSpot> sortByNumber(boolean ascending) {
-        return sorted(Comparator.comparingInt(ParkingSpot::getSpotNumber), ascending);
+    public List<Spot> sortByNumber(boolean ascending) {
+        return sorted(Comparator.comparingInt(Spot::getSpotNumber), ascending);
     }
 
-    public List<ParkingSpot> sortByRate(boolean ascending) {
-        return sorted(Comparator.comparing(ParkingSpot::getHourlyRate)
-            .thenComparingInt(ParkingSpot::getSpotNumber), ascending);
+    public List<Spot> sortByRate(boolean ascending) {
+        return sorted(Comparator.comparing(Spot::getHourlyRate)
+            .thenComparingInt(Spot::getSpotNumber), ascending);
     }
 
-    public ParkingSpotStatistics getStatistics(long spotId, Period period) {
-        ParkingSpot spot = getById(spotId);
-        List<ParkingRequest> requests = parkingRequestRepository.findAll().stream()
+    public SpotStatistics getStatistics(long spotId, Period period) {
+        Spot spot = getById(spotId);
+        List<Request> requests = requestRepository.findAll().stream()
             .filter(r -> r.getSpotId() == spotId)
             .filter(r -> !r.isCancelled())
             .filter(r -> r.overlaps(period))
             .toList();
-        long minutes = requests.stream().mapToLong(ParkingRequest::durationMinutes).sum();
+        long minutes = requests.stream().mapToLong(Request::durationMinutes).sum();
         BigDecimal revenue = requests.stream()
-            .filter(ParkingRequest::isCompleted)
+            .filter(Request::isCompleted)
             .map(r -> r.cost(spot.getHourlyRate()))
             .reduce(BigDecimal.ZERO, BigDecimal::add)
             .setScale(2, RoundingMode.HALF_UP);
-        return new ParkingSpotStatistics(spot, period, requests.size(), ParkingRequest.hours(minutes), revenue);
+        return new SpotStatistics(spot, period, requests.size(), Request.hours(minutes), revenue);
     }
 
-    public ParkingSpot update(long id, int spotNumber, SpotType spotType, BigDecimal hourlyRate) {
-        ParkingSpot existing = getById(id);
+    public Spot update(long id, int spotNumber, SpotType spotType, BigDecimal hourlyRate) {
+        Spot existing = getById(id);
         checkSpotNumber(spotNumber);
         checkSpotType(spotType);
         BigDecimal rate = checkHourlyRate(hourlyRate);
@@ -120,13 +120,13 @@ public class ParkingSpotService {
         existing.setSpotNumber(spotNumber);
         existing.setSpotType(spotType);
         existing.setHourlyRate(rate);
-        parkingSpotRepository.update(existing);
+        spotRepository.update(existing);
         return existing;
     }
 
     public void delete(long id) {
         getById(id);
-        parkingSpotRepository.delete(id);
+        spotRepository.delete(id);
     }
 
     public int parseSpotNumber(String raw) {
@@ -177,7 +177,7 @@ public class ParkingSpotService {
     }
 
     public int checkSpotNumberUnique(long spotId, int spotNumber) {
-        boolean taken = parkingSpotRepository.findAll().stream()
+        boolean taken = spotRepository.findAll().stream()
             .filter(s -> s.getId() != spotId)
             .anyMatch(s -> s.getSpotNumber() == spotNumber);
 
@@ -187,8 +187,8 @@ public class ParkingSpotService {
         return spotNumber;
     }
 
-    private List<ParkingSpot> sorted(Comparator<ParkingSpot> comparator, boolean ascending) {
-        return parkingSpotRepository.findAll().stream()
+    private List<Spot> sorted(Comparator<Spot> comparator, boolean ascending) {
+        return spotRepository.findAll().stream()
             .sorted(ascending ? comparator : comparator.reversed())
             .toList();
     }

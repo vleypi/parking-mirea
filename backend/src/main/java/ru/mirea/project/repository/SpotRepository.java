@@ -10,16 +10,16 @@ import java.util.List;
 import java.util.Optional;
 
 import ru.mirea.project.exception.DataAccessException;
-import ru.mirea.project.model.entity.ParkingSpot;
+import ru.mirea.project.model.entity.Spot;
 import ru.mirea.project.model.enums.SpotType;
 import ru.mirea.project.util.DatabaseManager;
 
-public class ParkingSpotRepository implements CrudRepository<ParkingSpot> {
+public class SpotRepository implements CrudRepository<Spot> {
     private static final String FOREIGN_KEY_VIOLATION = "23503";
 
     @Override
-    public ParkingSpot create(ParkingSpot spot) {
-        String sql = "INSERT INTO parking_spots (spot_number, spot_type_id, hourly_rate) VALUES (?, ?, ?)";
+    public Spot create(Spot spot) {
+        String sql = "INSERT INTO spots (spot_number, spot_type_id, hourly_rate) VALUES (?, ?, ?)";
 
         try (Connection connection = DatabaseManager.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -40,13 +40,13 @@ public class ParkingSpotRepository implements CrudRepository<ParkingSpot> {
     }
 
     @Override
-    public List<ParkingSpot> findAll() {
-        String sql = "SELECT id, spot_number, spot_type_id, hourly_rate FROM parking_spots ORDER BY spot_number";
+    public List<Spot> findAll() {
+        String sql = "SELECT id, spot_number, spot_type_id, hourly_rate FROM spots ORDER BY spot_number";
 
         try (Connection connection = DatabaseManager.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql);
              ResultSet resultSet = statement.executeQuery()) {
-            List<ParkingSpot> spots = new ArrayList<>();
+            List<Spot> spots = new ArrayList<>();
 
             while (resultSet.next()) {
                 spots.add(mapRow(resultSet));
@@ -58,8 +58,8 @@ public class ParkingSpotRepository implements CrudRepository<ParkingSpot> {
     }
 
     @Override
-    public Optional<ParkingSpot> findById(long id) {
-        String sql = "SELECT id, spot_number, spot_type_id, hourly_rate FROM parking_spots WHERE id = ?";
+    public Optional<Spot> findById(long id) {
+        String sql = "SELECT id, spot_number, spot_type_id, hourly_rate FROM spots WHERE id = ?";
 
         try (Connection connection = DatabaseManager.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
@@ -77,8 +77,8 @@ public class ParkingSpotRepository implements CrudRepository<ParkingSpot> {
     }
 
     @Override
-    public void update(ParkingSpot spot) {
-        String sql = "UPDATE parking_spots SET spot_number = ?, spot_type_id = ?, hourly_rate = ? WHERE id = ?";
+    public void update(Spot spot) {
+        String sql = "UPDATE spots SET spot_number = ?, spot_type_id = ?, hourly_rate = ? WHERE id = ?";
 
         try (Connection connection = DatabaseManager.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
@@ -94,7 +94,7 @@ public class ParkingSpotRepository implements CrudRepository<ParkingSpot> {
 
     @Override
     public void delete(long id) {
-        String sql = "DELETE FROM parking_spots WHERE id = ?";
+        String sql = "DELETE FROM spots WHERE id = ?";
 
         try (Connection connection = DatabaseManager.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
@@ -108,12 +108,12 @@ public class ParkingSpotRepository implements CrudRepository<ParkingSpot> {
         }
     }
 
-    private ParkingSpot mapRow(ResultSet rs) throws SQLException {
+    private Spot mapRow(ResultSet rs) throws SQLException {
         int spotTypeId = rs.getInt("spot_type_id");
         SpotType spotType = SpotType.fromId(spotTypeId)
             .orElseThrow(() -> new SQLException("Неизвестный тип места с id " + spotTypeId));
 
-        return new ParkingSpot(
+        return new Spot(
             rs.getLong("id"),
             rs.getInt("spot_number"),
             spotType,

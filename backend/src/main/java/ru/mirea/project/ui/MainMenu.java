@@ -6,14 +6,14 @@ import java.util.Arrays;
 import java.util.List;
 
 import ru.mirea.project.dto.GeneralStatistics;
-import ru.mirea.project.model.entity.ParkingRequest;
-import ru.mirea.project.model.entity.ParkingSpot;
+import ru.mirea.project.model.entity.Request;
+import ru.mirea.project.model.entity.Spot;
 import ru.mirea.project.model.entity.User;
 import ru.mirea.project.model.entity.Vehicle;
 import ru.mirea.project.model.enums.RequestStatus;
 import ru.mirea.project.model.enums.SpotType;
-import ru.mirea.project.service.ParkingRequestService;
-import ru.mirea.project.service.ParkingSpotService;
+import ru.mirea.project.service.RequestService;
+import ru.mirea.project.service.SpotService;
 import ru.mirea.project.service.StatisticsService;
 import ru.mirea.project.service.UserService;
 import ru.mirea.project.service.VehicleService;
@@ -27,19 +27,19 @@ public class MainMenu {
     private final StatisticsService statisticsService;
     private final UserService userService;
     private final VehicleService vehicleService;
-    private final ParkingSpotService parkingSpotService;
-    private final ParkingRequestService parkingRequestService;
+    private final SpotService spotService;
+    private final RequestService requestService;
 
     public MainMenu(ConsoleInput input, List<EntityMenu> menus, StatisticsService statisticsService,
                     UserService userService, VehicleService vehicleService,
-                    ParkingSpotService parkingSpotService, ParkingRequestService parkingRequestService) {
+                    SpotService spotService, RequestService requestService) {
         this.input = input;
         this.menus = menus;
         this.statisticsService = statisticsService;
         this.userService = userService;
         this.vehicleService = vehicleService;
-        this.parkingSpotService = parkingSpotService;
-        this.parkingRequestService = parkingRequestService;
+        this.spotService = spotService;
+        this.requestService = requestService;
     }
 
     public void run() {
@@ -94,7 +94,7 @@ public class MainMenu {
         Path file = Path.of(EXPORT_FILE_NAME).toAbsolutePath();
         try {
             ExcelExporter.export(userService.getAll(), vehicleService.getAll(),
-                parkingSpotService.getAll(), parkingRequestService.getAll(), file);
+                spotService.getAll(), requestService.getAll(), file);
             System.out.println("Экспорт выполнен: " + file);
         } catch (UncheckedIOException e) {
             System.out.println("Ошибка: " + e.getMessage());
@@ -104,8 +104,8 @@ public class MainMenu {
     private void showTables() {
         List<User> users = userService.getAll();
         List<Vehicle> vehicles = vehicleService.getAll();
-        List<ParkingSpot> spots = parkingSpotService.getAll();
-        List<ParkingRequest> requests = parkingRequestService.getAll();
+        List<Spot> spots = spotService.getAll();
+        List<Request> requests = requestService.getAll();
 
         System.out.println();
         System.out.println("Таблица request_statuses");
@@ -139,7 +139,7 @@ public class MainMenu {
                 .toList());
 
         System.out.println();
-        System.out.println("Таблица parking_spots");
+        System.out.println("Таблица spots");
         TablePrinter.print(new String[] {"ID", "Номер места", "Тип", "Тариф, руб/ч"},
             spots.stream()
                 .map(s -> new String[] {
@@ -148,7 +148,7 @@ public class MainMenu {
                 .toList());
 
         System.out.println();
-        System.out.println("Таблица parking_requests");
+        System.out.println("Таблица requests");
         TablePrinter.print(new String[] {"ID", "Владелец", "Автомобиль", "Место", "Начало", "Окончание", "Статус", "Создана"},
             requests.stream()
                 .map(r -> new String[] {

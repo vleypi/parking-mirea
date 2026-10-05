@@ -1,9 +1,9 @@
-DROP TABLE IF EXISTS parking_requests;
-DROP TABLE IF EXISTS vehicles;
-DROP TABLE IF EXISTS parking_spots;
-DROP TABLE IF EXISTS users;
-DROP TABLE IF EXISTS request_statuses;
-DROP TABLE IF EXISTS spot_types;
+DROP TABLE IF EXISTS requests CASCADE;
+DROP TABLE IF EXISTS vehicles CASCADE;
+DROP TABLE IF EXISTS spots CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
+DROP TABLE IF EXISTS request_statuses CASCADE;
+DROP TABLE IF EXISTS spot_types CASCADE;
 
 CREATE TABLE request_statuses (
     id SMALLINT PRIMARY KEY,
@@ -32,18 +32,18 @@ CREATE TABLE vehicles (
     model VARCHAR(50) NOT NULL
 );
 
-CREATE TABLE parking_spots (
+CREATE TABLE spots (
     id BIGSERIAL PRIMARY KEY,
     spot_number INT NOT NULL UNIQUE CHECK (spot_number > 0),
     spot_type_id SMALLINT NOT NULL REFERENCES spot_types (id),
     hourly_rate NUMERIC(8, 2) NOT NULL CHECK (hourly_rate >= 0)
 );
 
-CREATE TABLE parking_requests (
+CREATE TABLE requests (
     id BIGSERIAL PRIMARY KEY,
     user_id BIGINT NOT NULL REFERENCES users (id),
     vehicle_id BIGINT NOT NULL REFERENCES vehicles (id),
-    spot_id BIGINT NOT NULL REFERENCES parking_spots (id),
+    spot_id BIGINT NOT NULL REFERENCES spots (id),
     start_time TIMESTAMP NOT NULL,
     end_time TIMESTAMP NOT NULL,
     status_id SMALLINT NOT NULL REFERENCES request_statuses (id),
@@ -79,7 +79,7 @@ INSERT INTO vehicles (user_id, license_plate, brand, model) VALUES
     (1, 'М777АА777', 'Tesla', 'Model 3');
 
 -- spot_type_id: 1 стандартное, 2 для людей с инвалидностью, 3 для электромобилей
-INSERT INTO parking_spots (spot_number, spot_type_id, hourly_rate) VALUES
+INSERT INTO spots (spot_number, spot_type_id, hourly_rate) VALUES
     (1, 1, 100.00),
     (2, 1, 100.00),
     (3, 1, 100.00),
@@ -92,7 +92,7 @@ INSERT INTO parking_spots (spot_number, spot_type_id, hourly_rate) VALUES
     (10, 1, 120.00);
 
 -- status_id: 1 новая, 2 подтверждена, 3 завершена, 4 отменена
-INSERT INTO parking_requests (user_id, vehicle_id, spot_id, start_time, end_time, status_id) VALUES
+INSERT INTO requests (user_id, vehicle_id, spot_id, start_time, end_time, status_id) VALUES
     (1, 1, 1, '2026-09-10 08:00', '2026-09-10 18:00', 1),
     (1, 6, 5, '2026-09-12 09:00', '2026-09-12 20:00', 2),
     (1, 1, 1, '2026-09-14 09:00', '2026-09-14 15:00', 3),
