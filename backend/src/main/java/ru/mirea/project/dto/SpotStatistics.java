@@ -2,11 +2,11 @@ package ru.mirea.project.dto;
 
 import java.math.BigDecimal;
 
-import ru.mirea.project.model.entity.ParkingSpot;
+import ru.mirea.project.model.entity.Spot;
 import ru.mirea.project.model.value.Period;
 
-public record ParkingSpotStatistics(
-    ParkingSpot spot,
+public record SpotStatistics(
+    Spot spot,
     Period period,
     long requestCount,
     BigDecimal occupiedHours,

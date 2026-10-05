@@ -8,12 +8,12 @@ import java.util.stream.Collectors;
 import ru.mirea.project.dto.VehicleStatistics;
 import ru.mirea.project.exception.BusinessException;
 import ru.mirea.project.exception.EntityNotFoundException;
-import ru.mirea.project.model.entity.ParkingRequest;
-import ru.mirea.project.model.entity.ParkingSpot;
+import ru.mirea.project.model.entity.Request;
+import ru.mirea.project.model.entity.Spot;
 import ru.mirea.project.model.entity.Vehicle;
 import ru.mirea.project.model.value.Period;
-import ru.mirea.project.repository.ParkingRequestRepository;
-import ru.mirea.project.repository.ParkingSpotRepository;
+import ru.mirea.project.repository.RequestRepository;
+import ru.mirea.project.repository.SpotRepository;
 import ru.mirea.project.repository.VehicleRepository;
 import ru.mirea.project.util.InputFormats;
 
@@ -23,15 +23,15 @@ public class VehicleService {
 
     private final VehicleRepository vehicleRepository;
     private final UserService userService;
-    private final ParkingRequestRepository parkingRequestRepository;
-    private final ParkingSpotRepository parkingSpotRepository;
+    private final RequestRepository requestRepository;
+    private final SpotRepository spotRepository;
 
     public VehicleService(VehicleRepository vehicleRepository, UserService userService,
-                          ParkingRequestRepository parkingRequestRepository, ParkingSpotRepository parkingSpotRepository) {
+                          RequestRepository requestRepository, SpotRepository spotRepository) {
         this.vehicleRepository = vehicleRepository;
         this.userService = userService;
-        this.parkingRequestRepository = parkingRequestRepository;
-        this.parkingSpotRepository = parkingSpotRepository;
+        this.requestRepository = requestRepository;
+        this.spotRepository = spotRepository;
     }
 
     public Vehicle create(long userId, String licensePlate, String brand, String model) {
@@ -81,10 +81,10 @@ public class VehicleService {
         if (!period.isBounded()) {
             throw new BusinessException("Укажите начало и конец периода");
         }
-        Set<Long> vehicleIds = parkingRequestRepository.findAll().stream()
+        Set<Long> vehicleIds = requestRepository.findAll().stream()
             .filter(r -> !r.isCancelled())
             .filter(r -> r.overlaps(period))
-            .map(ParkingRequest::getVehicleId)
+            .map(Request::getVehicleId)
             .collect(Collectors.toSet());
         return vehicleRepository.findAll().stream()
             .filter(v -> vehicleIds.contains(v.getId()))
@@ -109,18 +109,18 @@ public class VehicleService {
 
     public VehicleStatistics getStatistics(long vehicleId, Period period) {
         Vehicle vehicle = getById(vehicleId);
-        List<ParkingRequest> requests = parkingRequestRepository.findAll().stream()
+        List<Request> requests = requestRepository.findAll().stream()
             .filter(r -> r.getVehicleId() == vehicleId)
             .filter(r -> r.overlaps(period))
             .toList();
         long minutes = requests.stream()
             .filter(r -> !r.isCancelled())
-            .mapToLong(ParkingRequest::durationMinutes)
+            .mapToLong(Request::durationMinutes)
             .sum();
         return new VehicleStatistics(vehicle, period,
-            ParkingRequest.countByStatus(requests),
-            ParkingRequest.hours(minutes),
-            ParkingRequest.completedRevenue(requests, ParkingSpot.ratesById(parkingSpotRepository.findAll())));
+            Request.countByStatus(requests),
+            Request.hours(minutes),
+            Request.completedRevenue(requests, Spot.ratesById(spotRepository.findAll())));
     }
 
     public Vehicle update(long id, String licensePlate, String brand, String model) {

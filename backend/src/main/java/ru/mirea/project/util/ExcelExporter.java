@@ -16,8 +16,8 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
-import ru.mirea.project.model.entity.ParkingRequest;
-import ru.mirea.project.model.entity.ParkingSpot;
+import ru.mirea.project.model.entity.Request;
+import ru.mirea.project.model.entity.Spot;
 import ru.mirea.project.model.entity.User;
 import ru.mirea.project.model.entity.Vehicle;
 
@@ -41,8 +41,8 @@ public final class ExcelExporter {
     private ExcelExporter() {
     }
 
-    public static void export(List<User> users, List<Vehicle> vehicles, List<ParkingSpot> spots,
-                              List<ParkingRequest> requests, Path file) {
+    public static void export(List<User> users, List<Vehicle> vehicles, List<Spot> spots,
+                              List<Request> requests, Path file) {
         try (Workbook workbook = new XSSFWorkbook()) {
             CellStyle headerStyle = createHeaderStyle(workbook);
             CellStyle dateStyle = createDateStyle(workbook);
@@ -87,11 +87,11 @@ public final class ExcelExporter {
         }
     }
 
-    private static void writeSpots(Sheet sheet, List<ParkingSpot> spots, CellStyle headerStyle) {
+    private static void writeSpots(Sheet sheet, List<Spot> spots, CellStyle headerStyle) {
         writeHeader(sheet, SPOT_HEADERS, SPOT_WIDTHS, headerStyle);
 
         int rowIndex = 1;
-        for (ParkingSpot spot : spots) {
+        for (Spot spot : spots) {
             Row row = sheet.createRow(rowIndex++);
             row.createCell(0).setCellValue(spot.getId());
             row.createCell(1).setCellValue(spot.getSpotNumber());
@@ -100,11 +100,11 @@ public final class ExcelExporter {
         }
     }
 
-    private static void writeRequests(Sheet sheet, List<ParkingRequest> requests, CellStyle headerStyle, CellStyle dateStyle) {
+    private static void writeRequests(Sheet sheet, List<Request> requests, CellStyle headerStyle, CellStyle dateStyle) {
         writeHeader(sheet, REQUEST_HEADERS, REQUEST_WIDTHS, headerStyle);
 
         int rowIndex = 1;
-        for (ParkingRequest request : requests) {
+        for (Request request : requests) {
             Row row = sheet.createRow(rowIndex++);
             row.createCell(0).setCellValue(request.getId());
             row.createCell(1).setCellValue(request.getUserId());

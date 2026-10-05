@@ -9,13 +9,13 @@ import java.util.stream.Collectors;
 import ru.mirea.project.dto.UserStatistics;
 import ru.mirea.project.exception.BusinessException;
 import ru.mirea.project.exception.EntityNotFoundException;
-import ru.mirea.project.model.entity.ParkingRequest;
-import ru.mirea.project.model.entity.ParkingSpot;
+import ru.mirea.project.model.entity.Request;
+import ru.mirea.project.model.entity.Spot;
 import ru.mirea.project.model.entity.User;
 import ru.mirea.project.model.entity.Vehicle;
 import ru.mirea.project.model.value.Period;
-import ru.mirea.project.repository.ParkingRequestRepository;
-import ru.mirea.project.repository.ParkingSpotRepository;
+import ru.mirea.project.repository.RequestRepository;
+import ru.mirea.project.repository.SpotRepository;
 import ru.mirea.project.repository.UserRepository;
 import ru.mirea.project.repository.VehicleRepository;
 import ru.mirea.project.util.InputFormats;
@@ -25,15 +25,15 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final VehicleRepository vehicleRepository;
-    private final ParkingRequestRepository parkingRequestRepository;
-    private final ParkingSpotRepository parkingSpotRepository;
+    private final RequestRepository requestRepository;
+    private final SpotRepository spotRepository;
 
     public UserService(UserRepository userRepository, VehicleRepository vehicleRepository,
-                       ParkingRequestRepository parkingRequestRepository, ParkingSpotRepository parkingSpotRepository) {
+                       RequestRepository requestRepository, SpotRepository spotRepository) {
         this.userRepository = userRepository;
         this.vehicleRepository = vehicleRepository;
-        this.parkingRequestRepository = parkingRequestRepository;
-        this.parkingSpotRepository = parkingSpotRepository;
+        this.requestRepository = requestRepository;
+        this.spotRepository = spotRepository;
     }
 
     public User create(String name, String phone) {
@@ -96,9 +96,9 @@ public class UserService {
     }
 
     public List<User> filterWithActiveRequests() {
-        Set<Long> userIds = parkingRequestRepository.findAll().stream()
-            .filter(ParkingRequest::isActive)
-            .map(ParkingRequest::getUserId)
+        Set<Long> userIds = requestRepository.findAll().stream()
+            .filter(Request::isActive)
+            .map(Request::getUserId)
             .collect(Collectors.toSet());
         return userRepository.findAll().stream()
             .filter(u -> userIds.contains(u.getId()))
@@ -118,13 +118,13 @@ public class UserService {
         long vehicleCount = vehicleRepository.findAll().stream()
             .filter(v -> v.getUserId() == userId)
             .count();
-        List<ParkingRequest> requests = parkingRequestRepository.findAll().stream()
+        List<Request> requests = requestRepository.findAll().stream()
             .filter(r -> r.getUserId() == userId)
             .filter(r -> r.overlaps(period))
             .toList();
         return new UserStatistics(user, period, vehicleCount,
-            ParkingRequest.countByStatus(requests),
-            ParkingRequest.completedRevenue(requests, ParkingSpot.ratesById(parkingSpotRepository.findAll())));
+            Request.countByStatus(requests),
+            Request.completedRevenue(requests, Spot.ratesById(spotRepository.findAll())));
     }
 
     public String checkName(String name) {

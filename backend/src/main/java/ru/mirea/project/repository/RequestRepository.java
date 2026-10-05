@@ -11,15 +11,15 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 
 import ru.mirea.project.exception.DataAccessException;
-import ru.mirea.project.model.entity.ParkingRequest;
+import ru.mirea.project.model.entity.Request;
 import ru.mirea.project.model.enums.RequestStatus;
 import ru.mirea.project.util.DatabaseManager;
 
-public class ParkingRequestRepository implements CrudRepository<ParkingRequest> {
+public class RequestRepository implements CrudRepository<Request> {
 
     @Override
-    public ParkingRequest create(ParkingRequest request) {
-        String sql = "INSERT INTO parking_requests (user_id, vehicle_id, spot_id, start_time, end_time, status_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)";
+    public Request create(Request request) {
+        String sql = "INSERT INTO requests (user_id, vehicle_id, spot_id, start_time, end_time, status_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)";
 
         try (Connection connection = DatabaseManager.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -44,13 +44,13 @@ public class ParkingRequestRepository implements CrudRepository<ParkingRequest> 
     }
 
     @Override
-    public List<ParkingRequest> findAll() {
-        String sql = "SELECT id, user_id, vehicle_id, spot_id, start_time, end_time, status_id, created_at FROM parking_requests ORDER BY id";
+    public List<Request> findAll() {
+        String sql = "SELECT id, user_id, vehicle_id, spot_id, start_time, end_time, status_id, created_at FROM requests ORDER BY id";
         
         try (Connection connection = DatabaseManager.getConnection();
             PreparedStatement statement = connection.prepareStatement(sql);
             ResultSet resultSet = statement.executeQuery()) {
-            List<ParkingRequest> requests = new ArrayList<>();
+            List<Request> requests = new ArrayList<>();
 
             while (resultSet.next()) {
                 requests.add(mapRow(resultSet));
@@ -63,8 +63,8 @@ public class ParkingRequestRepository implements CrudRepository<ParkingRequest> 
     }
 
     @Override
-    public Optional<ParkingRequest> findById(long id) {
-        String sql = "SELECT id, user_id, vehicle_id, spot_id, start_time, end_time, status_id, created_at FROM parking_requests WHERE id = ?";
+    public Optional<Request> findById(long id) {
+        String sql = "SELECT id, user_id, vehicle_id, spot_id, start_time, end_time, status_id, created_at FROM requests WHERE id = ?";
 
         try (Connection connection = DatabaseManager.getConnection();
             PreparedStatement statement = connection.prepareStatement(sql)) {
@@ -83,8 +83,8 @@ public class ParkingRequestRepository implements CrudRepository<ParkingRequest> 
     }
 
     @Override
-    public void update(ParkingRequest request) {
-        String sql = "UPDATE parking_requests SET user_id = ?, vehicle_id = ?, spot_id = ?, start_time = ?, end_time = ?, status_id = ? WHERE id = ?";
+    public void update(Request request) {
+        String sql = "UPDATE requests SET user_id = ?, vehicle_id = ?, spot_id = ?, start_time = ?, end_time = ?, status_id = ? WHERE id = ?";
 
         try (Connection connection = DatabaseManager.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
@@ -103,7 +103,7 @@ public class ParkingRequestRepository implements CrudRepository<ParkingRequest> 
 
     @Override
     public void delete(long id) {
-        String sql = "DELETE FROM parking_requests WHERE id = ?";
+        String sql = "DELETE FROM requests WHERE id = ?";
 
         try (Connection connection = DatabaseManager.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
@@ -114,12 +114,12 @@ public class ParkingRequestRepository implements CrudRepository<ParkingRequest> 
         }
     }
 
-    private ParkingRequest mapRow(ResultSet rs) throws SQLException {
+    private Request mapRow(ResultSet rs) throws SQLException {
         int statusId = rs.getInt("status_id");
         RequestStatus status = RequestStatus.fromId(statusId)
             .orElseThrow(() -> new SQLException("Неизвестный статус заявки с id " + statusId));
 
-        return new ParkingRequest(
+        return new Request(
             rs.getLong("id"),
             rs.getLong("user_id"),
             rs.getLong("vehicle_id"),

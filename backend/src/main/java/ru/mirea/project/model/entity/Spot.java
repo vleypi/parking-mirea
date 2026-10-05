@@ -7,13 +7,13 @@ import java.util.stream.Collectors;
 
 import ru.mirea.project.model.enums.SpotType;
 
-public class ParkingSpot {
+public class Spot {
     private long id;
     private int spotNumber;
     private SpotType spotType;
     private BigDecimal hourlyRate;
 
-    public ParkingSpot(long id, int spotNumber, SpotType spotType, BigDecimal hourlyRate) {
+    public Spot(long id, int spotNumber, SpotType spotType, BigDecimal hourlyRate) {
         this.id = id;
         this.spotNumber = spotNumber;
         this.spotType = spotType;
@@ -52,8 +52,8 @@ public class ParkingSpot {
         this.hourlyRate = hourlyRate;
     }
 
-    public static Map<Long, BigDecimal> ratesById(List<ParkingSpot> spots) {
-        return spots.stream().collect(Collectors.toMap(ParkingSpot::getId, ParkingSpot::getHourlyRate));
+    public static Map<Long, BigDecimal> ratesById(List<Spot> spots) {
+        return spots.stream().collect(Collectors.toMap(Spot::getId, Spot::getHourlyRate));
     }
 
     @Override

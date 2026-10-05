@@ -11,7 +11,7 @@ import java.util.Map;
 import ru.mirea.project.model.enums.RequestStatus;
 import ru.mirea.project.model.value.Period;
 
-public class ParkingRequest {
+public class Request {
     private long id;
     private long userId;
     private long vehicleId;
@@ -21,7 +21,7 @@ public class ParkingRequest {
     private RequestStatus status;
     private LocalDateTime createdAt;
 
-    public ParkingRequest(long id, long userId, long vehicleId, long spotId,
+    public Request(long id, long userId, long vehicleId, long spotId,
                           LocalDateTime startTime, LocalDateTime endTime,
                           RequestStatus status, LocalDateTime createdAt) {
         this.id = id;
@@ -123,7 +123,7 @@ public class ParkingRequest {
             .divide(BigDecimal.valueOf(60), 2, RoundingMode.HALF_UP);
     }
 
-    public static Map<RequestStatus, Long> countByStatus(List<ParkingRequest> requests) {
+    public static Map<RequestStatus, Long> countByStatus(List<Request> requests) {
         Map<RequestStatus, Long> counts = new EnumMap<>(RequestStatus.class);
         for (RequestStatus status : RequestStatus.values()) {
             counts.put(status, 0L);
@@ -132,9 +132,9 @@ public class ParkingRequest {
         return counts;
     }
 
-    public static BigDecimal completedRevenue(List<ParkingRequest> requests, Map<Long, BigDecimal> ratesBySpotId) {
+    public static BigDecimal completedRevenue(List<Request> requests, Map<Long, BigDecimal> ratesBySpotId) {
         return requests.stream()
-            .filter(ParkingRequest::isCompleted)
+            .filter(Request::isCompleted)
             .map(r -> r.cost(ratesBySpotId.get(r.getSpotId())))
             .reduce(BigDecimal.ZERO, BigDecimal::add)
             .setScale(2, RoundingMode.HALF_UP);
