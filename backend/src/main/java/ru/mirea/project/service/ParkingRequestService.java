@@ -181,7 +181,7 @@ public class ParkingRequestService {
             throw new BusinessException("Новый статус обязателен");
         }
         if (!ALLOWED_STATUS_TRANSITIONS.get(currentStatus).contains(newStatus)) {
-            throw new BusinessException("Недопустимый переход статуса: " + currentStatus + " -> " + newStatus);
+            throw new BusinessException("Недопустимый переход статуса: «" + currentStatus + "» -> «" + newStatus + "»");
         }
 
         request.setStatus(newStatus);
@@ -196,8 +196,8 @@ public class ParkingRequestService {
 
     public void checkEditable(ParkingRequest request) {
         if (!isActive(request)) {
-            throw new BusinessException("Заявку в статусе " + request.getStatus()
-                + " изменить нельзя: редактируются только заявки в статусе NEW или CONFIRMED");
+            throw new BusinessException("Заявку в статусе «" + request.getStatus() + "» изменить нельзя: редактируются только заявки"
+                + " в статусе «" + RequestStatus.NEW + "» или «" + RequestStatus.CONFIRMED + "»");
         }
     }
 

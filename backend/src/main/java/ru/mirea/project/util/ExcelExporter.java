@@ -27,7 +27,7 @@ public final class ExcelExporter {
     private static final String[] VEHICLE_HEADERS = {"ID", "ID владельца", "Гос. номер", "Марка", "Модель"};
     private static final int[] VEHICLE_WIDTHS = {8, 14, 16, 20, 20};
     private static final String[] SPOT_HEADERS = {"ID", "Номер места", "Тип", "Тариф, руб/ч"};
-    private static final int[] SPOT_WIDTHS = {8, 14, 14, 16};
+    private static final int[] SPOT_WIDTHS = {8, 14, 28, 16};
     private static final String[] REQUEST_HEADERS =
         {"ID", "ID владельца", "ID автомобиля", "ID места", "Начало", "Окончание", "Статус", "Создана"};
     private static final int[] REQUEST_WIDTHS = {8, 14, 16, 8, 20, 20, 14, 20};
@@ -95,7 +95,7 @@ public final class ExcelExporter {
             Row row = sheet.createRow(rowIndex++);
             row.createCell(0).setCellValue(spot.getId());
             row.createCell(1).setCellValue(spot.getSpotNumber());
-            row.createCell(2).setCellValue(spot.getSpotType().name());
+            row.createCell(2).setCellValue(spot.getSpotType().getTitle());
             row.createCell(3).setCellValue(spot.getHourlyRate().doubleValue());
         }
     }
@@ -112,7 +112,7 @@ public final class ExcelExporter {
             row.createCell(3).setCellValue(request.getSpotId());
             setDate(row.createCell(4), request.getStartTime(), dateStyle);
             setDate(row.createCell(5), request.getEndTime(), dateStyle);
-            row.createCell(6).setCellValue(request.getStatus().name());
+            row.createCell(6).setCellValue(request.getStatus().getTitle());
             setDate(row.createCell(7), request.getCreatedAt(), dateStyle);
         }
     }

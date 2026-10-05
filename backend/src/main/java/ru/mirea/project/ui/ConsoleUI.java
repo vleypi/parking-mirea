@@ -18,6 +18,7 @@ import java.util.stream.Collectors;
 import ru.mirea.project.exception.BusinessException;
 import ru.mirea.project.exception.DataAccessException;
 import ru.mirea.project.exception.EntityNotFoundException;
+import ru.mirea.project.model.LookupValue;
 import ru.mirea.project.model.ParkingRequest;
 import ru.mirea.project.model.ParkingSpot;
 import ru.mirea.project.model.RequestStatus;
@@ -189,7 +190,7 @@ public class ConsoleUI {
     private void changeParkingRequestStatus() {
         try {
             long id = readLong("ID заявки: ");
-            RequestStatus newStatus = readStatus("Новый статус " + Arrays.toString(RequestStatus.values()) + ": ");
+            RequestStatus newStatus = readOption("Новый статус", RequestStatus.values());
 
             ParkingRequest updated = parkingRequestService.changeStatus(id, newStatus);
             System.out.println("Статус обновлён: " + describeRequest(updated));
@@ -445,7 +446,7 @@ public class ConsoleUI {
             System.out.println(CREATE_HINT);
             int spotNumber = readValid("Номер места: ",
                 input -> parkingSpotService.checkSpotNumberUnique(0, parkingSpotService.parseSpotNumber(input)));
-            SpotType spotType = readValid("Тип места (STANDARD, DISABLED, ELECTRIC): ", parkingSpotService::parseSpotType);
+            SpotType spotType = readOption("Тип места", SpotType.values());
             BigDecimal rate = readValid("Тариф, руб/час: ", parkingSpotService::parseHourlyRate);
 
             ParkingSpot created = parkingSpotService.create(spotNumber, spotType, rate);
@@ -471,8 +472,7 @@ public class ConsoleUI {
             System.out.println(EDIT_HINT);
             int spotNumber = readValidOrKeep("Номер места", existing.getSpotNumber(),
                 input -> parkingSpotService.checkSpotNumberUnique(id, parkingSpotService.parseSpotNumber(input)));
-            SpotType spotType = readValidOrKeep("Тип места (STANDARD, DISABLED, ELECTRIC)", existing.getSpotType(),
-                parkingSpotService::parseSpotType);
+            SpotType spotType = readOptionOrKeep("Тип места", existing.getSpotType(), SpotType.values());
             BigDecimal rate = readValidOrKeep("Тариф, руб/час", existing.getHourlyRate(), parkingSpotService::parseHourlyRate);
 
             ParkingSpot updated = parkingSpotService.update(id, spotNumber, spotType, rate);
@@ -494,7 +494,7 @@ public class ConsoleUI {
 
     private void showParkingSpotsByType() {
         try {
-            SpotType spotType = readValid("Тип места (STANDARD, DISABLED, ELECTRIC): ", parkingSpotService::parseSpotType);
+            SpotType spotType = readOption("Тип места", SpotType.values());
             List<ParkingSpot> spots = parkingSpotService.filterByType(spotType);
             if (spots.isEmpty()) {
                 System.out.println("Ничего не найдено");
@@ -580,7 +580,7 @@ public class ConsoleUI {
 
     private void filterByStatus() {
         try {
-            RequestStatus status = readStatus("Статус " + Arrays.toString(RequestStatus.values()) + ": ");
+            RequestStatus status = readOption("Статус", RequestStatus.values());
             printResults(parkingRequestService.filterByStatus(status));
         } catch (DataAccessException e) {
             System.out.println("Ошибка: " + e.getMessage());
@@ -690,6 +690,20 @@ public class ConsoleUI {
             List<ParkingRequest> requests = parkingRequestService.getAll();
 
             System.out.println();
+            System.out.println("Таблица request_statuses");
+            printTable(new String[] {"ID", "Код", "Название"},
+                Arrays.stream(RequestStatus.values())
+                    .map(s -> new String[] {String.valueOf(s.getId()), s.name(), s.getTitle()})
+                    .toList());
+
+            System.out.println();
+            System.out.println("Таблица spot_types");
+            printTable(new String[] {"ID", "Код", "Название"},
+                Arrays.stream(SpotType.values())
+                    .map(t -> new String[] {String.valueOf(t.getId()), t.name(), t.getTitle()})
+                    .toList());
+
+            System.out.println();
             System.out.println("Таблица users");
             printTable(new String[] {"ID", "Имя", "Телефон", "Создан"},
                 users.stream()
@@ -712,7 +726,7 @@ public class ConsoleUI {
             printTable(new String[] {"ID", "Номер места", "Тип", "Тариф, руб/ч"},
                 spots.stream()
                     .map(s -> new String[] {
-                        String.valueOf(s.getId()), String.valueOf(s.getSpotNumber()), s.getSpotType().name(),
+                        String.valueOf(s.getId()), String.valueOf(s.getSpotNumber()), s.getSpotType().getTitle(),
                         s.getHourlyRate().toPlainString()})
                     .toList());
 
@@ -723,7 +737,7 @@ public class ConsoleUI {
                     .map(r -> new String[] {
                         String.valueOf(r.getId()), String.valueOf(r.getUserId()), String.valueOf(r.getVehicleId()),
                         String.valueOf(r.getSpotId()), DATE_TIME_FORMATTER.format(r.getStartTime()),
-                        DATE_TIME_FORMATTER.format(r.getEndTime()), r.getStatus().name(),
+                        DATE_TIME_FORMATTER.format(r.getEndTime()), r.getStatus().getTitle(),
                         DATE_TIME_FORMATTER.format(r.getCreatedAt())})
                     .toList());
         } catch (DataAccessException e) {
@@ -848,8 +862,21 @@ public class ConsoleUI {
         return readValid(prompt, this::parseDateTime);
     }
 
-    private RequestStatus readStatus(String prompt) {
-        return readValid(prompt, this::parseStatus);
+    private <T extends LookupValue> T readOption(String title, T[] values) {
+        printOptions(title, values);
+        return readValid("Выберите номер: ", input -> parseOption(input, values));
+    }
+
+    private <T extends LookupValue> T readOptionOrKeep(String title, T current, T[] values) {
+        printOptions(title, values);
+        return readValidOrKeep("Выберите номер", current, input -> parseOption(input, values));
+    }
+
+    private void printOptions(String title, LookupValue[] values) {
+        System.out.println(title + ":");
+        for (LookupValue value : values) {
+            System.out.println(value.getId() + ". " + value.getTitle());
+        }
     }
 
     private long parseLong(String input) {
@@ -868,12 +895,18 @@ public class ConsoleUI {
         }
     }
 
-    private RequestStatus parseStatus(String input) {
+    private <T extends LookupValue> T parseOption(String input, T[] values) {
         try {
-            return RequestStatus.valueOf(input.trim().toUpperCase());
-        } catch (IllegalArgumentException e) {
-            throw new BusinessException("неизвестный статус");
+            int id = Integer.parseInt(input.trim());
+            for (T value : values) {
+                if (value.getId() == id) {
+                    return value;
+                }
+            }
+        } catch (NumberFormatException e) {
+            // нечисловой ввод обрабатывается так же, как номер вне списка
         }
+        throw new BusinessException("выберите номер из списка");
     }
 
     private static class InputCancelledException extends RuntimeException {

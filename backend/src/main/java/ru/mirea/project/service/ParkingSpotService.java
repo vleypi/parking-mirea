@@ -2,7 +2,6 @@ package ru.mirea.project.service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.Arrays;
 import java.util.List;
 
 import ru.mirea.project.exception.BusinessException;
@@ -72,14 +71,6 @@ public class ParkingSpotService {
         }
         checkSpotNumber(spotNumber);
         return spotNumber;
-    }
-
-    public SpotType parseSpotType(String raw) {
-        try {
-            return SpotType.valueOf(raw.trim().toUpperCase());
-        } catch (IllegalArgumentException e) {
-            throw new BusinessException("Неизвестный тип места. Допустимые значения: " + Arrays.toString(SpotType.values()));
-        }
     }
 
     public BigDecimal parseHourlyRate(String raw) {

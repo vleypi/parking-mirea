@@ -2,6 +2,20 @@ DROP TABLE IF EXISTS parking_requests;
 DROP TABLE IF EXISTS vehicles;
 DROP TABLE IF EXISTS parking_spots;
 DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS request_statuses;
+DROP TABLE IF EXISTS spot_types;
+
+CREATE TABLE request_statuses (
+    id SMALLINT PRIMARY KEY,
+    code VARCHAR(20) NOT NULL UNIQUE,
+    title VARCHAR(50) NOT NULL UNIQUE
+);
+
+CREATE TABLE spot_types (
+    id SMALLINT PRIMARY KEY,
+    code VARCHAR(20) NOT NULL UNIQUE,
+    title VARCHAR(50) NOT NULL UNIQUE
+);
 
 CREATE TABLE users (
     id BIGSERIAL PRIMARY KEY,
@@ -21,7 +35,7 @@ CREATE TABLE vehicles (
 CREATE TABLE parking_spots (
     id BIGSERIAL PRIMARY KEY,
     spot_number INT NOT NULL UNIQUE CHECK (spot_number > 0),
-    spot_type VARCHAR(20) NOT NULL CHECK (spot_type IN ('STANDARD', 'DISABLED', 'ELECTRIC')),
+    spot_type_id SMALLINT NOT NULL REFERENCES spot_types (id),
     hourly_rate NUMERIC(8, 2) NOT NULL CHECK (hourly_rate >= 0)
 );
 
@@ -32,10 +46,22 @@ CREATE TABLE parking_requests (
     spot_id BIGINT NOT NULL REFERENCES parking_spots (id),
     start_time TIMESTAMP NOT NULL,
     end_time TIMESTAMP NOT NULL,
-    status VARCHAR(20) NOT NULL CHECK (status IN ('NEW', 'CONFIRMED', 'COMPLETED', 'CANCELLED')),
+    status_id SMALLINT NOT NULL REFERENCES request_statuses (id),
     created_at TIMESTAMP NOT NULL DEFAULT now(),
     CHECK (end_time > start_time)
 );
+
+-- id справочников совпадают с id в Java-enum RequestStatus и SpotType
+INSERT INTO request_statuses (id, code, title) VALUES
+    (1, 'NEW', 'Новая'),
+    (2, 'CONFIRMED', 'Подтверждена'),
+    (3, 'COMPLETED', 'Завершена'),
+    (4, 'CANCELLED', 'Отменена');
+
+INSERT INTO spot_types (id, code, title) VALUES
+    (1, 'STANDARD', 'Стандартное'),
+    (2, 'DISABLED', 'Для людей с инвалидностью'),
+    (3, 'ELECTRIC', 'Для электромобилей');
 
 INSERT INTO users (name, phone) VALUES
     ('Иван Иванов', '+7-900-100-00-01'),
@@ -52,28 +78,30 @@ INSERT INTO vehicles (user_id, license_plate, brand, model) VALUES
     (5, 'Н345ТУ177', 'Skoda', 'Octavia'),
     (1, 'М777АА777', 'Tesla', 'Model 3');
 
-INSERT INTO parking_spots (spot_number, spot_type, hourly_rate) VALUES
-    (1, 'STANDARD', 100.00),
-    (2, 'STANDARD', 100.00),
-    (3, 'STANDARD', 100.00),
-    (4, 'STANDARD', 120.00),
-    (5, 'ELECTRIC', 150.00),
-    (6, 'ELECTRIC', 150.00),
-    (7, 'DISABLED', 80.00),
-    (8, 'DISABLED', 80.00),
-    (9, 'STANDARD', 100.00),
-    (10, 'STANDARD', 120.00);
+-- spot_type_id: 1 стандартное, 2 для людей с инвалидностью, 3 для электромобилей
+INSERT INTO parking_spots (spot_number, spot_type_id, hourly_rate) VALUES
+    (1, 1, 100.00),
+    (2, 1, 100.00),
+    (3, 1, 100.00),
+    (4, 1, 120.00),
+    (5, 3, 150.00),
+    (6, 3, 150.00),
+    (7, 2, 80.00),
+    (8, 2, 80.00),
+    (9, 1, 100.00),
+    (10, 1, 120.00);
 
-INSERT INTO parking_requests (user_id, vehicle_id, spot_id, start_time, end_time, status) VALUES
-    (1, 1, 1, '2026-09-10 08:00', '2026-09-10 18:00', 'NEW'),
-    (1, 6, 5, '2026-09-12 09:00', '2026-09-12 20:00', 'CONFIRMED'),
-    (1, 1, 1, '2026-09-14 09:00', '2026-09-14 15:00', 'COMPLETED'),
-    (2, 2, 2, '2026-09-08 10:00', '2026-09-08 19:00', 'COMPLETED'),
-    (2, 2, 2, '2026-09-11 07:30', '2026-09-11 22:00', 'NEW'),
-    (3, 3, 3, '2026-09-09 12:00', '2026-09-09 15:00', 'CANCELLED'),
-    (3, 3, 4, '2026-09-13 08:00', '2026-09-13 12:00', 'CONFIRMED'),
-    (4, 4, 6, '2026-09-07 09:00', '2026-09-07 18:00', 'COMPLETED'),
-    (4, 4, 6, '2026-09-14 10:00', '2026-09-14 16:00', 'NEW'),
-    (5, 5, 7, '2026-09-15 08:00', '2026-09-15 20:00', 'CONFIRMED'),
-    (5, 5, 8, '2026-09-16 11:00', '2026-09-16 14:00', 'NEW'),
-    (2, 2, 9, '2026-09-12 10:00', '2026-09-12 19:00', 'CANCELLED');
+-- status_id: 1 новая, 2 подтверждена, 3 завершена, 4 отменена
+INSERT INTO parking_requests (user_id, vehicle_id, spot_id, start_time, end_time, status_id) VALUES
+    (1, 1, 1, '2026-09-10 08:00', '2026-09-10 18:00', 1),
+    (1, 6, 5, '2026-09-12 09:00', '2026-09-12 20:00', 2),
+    (1, 1, 1, '2026-09-14 09:00', '2026-09-14 15:00', 3),
+    (2, 2, 2, '2026-09-08 10:00', '2026-09-08 19:00', 3),
+    (2, 2, 2, '2026-09-11 07:30', '2026-09-11 22:00', 1),
+    (3, 3, 3, '2026-09-09 12:00', '2026-09-09 15:00', 4),
+    (3, 3, 4, '2026-09-13 08:00', '2026-09-13 12:00', 2),
+    (4, 4, 6, '2026-09-07 09:00', '2026-09-07 18:00', 3),
+    (4, 4, 6, '2026-09-14 10:00', '2026-09-14 16:00', 1),
+    (5, 5, 7, '2026-09-15 08:00', '2026-09-15 20:00', 2),
+    (5, 5, 8, '2026-09-16 11:00', '2026-09-16 14:00', 1),
+    (2, 2, 9, '2026-09-12 10:00', '2026-09-12 19:00', 4);
