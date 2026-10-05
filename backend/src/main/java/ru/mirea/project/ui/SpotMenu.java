@@ -3,7 +3,8 @@ package ru.mirea.project.ui;
 import java.math.BigDecimal;
 import java.util.List;
 
-import ru.mirea.project.dto.SpotStatistics;
+import ru.mirea.project.dto.filter.SpotFilter;
+import ru.mirea.project.dto.statistics.SpotStatistics;
 import ru.mirea.project.model.entity.Spot;
 import ru.mirea.project.model.enums.SpotType;
 import ru.mirea.project.model.value.Period;
@@ -67,8 +68,8 @@ public class SpotMenu extends EntityMenu {
     }
 
     @Override
-    protected void search() {
-        runSubmenu("Поиск мест",
+    protected List<MenuOption> searchOptions() {
+        return List.of(
             option("По номеру", () -> printList(List.of(spotService.findByNumber(
                 input.readValid("Номер места: ", spotService::parseSpotNumber))))),
             option("Свободные на период", this::searchFree));
@@ -76,14 +77,16 @@ public class SpotMenu extends EntityMenu {
 
     @Override
     protected void filter() {
-        runSubmenu("Фильтры и сортировка мест",
-            option("По типу", () -> printOrEmpty(
-                spotService.filterByType(input.readOption("Тип места", SpotType.values())), this::printList)),
-            option("По диапазону тарифа", this::filterByRate),
-            option("Сортировка по номеру", () -> printOrEmpty(
-                spotService.sortByNumber(input.readAscending()), this::printList)),
-            option("Сортировка по тарифу", () -> printOrEmpty(
-                spotService.sortByRate(input.readAscending()), this::printList)));
+        SpotFilter filter = new SpotFilter();
+        runFilterScreen(filter, () -> spotService.find(filter), this::printList, column -> askFilter(filter, column));
+    }
+
+    private void askFilter(SpotFilter filter, SpotFilter.Column column) {
+        switch (column) {
+            case NUMBER -> filter.setNumberRange(input.readRange("Номер места"));
+            case TYPE -> filter.setType(input.readOption("Тип места", SpotType.values()));
+            case RATE -> filter.setRateRange(input.readRange("Тариф, руб/час"));
+        }
     }
 
     @Override
@@ -104,12 +107,6 @@ public class SpotMenu extends EntityMenu {
         Period period = input.readPeriod(true);
         System.out.println("Свободные места " + period + ":");
         printOrEmpty(spotService.findFreeDuring(period), this::printList);
-    }
-
-    private void filterByRate() {
-        BigDecimal min = input.readValid("Тариф от, руб/час: ", spotService::parseHourlyRate);
-        BigDecimal max = input.readValid("Тариф до, руб/час: ", spotService::parseHourlyRate);
-        printOrEmpty(spotService.filterByRateRange(min, max), this::printList);
     }
 
     private void printList(List<Spot> spots) {

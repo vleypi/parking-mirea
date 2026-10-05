@@ -55,6 +55,10 @@ public class Vehicle {
         this.model = model;
     }
 
+    public String getRegion() {
+        return licensePlate.substring(6);
+    }
+
     @Override
     public String toString() {
         return "[%d] %s | %s %s | владелец: %d".formatted(id, licensePlate, brand, model, userId);

@@ -26,6 +26,10 @@ public record Period(LocalDateTime from, LocalDateTime to) {
         return from != null && to != null;
     }
 
+    public boolean contains(LocalDateTime moment) {
+        return (from == null || !moment.isBefore(from)) && (to == null || !moment.isAfter(to));
+    }
+
     public boolean overlaps(LocalDateTime start, LocalDateTime end) {
         return (from == null || end.isAfter(from)) && (to == null || start.isBefore(to));
     }

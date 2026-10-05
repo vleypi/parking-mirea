@@ -4,7 +4,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import ru.mirea.project.dto.VehicleStatistics;
+import ru.mirea.project.dto.filter.VehicleFilter;
+import ru.mirea.project.dto.statistics.VehicleStatistics;
 import ru.mirea.project.model.entity.User;
 import ru.mirea.project.model.entity.Vehicle;
 import ru.mirea.project.model.value.Period;
@@ -72,26 +73,27 @@ public class VehicleMenu extends EntityMenu {
     }
 
     @Override
-    protected void search() {
-        runSubmenu("Поиск автомобилей",
+    protected List<MenuOption> searchOptions() {
+        return List.of(
             option("По гос. номеру", () -> printOrEmpty(
                 vehicleService.searchByLicensePlate(input.readText("Фрагмент гос. номера: ")), this::printList)),
-            option("По марке или модели", () -> printOrEmpty(
-                vehicleService.searchByBrandOrModel(input.readText("Фрагмент марки или модели: ")), this::printList)),
             option("Стояли на парковке в период", this::searchParkedDuring));
     }
 
     @Override
     protected void filter() {
-        runSubmenu("Фильтры и сортировка автомобилей",
-            option("По владельцу", () -> printOrEmpty(
-                vehicleService.getByUserId(input.readLong("ID владельца: ")), this::printList)),
-            option("По марке", () -> printOrEmpty(
-                vehicleService.filterByBrand(input.readText("Марка: ")), this::printList)),
-            option("Сортировка по гос. номеру", () -> printOrEmpty(
-                vehicleService.sortByLicensePlate(input.readAscending()), this::printList)),
-            option("Сортировка по марке", () -> printOrEmpty(
-                vehicleService.sortByBrand(input.readAscending()), this::printList)));
+        VehicleFilter filter = new VehicleFilter();
+        runFilterScreen(filter, () -> vehicleService.find(filter), this::printList, column -> askFilter(filter, column));
+    }
+
+    private void askFilter(VehicleFilter filter, VehicleFilter.Column column) {
+        switch (column) {
+            case PLATE -> ask("Гос. номер содержит: ", filter::setPlateContains);
+            case REGION -> ask("Регион: ", filter::setRegion);
+            case BRAND -> ask("Марка содержит: ", filter::setBrandContains);
+            case MODEL -> ask("Модель содержит: ", filter::setModelContains);
+            case OWNER -> ask("Имя владельца содержит: ", filter::setOwnerNameContains);
+        }
     }
 
     @Override
@@ -118,10 +120,10 @@ public class VehicleMenu extends EntityMenu {
     private void printList(List<Vehicle> vehicles) {
         Map<Long, String> ownerNames = userService.getAll().stream()
             .collect(Collectors.toMap(User::getId, User::getName));
-        TablePrinter.print(new String[] {"ID", "Гос. номер", "Марка", "Модель", "Владелец", "ID владельца"},
+        TablePrinter.print(new String[] {"ID", "Гос. номер", "Регион", "Марка", "Модель", "Владелец", "ID владельца"},
             vehicles.stream()
                 .map(v -> new String[] {
-                    String.valueOf(v.getId()), v.getLicensePlate(), v.getBrand(), v.getModel(),
+                    String.valueOf(v.getId()), v.getLicensePlate(), v.getRegion(), v.getBrand(), v.getModel(),
                     ownerNames.getOrDefault(v.getUserId(), "?"), String.valueOf(v.getUserId())})
                 .toList());
     }

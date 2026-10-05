@@ -6,13 +6,16 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-import ru.mirea.project.dto.SpotStatistics;
+import ru.mirea.project.dto.filter.SpotFilter;
+import ru.mirea.project.dto.statistics.SpotStatistics;
 import ru.mirea.project.exception.BusinessException;
 import ru.mirea.project.exception.EntityNotFoundException;
 import ru.mirea.project.model.entity.Request;
 import ru.mirea.project.model.entity.Spot;
 import ru.mirea.project.model.enums.SpotType;
+import ru.mirea.project.model.value.NumberRange;
 import ru.mirea.project.model.value.Period;
 import ru.mirea.project.repository.RequestRepository;
 import ru.mirea.project.repository.SpotRepository;
@@ -46,12 +49,6 @@ public class SpotService {
             .orElseThrow(() -> new EntityNotFoundException("Парковочное место с id " + id + " не найдено"));
     }
 
-    public List<Spot> filterByType(SpotType spotType) {
-        return spotRepository.findAll().stream()
-            .filter(s -> s.getSpotType() == spotType)
-            .toList();
-    }
-
     public Spot findByNumber(int spotNumber) {
         return spotRepository.findAll().stream()
             .filter(s -> s.getSpotNumber() == spotNumber)
@@ -73,25 +70,29 @@ public class SpotService {
             .toList();
     }
 
-    public List<Spot> filterByRateRange(BigDecimal min, BigDecimal max) {
-        if (min == null || max == null) {
-            throw new BusinessException("Укажите обе границы тарифа");
+    public List<Spot> find(SpotFilter filter) {
+        Stream<Spot> spots = spotRepository.findAll().stream();
+        if (filter.getNumberRange() != null) {
+            NumberRange range = filter.getNumberRange();
+            spots = spots.filter(s -> range.contains(s.getSpotNumber()));
         }
-        if (min.compareTo(max) > 0) {
-            throw new BusinessException("Нижняя граница тарифа не может быть больше верхней");
+        if (filter.getType() != null) {
+            SpotType type = filter.getType();
+            spots = spots.filter(s -> s.getSpotType() == type);
         }
-        return spotRepository.findAll().stream()
-            .filter(s -> s.getHourlyRate().compareTo(min) >= 0 && s.getHourlyRate().compareTo(max) <= 0)
-            .toList();
-    }
+        if (filter.getRateRange() != null) {
+            NumberRange range = filter.getRateRange();
+            spots = spots.filter(s -> range.contains(s.getHourlyRate()));
+        }
 
-    public List<Spot> sortByNumber(boolean ascending) {
-        return sorted(Comparator.comparingInt(Spot::getSpotNumber), ascending);
-    }
-
-    public List<Spot> sortByRate(boolean ascending) {
-        return sorted(Comparator.comparing(Spot::getHourlyRate)
-            .thenComparingInt(Spot::getSpotNumber), ascending);
+        Comparator<Spot> comparator = switch (filter.getSortField()) {
+            case ID -> Comparator.comparingLong(Spot::getId);
+            case NUMBER -> Comparator.comparingInt(Spot::getSpotNumber);
+            case TYPE -> Comparator.comparingInt((Spot s) -> s.getSpotType().getId())
+                .thenComparingInt(Spot::getSpotNumber);
+            case RATE -> Comparator.comparing(Spot::getHourlyRate).thenComparingInt(Spot::getSpotNumber);
+        };
+        return spots.sorted(filter.isAscending() ? comparator : comparator.reversed()).toList();
     }
 
     public SpotStatistics getStatistics(long spotId, Period period) {
@@ -185,11 +186,5 @@ public class SpotService {
             throw new BusinessException("Место с номером " + spotNumber + " уже существует");
         }
         return spotNumber;
-    }
-
-    private List<Spot> sorted(Comparator<Spot> comparator, boolean ascending) {
-        return spotRepository.findAll().stream()
-            .sorted(ascending ? comparator : comparator.reversed())
-            .toList();
     }
 }

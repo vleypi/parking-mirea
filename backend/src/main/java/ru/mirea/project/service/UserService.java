@@ -3,16 +3,20 @@ package ru.mirea.project.service;
 import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-import ru.mirea.project.dto.UserStatistics;
+import ru.mirea.project.dto.filter.UserFilter;
+import ru.mirea.project.dto.statistics.UserStatistics;
 import ru.mirea.project.exception.BusinessException;
 import ru.mirea.project.exception.EntityNotFoundException;
 import ru.mirea.project.model.entity.Request;
 import ru.mirea.project.model.entity.Spot;
 import ru.mirea.project.model.entity.User;
 import ru.mirea.project.model.entity.Vehicle;
+import ru.mirea.project.model.value.NumberRange;
 import ru.mirea.project.model.value.Period;
 import ru.mirea.project.repository.RequestRepository;
 import ru.mirea.project.repository.SpotRepository;
@@ -86,31 +90,44 @@ public class UserService {
             .toList();
     }
 
-    public List<User> filterByHasVehicles(boolean hasVehicles) {
-        Set<Long> ownerIds = vehicleRepository.findAll().stream()
-            .map(Vehicle::getUserId)
-            .collect(Collectors.toSet());
-        return userRepository.findAll().stream()
-            .filter(u -> ownerIds.contains(u.getId()) == hasVehicles)
-            .toList();
-    }
-
-    public List<User> filterWithActiveRequests() {
-        Set<Long> userIds = requestRepository.findAll().stream()
+    public List<User> find(UserFilter filter) {
+        Map<Long, Long> vehicleCounts = vehicleRepository.findAll().stream()
+            .collect(Collectors.groupingBy(Vehicle::getUserId, Collectors.counting()));
+        Set<Long> usersWithActiveRequests = requestRepository.findAll().stream()
             .filter(Request::isActive)
             .map(Request::getUserId)
             .collect(Collectors.toSet());
-        return userRepository.findAll().stream()
-            .filter(u -> userIds.contains(u.getId()))
-            .toList();
-    }
 
-    public List<User> sortByName(boolean ascending) {
-        return sorted(Comparator.comparing(User::getName, String.CASE_INSENSITIVE_ORDER), ascending);
-    }
+        Stream<User> users = userRepository.findAll().stream();
+        if (filter.getNameContains() != null) {
+            String needle = filter.getNameContains().toLowerCase();
+            users = users.filter(u -> u.getName().toLowerCase().contains(needle));
+        }
+        if (filter.getPhoneDigits() != null) {
+            String digits = filter.getPhoneDigits();
+            users = users.filter(u -> u.getPhone().replaceAll("\\D", "").contains(digits));
+        }
+        if (filter.getVehicleCount() != null) {
+            NumberRange range = filter.getVehicleCount();
+            users = users.filter(u -> range.contains(vehicleCounts.getOrDefault(u.getId(), 0L)));
+        }
+        if (filter.getRegistered() != null) {
+            Period period = filter.getRegistered();
+            users = users.filter(u -> period.contains(u.getCreatedAt()));
+        }
+        if (filter.getHasActiveRequests() != null) {
+            boolean hasActive = filter.getHasActiveRequests();
+            users = users.filter(u -> usersWithActiveRequests.contains(u.getId()) == hasActive);
+        }
 
-    public List<User> sortByCreatedAt(boolean ascending) {
-        return sorted(Comparator.comparing(User::getCreatedAt), ascending);
+        Comparator<User> comparator = switch (filter.getSortField()) {
+            case ID -> Comparator.comparingLong(User::getId);
+            case NAME -> Comparator.comparing(User::getName, String.CASE_INSENSITIVE_ORDER);
+            case PHONE -> Comparator.comparing(User::getPhone);
+            case VEHICLES -> Comparator.comparingLong((User u) -> vehicleCounts.getOrDefault(u.getId(), 0L));
+            case REGISTERED -> Comparator.comparing(User::getCreatedAt);
+        };
+        return users.sorted(filter.isAscending() ? comparator : comparator.reversed()).toList();
     }
 
     public UserStatistics getStatistics(long userId, Period period) {
@@ -145,12 +162,6 @@ public class UserService {
         String normalized = InputFormats.normalizePhone(phone);
         checkPhoneUnique(ownerId, normalized);
         return normalized;
-    }
-
-    private List<User> sorted(Comparator<User> comparator, boolean ascending) {
-        return userRepository.findAll().stream()
-            .sorted(ascending ? comparator : comparator.reversed())
-            .toList();
     }
 
     private void checkPhoneUnique(long excludeId, String phone) {
