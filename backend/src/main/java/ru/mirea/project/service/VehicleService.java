@@ -2,14 +2,18 @@ package ru.mirea.project.service;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-import ru.mirea.project.dto.VehicleStatistics;
+import ru.mirea.project.dto.filter.VehicleFilter;
+import ru.mirea.project.dto.statistics.VehicleStatistics;
 import ru.mirea.project.exception.BusinessException;
 import ru.mirea.project.exception.EntityNotFoundException;
 import ru.mirea.project.model.entity.Request;
 import ru.mirea.project.model.entity.Spot;
+import ru.mirea.project.model.entity.User;
 import ru.mirea.project.model.entity.Vehicle;
 import ru.mirea.project.model.value.Period;
 import ru.mirea.project.repository.RequestRepository;
@@ -70,13 +74,6 @@ public class VehicleService {
             .toList();
     }
 
-    public List<Vehicle> searchByBrandOrModel(String fragment) {
-        String needle = InputFormats.requireText(fragment, "Введите фрагмент марки или модели для поиска").toLowerCase();
-        return vehicleRepository.findAll().stream()
-            .filter(v -> v.getBrand().toLowerCase().contains(needle) || v.getModel().toLowerCase().contains(needle))
-            .toList();
-    }
-
     public List<Vehicle> findParkedDuring(Period period) {
         if (!period.isBounded()) {
             throw new BusinessException("Укажите начало и конец периода");
@@ -91,20 +88,42 @@ public class VehicleService {
             .toList();
     }
 
-    public List<Vehicle> filterByBrand(String brand) {
-        String wanted = InputFormats.requireText(brand, "Введите марку");
-        return vehicleRepository.findAll().stream()
-            .filter(v -> v.getBrand().equalsIgnoreCase(wanted))
-            .toList();
-    }
+    public List<Vehicle> find(VehicleFilter filter) {
+        Map<Long, String> ownerNames = userService.getAll().stream()
+            .collect(Collectors.toMap(User::getId, User::getName));
 
-    public List<Vehicle> sortByLicensePlate(boolean ascending) {
-        return sorted(Comparator.comparing(Vehicle::getLicensePlate), ascending);
-    }
+        Stream<Vehicle> vehicles = vehicleRepository.findAll().stream();
+        if (filter.getPlateContains() != null) {
+            String needle = filter.getPlateContains();
+            vehicles = vehicles.filter(v -> v.getLicensePlate().contains(needle));
+        }
+        if (filter.getRegion() != null) {
+            String region = filter.getRegion();
+            vehicles = vehicles.filter(v -> v.getRegion().equals(region));
+        }
+        if (filter.getBrandContains() != null) {
+            String needle = filter.getBrandContains().toLowerCase();
+            vehicles = vehicles.filter(v -> v.getBrand().toLowerCase().contains(needle));
+        }
+        if (filter.getModelContains() != null) {
+            String needle = filter.getModelContains().toLowerCase();
+            vehicles = vehicles.filter(v -> v.getModel().toLowerCase().contains(needle));
+        }
+        if (filter.getOwnerNameContains() != null) {
+            String needle = filter.getOwnerNameContains().toLowerCase();
+            vehicles = vehicles.filter(v -> ownerNames.get(v.getUserId()).toLowerCase().contains(needle));
+        }
 
-    public List<Vehicle> sortByBrand(boolean ascending) {
-        return sorted(Comparator.comparing(Vehicle::getBrand, String.CASE_INSENSITIVE_ORDER)
-            .thenComparing(Vehicle::getModel, String.CASE_INSENSITIVE_ORDER), ascending);
+        Comparator<Vehicle> comparator = switch (filter.getSortField()) {
+            case ID -> Comparator.comparingLong(Vehicle::getId);
+            case PLATE -> Comparator.comparing(Vehicle::getLicensePlate);
+            case REGION -> Comparator.comparingInt((Vehicle v) -> Integer.parseInt(v.getRegion()));
+            case BRAND -> Comparator.comparing(Vehicle::getBrand, String.CASE_INSENSITIVE_ORDER)
+                .thenComparing(Vehicle::getModel, String.CASE_INSENSITIVE_ORDER);
+            case MODEL -> Comparator.comparing(Vehicle::getModel, String.CASE_INSENSITIVE_ORDER);
+            case OWNER -> Comparator.comparing((Vehicle v) -> ownerNames.get(v.getUserId()), String.CASE_INSENSITIVE_ORDER);
+        };
+        return vehicles.sorted(filter.isAscending() ? comparator : comparator.reversed()).toList();
     }
 
     public VehicleStatistics getStatistics(long vehicleId, Period period) {
@@ -156,12 +175,6 @@ public class VehicleService {
 
     public String checkModel(String model) {
         return checkText(model, "Модель", MAX_MODEL_LENGTH);
-    }
-
-    private List<Vehicle> sorted(Comparator<Vehicle> comparator, boolean ascending) {
-        return vehicleRepository.findAll().stream()
-            .sorted(ascending ? comparator : comparator.reversed())
-            .toList();
     }
 
     private String checkText(String value, String fieldName, int maxLength) {

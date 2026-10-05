@@ -5,7 +5,7 @@ import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
 
-import ru.mirea.project.dto.GeneralStatistics;
+import ru.mirea.project.dto.statistics.GeneralStatistics;
 import ru.mirea.project.model.entity.Request;
 import ru.mirea.project.model.entity.Spot;
 import ru.mirea.project.model.entity.User;

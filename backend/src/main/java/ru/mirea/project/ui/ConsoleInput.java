@@ -1,14 +1,18 @@
 package ru.mirea.project.ui;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.time.format.ResolverStyle;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Scanner;
 import java.util.function.Function;
 
 import ru.mirea.project.exception.BusinessException;
 import ru.mirea.project.model.enums.LookupValue;
+import ru.mirea.project.model.value.NumberRange;
 import ru.mirea.project.model.value.Period;
 
 public class ConsoleInput {
@@ -67,22 +71,39 @@ public class ConsoleInput {
         }
     }
 
+    public NumberRange readRange(String label) {
+        while (true) {
+            BigDecimal min = readValid(label + " от (Enter = без ограничения): ", this::parseOptionalDecimal);
+            BigDecimal max = readValid(label + " до (Enter = без ограничения): ", this::parseOptionalDecimal);
+            try {
+                return new NumberRange(min, max);
+            } catch (BusinessException e) {
+                System.out.println("Ошибка: " + e.getMessage());
+            }
+        }
+    }
+
     public boolean readAscending() {
-        return readValid("Порядок (1 - по возрастанию, 2 - по убыванию): ", value -> switch (value.trim()) {
-            case "1" -> true;
-            case "2" -> false;
-            default -> throw new BusinessException("введите 1 или 2");
-        });
+        return readOneOrTwo("Порядок (1 - по возрастанию, 2 - по убыванию): ");
+    }
+
+    public boolean readYesNo(String question) {
+        return readOneOrTwo(question + " (1 - да, 2 - нет): ");
     }
 
     public <T extends LookupValue> T readOption(String title, T[] values) {
+        return readOption(title, Arrays.asList(values));
+    }
+
+    public <T extends LookupValue> T readOption(String title, List<T> values) {
         printOptions(title, values);
         return readValid("Выберите номер: ", value -> parseOption(value, values));
     }
 
     public <T extends LookupValue> T readOptionOrKeep(String title, T current, T[] values) {
-        printOptions(title, values);
-        return readValidOrKeep("Выберите номер", current, value -> parseOption(value, values));
+        List<T> options = Arrays.asList(values);
+        printOptions(title, options);
+        return readValidOrKeep("Выберите номер", current, value -> parseOption(value, options));
     }
 
     public <T> T readValid(String prompt, Function<String, T> check) {
@@ -128,7 +149,15 @@ public class ConsoleInput {
         return input;
     }
 
-    private void printOptions(String title, LookupValue[] values) {
+    private boolean readOneOrTwo(String prompt) {
+        return readValid(prompt, value -> switch (value.trim()) {
+            case "1" -> true;
+            case "2" -> false;
+            default -> throw new BusinessException("введите 1 или 2");
+        });
+    }
+
+    private void printOptions(String title, List<? extends LookupValue> values) {
         System.out.println(title + ":");
         for (LookupValue value : values) {
             System.out.println(value.getId() + ". " + value.getTitle());
@@ -161,7 +190,18 @@ public class ConsoleInput {
         return parseDateTime(input);
     }
 
-    private <T extends LookupValue> T parseOption(String input, T[] values) {
+    private BigDecimal parseOptionalDecimal(String input) {
+        if (input.isBlank()) {
+            return null;
+        }
+        try {
+            return new BigDecimal(input.trim().replace(',', '.'));
+        } catch (NumberFormatException e) {
+            throw new BusinessException("введите число");
+        }
+    }
+
+    private <T extends LookupValue> T parseOption(String input, List<T> values) {
         try {
             int id = Integer.parseInt(input.trim());
             for (T value : values) {

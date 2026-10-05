@@ -1,4 +1,4 @@
-package ru.mirea.project.dto;
+package ru.mirea.project.dto.statistics;
 
 import java.math.BigDecimal;
 

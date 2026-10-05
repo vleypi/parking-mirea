@@ -7,8 +7,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-import ru.mirea.project.dto.RequestStatistics;
+import ru.mirea.project.dto.filter.RequestFilter;
+import ru.mirea.project.dto.statistics.RequestStatistics;
 import ru.mirea.project.exception.BusinessException;
 import ru.mirea.project.exception.EntityNotFoundException;
 import ru.mirea.project.model.entity.Request;
@@ -84,26 +86,51 @@ public class RequestService {
                 LinkedHashMap::new));
     }
 
-    public List<Request> searchBySpotNumber(int spotNumber) {
-        Spot spot = spotService.findByNumber(spotNumber);
-        return requestRepository.findAll().stream()
-            .filter(r -> r.getSpotId() == spot.getId())
-            .toList();
-    }
+    public List<Request> find(RequestFilter filter) {
+        Map<Long, String> ownerNames = userService.getAll().stream()
+            .collect(Collectors.toMap(User::getId, User::getName));
+        Map<Long, String> plates = vehicleService.getAll().stream()
+            .collect(Collectors.toMap(Vehicle::getId, Vehicle::getLicensePlate));
+        Map<Long, Spot> spotsById = spotService.getAll().stream()
+            .collect(Collectors.toMap(Spot::getId, s -> s));
 
-    public List<Request> filterByPeriod(Period period) {
-        return requestRepository.findAll().stream()
-            .filter(r -> r.overlaps(period))
-            .toList();
-    }
+        Stream<Request> requests = requestRepository.findAll().stream();
+        if (filter.getOwnerNameContains() != null) {
+            String needle = filter.getOwnerNameContains().toLowerCase();
+            requests = requests.filter(r -> ownerNames.get(r.getUserId()).toLowerCase().contains(needle));
+        }
+        if (filter.getPlateContains() != null) {
+            String needle = filter.getPlateContains();
+            requests = requests.filter(r -> plates.get(r.getVehicleId()).contains(needle));
+        }
+        if (filter.getSpotNumber() != null) {
+            int spotNumber = filter.getSpotNumber();
+            requests = requests.filter(r -> spotsById.get(r.getSpotId()).getSpotNumber() == spotNumber);
+        }
+        if (filter.getSpotType() != null) {
+            SpotType spotType = filter.getSpotType();
+            requests = requests.filter(r -> spotsById.get(r.getSpotId()).getSpotType() == spotType);
+        }
+        if (filter.getPeriod() != null) {
+            Period period = filter.getPeriod();
+            requests = requests.filter(r -> r.overlaps(period));
+        }
+        if (filter.getStatus() != null) {
+            RequestStatus status = filter.getStatus();
+            requests = requests.filter(r -> r.getStatus() == status);
+        }
 
-    public List<Request> filterBySpotType(SpotType spotType) {
-        Set<Long> spotIds = spotService.filterByType(spotType).stream()
-            .map(Spot::getId)
-            .collect(Collectors.toSet());
-        return requestRepository.findAll().stream()
-            .filter(r -> spotIds.contains(r.getSpotId()))
-            .toList();
+        Comparator<Request> comparator = switch (filter.getSortField()) {
+            case ID -> Comparator.comparingLong(Request::getId);
+            case OWNER -> Comparator.comparing((Request r) -> ownerNames.get(r.getUserId()), String.CASE_INSENSITIVE_ORDER);
+            case PLATE -> Comparator.comparing((Request r) -> plates.get(r.getVehicleId()));
+            case SPOT -> Comparator.comparingInt((Request r) -> spotsById.get(r.getSpotId()).getSpotNumber());
+            case START -> Comparator.comparing(Request::getStartTime);
+            case END -> Comparator.comparing(Request::getEndTime);
+            case STATUS -> Comparator.comparingInt((Request r) -> r.getStatus().getId());
+            case CREATED -> Comparator.comparing(Request::getCreatedAt);
+        };
+        return requests.sorted(filter.isAscending() ? comparator : comparator.reversed()).toList();
     }
 
     public RequestStatistics getStatistics(Period period) {
@@ -115,26 +142,6 @@ public class RequestService {
             Request.countByStatus(requests),
             Request.completedRevenue(requests, Spot.ratesById(spotService.getAll())),
             Request.hours(averageMinutes));
-    }
-
-    public List<Request> filterByStatus(RequestStatus status) {
-        return requestRepository.findAll().stream()
-            .filter(r -> r.getStatus() == status)
-            .toList();
-    }
-
-    public List<Request> sortByStartTime(boolean ascending) {
-        Comparator<Request> comparator = Comparator.comparing(Request::getStartTime);
-        return requestRepository.findAll().stream()
-            .sorted(ascending ? comparator : comparator.reversed())
-            .toList();
-    }
-
-    public List<Request> sortByCreatedAt(boolean ascending) {
-        Comparator<Request> comparator = Comparator.comparing(Request::getCreatedAt);
-        return requestRepository.findAll().stream()
-            .sorted(ascending ? comparator : comparator.reversed())
-            .toList();
     }
     
     public Request getById(long id) {
@@ -195,6 +202,12 @@ public class RequestService {
         if (!endTime.isAfter(startTime)) {
             throw new BusinessException("Дата и время окончания должны быть позже даты и времени начала");
         }
+    }
+
+    private List<Request> filterByPeriod(Period period) {
+        return requestRepository.findAll().stream()
+            .filter(r -> r.overlaps(period))
+            .toList();
     }
 
     private void checkVehicleBelongsToUser(long userId, long vehicleId) {

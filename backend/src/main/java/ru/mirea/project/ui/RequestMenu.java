@@ -6,7 +6,8 @@ import java.util.Map;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-import ru.mirea.project.dto.RequestStatistics;
+import ru.mirea.project.dto.filter.RequestFilter;
+import ru.mirea.project.dto.statistics.RequestStatistics;
 import ru.mirea.project.exception.BusinessException;
 import ru.mirea.project.model.entity.Request;
 import ru.mirea.project.model.entity.Spot;
@@ -108,28 +109,28 @@ public class RequestMenu extends EntityMenu {
     }
 
     @Override
-    protected void search() {
-        runSubmenu("Поиск заявок",
+    protected List<MenuOption> searchOptions() {
+        return List.of(
             option("По гос. номеру", () -> printOrEmpty(
                 requestService.searchByLicensePlate(input.readText("Фрагмент гос. номера: ")), this::printList)),
-            option("По имени владельца", this::searchByOwnerName),
-            option("По номеру места", () -> printOrEmpty(requestService.searchBySpotNumber(
-                input.readValid("Номер места: ", spotService::parseSpotNumber)), this::printList)));
+            option("По имени владельца", this::searchByOwnerName));
     }
 
     @Override
     protected void filter() {
-        runSubmenu("Фильтры и сортировка заявок",
-            option("По статусу", () -> printOrEmpty(
-                requestService.filterByStatus(input.readOption("Статус", RequestStatus.values())), this::printList)),
-            option("За период", () -> printOrEmpty(
-                requestService.filterByPeriod(input.readPeriod(false)), this::printList)),
-            option("По типу места", () -> printOrEmpty(
-                requestService.filterBySpotType(input.readOption("Тип места", SpotType.values())), this::printList)),
-            option("Сортировка по началу", () -> printOrEmpty(
-                requestService.sortByStartTime(input.readAscending()), this::printList)),
-            option("Сортировка по дате создания", () -> printOrEmpty(
-                requestService.sortByCreatedAt(input.readAscending()), this::printList)));
+        RequestFilter filter = new RequestFilter();
+        runFilterScreen(filter, () -> requestService.find(filter), this::printList, column -> askFilter(filter, column));
+    }
+
+    private void askFilter(RequestFilter filter, RequestFilter.Column column) {
+        switch (column) {
+            case OWNER -> ask("Имя владельца содержит: ", filter::setOwnerNameContains);
+            case PLATE -> ask("Гос. номер содержит: ", filter::setPlateContains);
+            case SPOT -> filter.setSpotNumber(input.readValid("Номер места: ", spotService::parseSpotNumber));
+            case SPOT_TYPE -> filter.setSpotType(input.readOption("Тип места", SpotType.values()));
+            case PERIOD -> filter.setPeriod(input.readPeriod(false));
+            case STATUS -> filter.setStatus(input.readOption("Статус", RequestStatus.values()));
+        }
     }
 
     @Override

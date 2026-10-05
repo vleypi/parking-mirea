@@ -4,7 +4,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import ru.mirea.project.dto.UserStatistics;
+import ru.mirea.project.dto.filter.UserFilter;
+import ru.mirea.project.dto.statistics.UserStatistics;
 import ru.mirea.project.model.entity.User;
 import ru.mirea.project.model.entity.Vehicle;
 import ru.mirea.project.service.UserService;
@@ -66,8 +67,8 @@ public class UserMenu extends EntityMenu {
     }
 
     @Override
-    protected void search() {
-        runSubmenu("Поиск владельцев",
+    protected List<MenuOption> searchOptions() {
+        return List.of(
             option("По имени", () -> printOrEmpty(
                 userService.searchByName(input.readText("Фрагмент имени: ")), this::printList)),
             option("По телефону", () -> printOrEmpty(
@@ -76,14 +77,18 @@ public class UserMenu extends EntityMenu {
 
     @Override
     protected void filter() {
-        runSubmenu("Фильтры и сортировка владельцев",
-            option("С автомобилями", () -> printOrEmpty(userService.filterByHasVehicles(true), this::printList)),
-            option("Без автомобилей", () -> printOrEmpty(userService.filterByHasVehicles(false), this::printList)),
-            option("С активными заявками", () -> printOrEmpty(userService.filterWithActiveRequests(), this::printList)),
-            option("Сортировка по имени", () -> printOrEmpty(
-                userService.sortByName(input.readAscending()), this::printList)),
-            option("Сортировка по дате регистрации", () -> printOrEmpty(
-                userService.sortByCreatedAt(input.readAscending()), this::printList)));
+        UserFilter filter = new UserFilter();
+        runFilterScreen(filter, () -> userService.find(filter), this::printList, column -> askFilter(filter, column));
+    }
+
+    private void askFilter(UserFilter filter, UserFilter.Column column) {
+        switch (column) {
+            case NAME -> ask("Имя содержит: ", filter::setNameContains);
+            case PHONE -> ask("Цифры телефона: ", filter::setPhoneDigits);
+            case VEHICLES -> filter.setVehicleCount(input.readRange("Количество машин"));
+            case REGISTERED -> filter.setRegistered(input.readPeriod(false));
+            case ACTIVE_REQUESTS -> filter.setHasActiveRequests(input.readYesNo("Есть активные заявки?"));
+        }
     }
 
     @Override
