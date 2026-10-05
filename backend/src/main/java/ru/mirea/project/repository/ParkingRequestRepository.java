@@ -19,7 +19,7 @@ public class ParkingRequestRepository implements CrudRepository<ParkingRequest> 
 
     @Override
     public ParkingRequest create(ParkingRequest request) {
-        String sql = "INSERT INTO parking_requests (user_id, vehicle_id, spot_id, start_time, end_time, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO parking_requests (user_id, vehicle_id, spot_id, start_time, end_time, status_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)";
 
         try (Connection connection = DatabaseManager.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -28,7 +28,7 @@ public class ParkingRequestRepository implements CrudRepository<ParkingRequest> 
             statement.setLong(3, request.getSpotId());
             statement.setTimestamp(4, Timestamp.valueOf(request.getStartTime()));
             statement.setTimestamp(5, Timestamp.valueOf(request.getEndTime()));
-            statement.setString(6, request.getStatus().name());
+            statement.setInt(6, request.getStatus().getId());
             statement.setTimestamp(7, Timestamp.valueOf(request.getCreatedAt()));
             statement.executeUpdate();
 
@@ -45,7 +45,7 @@ public class ParkingRequestRepository implements CrudRepository<ParkingRequest> 
 
     @Override
     public List<ParkingRequest> findAll() {
-        String sql = "SELECT id, user_id, vehicle_id, spot_id, start_time, end_time, status, created_at FROM parking_requests ORDER BY id";
+        String sql = "SELECT id, user_id, vehicle_id, spot_id, start_time, end_time, status_id, created_at FROM parking_requests ORDER BY id";
         
         try (Connection connection = DatabaseManager.getConnection();
             PreparedStatement statement = connection.prepareStatement(sql);
@@ -64,7 +64,7 @@ public class ParkingRequestRepository implements CrudRepository<ParkingRequest> 
 
     @Override
     public Optional<ParkingRequest> findById(long id) {
-        String sql = "SELECT id, user_id, vehicle_id, spot_id, start_time, end_time, status, created_at FROM parking_requests WHERE id = ?";
+        String sql = "SELECT id, user_id, vehicle_id, spot_id, start_time, end_time, status_id, created_at FROM parking_requests WHERE id = ?";
 
         try (Connection connection = DatabaseManager.getConnection();
             PreparedStatement statement = connection.prepareStatement(sql)) {
@@ -84,7 +84,7 @@ public class ParkingRequestRepository implements CrudRepository<ParkingRequest> 
 
     @Override
     public void update(ParkingRequest request) {
-        String sql = "UPDATE parking_requests SET user_id = ?, vehicle_id = ?, spot_id = ?, start_time = ?, end_time = ?, status = ? WHERE id = ?";
+        String sql = "UPDATE parking_requests SET user_id = ?, vehicle_id = ?, spot_id = ?, start_time = ?, end_time = ?, status_id = ? WHERE id = ?";
 
         try (Connection connection = DatabaseManager.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
@@ -93,7 +93,7 @@ public class ParkingRequestRepository implements CrudRepository<ParkingRequest> 
             statement.setLong(3, request.getSpotId());
             statement.setTimestamp(4, Timestamp.valueOf(request.getStartTime()));
             statement.setTimestamp(5, Timestamp.valueOf(request.getEndTime()));
-            statement.setString(6, request.getStatus().name());
+            statement.setInt(6, request.getStatus().getId());
             statement.setLong(7, request.getId());
             statement.executeUpdate();
         } catch (SQLException err) {
@@ -115,6 +115,10 @@ public class ParkingRequestRepository implements CrudRepository<ParkingRequest> 
     }
 
     private ParkingRequest mapRow(ResultSet rs) throws SQLException {
+        int statusId = rs.getInt("status_id");
+        RequestStatus status = RequestStatus.fromId(statusId)
+            .orElseThrow(() -> new SQLException("Неизвестный статус заявки с id " + statusId));
+
         return new ParkingRequest(
             rs.getLong("id"),
             rs.getLong("user_id"),
@@ -122,7 +126,7 @@ public class ParkingRequestRepository implements CrudRepository<ParkingRequest> 
             rs.getLong("spot_id"),
             rs.getTimestamp("start_time").toLocalDateTime(),
             rs.getTimestamp("end_time").toLocalDateTime(),
-            RequestStatus.valueOf(rs.getString("status")),
+            status,
             rs.getTimestamp("created_at").toLocalDateTime()
         );
     }
