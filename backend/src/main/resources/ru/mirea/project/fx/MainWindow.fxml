@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Menu?>
+<?import javafx.scene.control.MenuBar?>
+<?import javafx.scene.control.MenuItem?>
+<?import javafx.scene.control.Tab?>
+<?import javafx.scene.control.TabPane?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="ru.mirea.project.fx.MainWindowController" styleClass="main-window">
+    <top>
+        <VBox>
+            <MenuBar>
+                <Menu text="Отчёты">
+                    <MenuItem text="Общая статистика" onAction="#showGeneralStatistics"/>
+                </Menu>
+                <Menu text="Справка">
+                    <MenuItem text="О программе" onAction="#showAbout"/>
+                </Menu>
+            </MenuBar>
+            <Label text="Парковочная система" styleClass="app-title"/>
+        </VBox>
+    </top>
+    <center>
+        <TabPane tabClosingPolicy="UNAVAILABLE">
+            <Tab text="Заявки">
+                <content>
+                    <fx:include source="RequestView.fxml"/>
+                </content>
+            </Tab>
+            <Tab text="Владельцы">
+                <content>
+                    <fx:include source="UserView.fxml"/>
+                </content>
+            </Tab>
+            <Tab text="Автомобили">
+                <content>
+                    <fx:include source="VehicleView.fxml"/>
+                </content>
+            </Tab>
+            <Tab text="Места">
+                <content>
+                    <fx:include source="SpotView.fxml"/>
+                </content>
+            </Tab>
+        </TabPane>
+    </center>
+</BorderPane>

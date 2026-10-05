@@ -1,0 +1,82 @@
+.root {
+    -fx-font-family: "Arial";
+    -fx-font-size: 13px;
+    -fx-base: #f4f6f8;
+    -fx-accent: #2f6690;
+    -fx-focus-color: #2f6690;
+}
+
+.main-window {
+    -fx-background-color: #ffffff;
+}
+
+.app-title {
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #1f2933;
+    -fx-padding: 12 16 4 16;
+}
+
+.view-title {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #1f2933;
+}
+
+.placeholder {
+    -fx-text-fill: #9aa5b1;
+    -fx-font-style: italic;
+}
+
+.button {
+    -fx-cursor: hand;
+    -fx-padding: 6 14 6 14;
+}
+
+.button-primary {
+    -fx-background-color: #2f6690;
+    -fx-text-fill: #ffffff;
+    -fx-font-weight: bold;
+}
+
+.button-primary:hover {
+    -fx-background-color: #24527a;
+}
+
+.button-danger {
+    -fx-background-color: #c0392b;
+    -fx-text-fill: #ffffff;
+}
+
+.button-danger:hover {
+    -fx-background-color: #a93226;
+}
+
+.table-view .column-header .label {
+    -fx-font-weight: bold;
+    -fx-text-fill: #1f2933;
+}
+
+.table-view .table-row-cell:selected {
+    -fx-background-color: #2f6690;
+}
+
+.form-label {
+    -fx-text-fill: #52606d;
+}
+
+.field-error {
+    -fx-border-color: #c0392b;
+    -fx-border-width: 1.5;
+    -fx-border-radius: 3;
+}
+
+.error-label {
+    -fx-text-fill: #c0392b;
+    -fx-font-size: 12px;
+}
+
+.toolbar {
+    -fx-spacing: 8;
+    -fx-alignment: center-left;
+}
