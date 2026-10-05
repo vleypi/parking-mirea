@@ -16,10 +16,10 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
-import ru.mirea.project.model.ParkingRequest;
-import ru.mirea.project.model.ParkingSpot;
-import ru.mirea.project.model.User;
-import ru.mirea.project.model.Vehicle;
+import ru.mirea.project.model.entity.ParkingRequest;
+import ru.mirea.project.model.entity.ParkingSpot;
+import ru.mirea.project.model.entity.User;
+import ru.mirea.project.model.entity.Vehicle;
 
 public final class ExcelExporter {
     private static final String[] USER_HEADERS = {"ID", "Имя", "Телефон", "Создан"};

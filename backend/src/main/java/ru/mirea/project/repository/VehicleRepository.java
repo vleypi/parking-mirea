@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Optional;
 
 import ru.mirea.project.exception.DataAccessException;
-import ru.mirea.project.model.Vehicle;
+import ru.mirea.project.model.entity.Vehicle;
 import ru.mirea.project.util.DatabaseManager;
 
 public class VehicleRepository implements CrudRepository<Vehicle> {

@@ -1,23 +1,23 @@
 package ru.mirea.project.service;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Comparator;
 import java.util.stream.Collectors;
 
+import ru.mirea.project.dto.ParkingRequestStatistics;
 import ru.mirea.project.exception.BusinessException;
 import ru.mirea.project.exception.EntityNotFoundException;
-import ru.mirea.project.model.ParkingRequest;
-import ru.mirea.project.model.ParkingSpot;
-import ru.mirea.project.model.RequestStatus;
-import ru.mirea.project.model.User;
-import ru.mirea.project.model.Vehicle;
+import ru.mirea.project.model.entity.ParkingRequest;
+import ru.mirea.project.model.entity.ParkingSpot;
+import ru.mirea.project.model.entity.User;
+import ru.mirea.project.model.entity.Vehicle;
+import ru.mirea.project.model.enums.RequestStatus;
+import ru.mirea.project.model.enums.SpotType;
+import ru.mirea.project.model.value.Period;
 import ru.mirea.project.repository.ParkingRequestRepository;
 
 public class ParkingRequestService {
@@ -84,55 +84,42 @@ public class ParkingRequestService {
                 LinkedHashMap::new));
     }
 
-    public Statistics getStatistics() {
-        List<ParkingRequest> requests = parkingRequestRepository.findAll();
-        LocalDateTime now = LocalDateTime.now();
+    public List<ParkingRequest> searchBySpotNumber(int spotNumber) {
+        ParkingSpot spot = parkingSpotService.findByNumber(spotNumber);
+        return parkingRequestRepository.findAll().stream()
+            .filter(r -> r.getSpotId() == spot.getId())
+            .toList();
+    }
 
-        long occupiedNow = requests.stream()
-            .filter(ParkingRequestService::isActive)
-            .filter(r -> !r.getStartTime().isAfter(now) && r.getEndTime().isAfter(now))
-            .map(ParkingRequest::getSpotId)
-            .distinct()
-            .count();
+    public List<ParkingRequest> filterByPeriod(Period period) {
+        return parkingRequestRepository.findAll().stream()
+            .filter(r -> r.overlaps(period))
+            .toList();
+    }
 
-        List<ParkingSpot> spots = parkingSpotService.getAll();
-        Map<Long, BigDecimal> rates = spots.stream()
-            .collect(Collectors.toMap(ParkingSpot::getId, ParkingSpot::getHourlyRate));
+    public List<ParkingRequest> filterBySpotType(SpotType spotType) {
+        Set<Long> spotIds = parkingSpotService.filterByType(spotType).stream()
+            .map(ParkingSpot::getId)
+            .collect(Collectors.toSet());
+        return parkingRequestRepository.findAll().stream()
+            .filter(r -> spotIds.contains(r.getSpotId()))
+            .toList();
+    }
 
-        BigDecimal completedRevenue = requests.stream()
-            .filter(r -> r.getStatus() == RequestStatus.COMPLETED)
-            .map(r -> rates.get(r.getSpotId())
-                .multiply(BigDecimal.valueOf(Duration.between(r.getStartTime(), r.getEndTime()).toMinutes()))
-                .divide(BigDecimal.valueOf(60), 2, RoundingMode.HALF_UP))
-            .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        return new Statistics(
-            userService.getAll().size(),
-            vehicleService.getAll().size(),
-            spots.size(),
-            requests.size(),
-            requests.stream().filter(ParkingRequestService::isActive).count(),
-            requests.stream().filter(r -> r.getStatus() == RequestStatus.COMPLETED).count(),
-            requests.stream().filter(r -> r.getStatus() == RequestStatus.CANCELLED).count(),
-            occupiedNow,
-            completedRevenue);
+    public ParkingRequestStatistics getStatistics(Period period) {
+        List<ParkingRequest> requests = filterByPeriod(period);
+        List<ParkingRequest> notCancelled = requests.stream().filter(r -> !r.isCancelled()).toList();
+        long averageMinutes = notCancelled.isEmpty() ? 0
+            : Math.round(notCancelled.stream().mapToLong(ParkingRequest::durationMinutes).sum() / (double) notCancelled.size());
+        return new ParkingRequestStatistics(period,
+            ParkingRequest.countByStatus(requests),
+            ParkingRequest.completedRevenue(requests, ParkingSpot.ratesById(parkingSpotService.getAll())),
+            ParkingRequest.hours(averageMinutes));
     }
 
     public List<ParkingRequest> filterByStatus(RequestStatus status) {
         return parkingRequestRepository.findAll().stream()
             .filter(r -> r.getStatus() == status)
-            .toList();
-    }
-
-    public List<ParkingRequest> filterByDateRange(LocalDateTime from, LocalDateTime to) {
-        if (from == null || to == null) {
-            throw new BusinessException("Укажите начало и конец диапазона");
-        }
-        if (from.isAfter(to)) {
-            throw new BusinessException("Начало диапазона не может быть позже конца");
-        }
-        return parkingRequestRepository.findAll().stream()
-            .filter(r -> !r.getStartTime().isBefore(from) && !r.getStartTime().isAfter(to))
             .toList();
     }
 
@@ -195,7 +182,7 @@ public class ParkingRequestService {
     }
 
     public void checkEditable(ParkingRequest request) {
-        if (!isActive(request)) {
+        if (!request.isActive()) {
             throw new BusinessException("Заявку в статусе «" + request.getStatus() + "» изменить нельзя: редактируются только заявки"
                 + " в статусе «" + RequestStatus.NEW + "» или «" + RequestStatus.CONFIRMED + "»");
         }
@@ -221,8 +208,8 @@ public class ParkingRequestService {
         boolean occupied = parkingRequestRepository.findAll().stream()
             .filter(r -> r.getId() != excludeId)
             .filter(r -> r.getSpotId() == spot.getId())
-            .filter(ParkingRequestService::isActive)
-            .anyMatch(r -> startTime.isBefore(r.getEndTime()) && endTime.isAfter(r.getStartTime()));
+            .filter(ParkingRequest::isActive)
+            .anyMatch(r -> r.overlaps(startTime, endTime));
 
         if (occupied) {
             throw new BusinessException("Место " + spot.getSpotNumber() + " уже занято на указанный период");
@@ -233,15 +220,11 @@ public class ParkingRequestService {
         boolean busy = parkingRequestRepository.findAll().stream()
             .filter(r -> r.getId() != excludeId)
             .filter(r -> r.getVehicleId() == vehicleId)
-            .filter(ParkingRequestService::isActive)
-            .anyMatch(r -> startTime.isBefore(r.getEndTime()) && endTime.isAfter(r.getStartTime()));
+            .filter(ParkingRequest::isActive)
+            .anyMatch(r -> r.overlaps(startTime, endTime));
 
         if (busy) {
             throw new BusinessException("Этот автомобиль уже припаркован на указанный период");
         }
-    }
-
-    private static boolean isActive(ParkingRequest request) {
-        return request.getStatus() == RequestStatus.NEW || request.getStatus() == RequestStatus.CONFIRMED;
     }
 }

@@ -1,6 +1,15 @@
-package ru.mirea.project.model;
+package ru.mirea.project.model.entity;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.EnumMap;
+import java.util.List;
+import java.util.Map;
+
+import ru.mirea.project.model.enums.RequestStatus;
+import ru.mirea.project.model.value.Period;
 
 public class ParkingRequest {
     private long id;
@@ -83,6 +92,56 @@ public class ParkingRequest {
 
     public LocalDateTime getCreatedAt() {
         return createdAt;
+    }
+
+    public boolean isActive() {
+        return status == RequestStatus.NEW || status == RequestStatus.CONFIRMED;
+    }
+
+    public boolean isCancelled() {
+        return status == RequestStatus.CANCELLED;
+    }
+
+    public boolean isCompleted() {
+        return status == RequestStatus.COMPLETED;
+    }
+
+    public boolean overlaps(LocalDateTime start, LocalDateTime end) {
+        return startTime.isBefore(end) && endTime.isAfter(start);
+    }
+
+    public boolean overlaps(Period period) {
+        return period.overlaps(startTime, endTime);
+    }
+
+    public long durationMinutes() {
+        return Duration.between(startTime, endTime).toMinutes();
+    }
+
+    public BigDecimal cost(BigDecimal hourlyRate) {
+        return hourlyRate.multiply(BigDecimal.valueOf(durationMinutes()))
+            .divide(BigDecimal.valueOf(60), 2, RoundingMode.HALF_UP);
+    }
+
+    public static Map<RequestStatus, Long> countByStatus(List<ParkingRequest> requests) {
+        Map<RequestStatus, Long> counts = new EnumMap<>(RequestStatus.class);
+        for (RequestStatus status : RequestStatus.values()) {
+            counts.put(status, 0L);
+        }
+        requests.forEach(r -> counts.merge(r.getStatus(), 1L, Long::sum));
+        return counts;
+    }
+
+    public static BigDecimal completedRevenue(List<ParkingRequest> requests, Map<Long, BigDecimal> ratesBySpotId) {
+        return requests.stream()
+            .filter(ParkingRequest::isCompleted)
+            .map(r -> r.cost(ratesBySpotId.get(r.getSpotId())))
+            .reduce(BigDecimal.ZERO, BigDecimal::add)
+            .setScale(2, RoundingMode.HALF_UP);
+    }
+
+    public static BigDecimal hours(long minutes) {
+        return BigDecimal.valueOf(minutes).divide(BigDecimal.valueOf(60), 1, RoundingMode.HALF_UP);
     }
 
     @Override

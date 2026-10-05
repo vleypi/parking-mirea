@@ -1,16 +1,19 @@
-package ru.mirea.project.service;
+package ru.mirea.project.dto;
 
 import java.math.BigDecimal;
 
-public record Statistics(
+import ru.mirea.project.model.value.Period;
+
+public record GeneralStatistics(
+    Period period,
     long totalUsers,
     long totalVehicles,
     long totalSpots,
-    long totalRequests,
+    long requests,
     long active,
     long completed,
     long cancelled,
     long occupiedNow,
-    BigDecimal completedRevenue
+    BigDecimal revenue
 ) {
 }

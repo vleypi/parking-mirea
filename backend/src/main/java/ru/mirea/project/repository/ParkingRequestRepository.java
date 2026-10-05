@@ -11,9 +11,9 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 
 import ru.mirea.project.exception.DataAccessException;
+import ru.mirea.project.model.entity.ParkingRequest;
+import ru.mirea.project.model.enums.RequestStatus;
 import ru.mirea.project.util.DatabaseManager;
-import ru.mirea.project.model.ParkingRequest;
-import ru.mirea.project.model.RequestStatus;
 
 public class ParkingRequestRepository implements CrudRepository<ParkingRequest> {
 

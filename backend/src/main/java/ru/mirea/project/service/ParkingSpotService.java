@@ -2,21 +2,30 @@ package ru.mirea.project.service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
+import ru.mirea.project.dto.ParkingSpotStatistics;
 import ru.mirea.project.exception.BusinessException;
 import ru.mirea.project.exception.EntityNotFoundException;
-import ru.mirea.project.model.ParkingSpot;
-import ru.mirea.project.model.SpotType;
+import ru.mirea.project.model.entity.ParkingRequest;
+import ru.mirea.project.model.entity.ParkingSpot;
+import ru.mirea.project.model.enums.SpotType;
+import ru.mirea.project.model.value.Period;
+import ru.mirea.project.repository.ParkingRequestRepository;
 import ru.mirea.project.repository.ParkingSpotRepository;
 
 public class ParkingSpotService {
     private static final BigDecimal MAX_HOURLY_RATE = new BigDecimal("99999.99");
 
     private final ParkingSpotRepository parkingSpotRepository;
+    private final ParkingRequestRepository parkingRequestRepository;
 
-    public ParkingSpotService(ParkingSpotRepository parkingSpotRepository) {
+    public ParkingSpotService(ParkingSpotRepository parkingSpotRepository, ParkingRequestRepository parkingRequestRepository) {
         this.parkingSpotRepository = parkingSpotRepository;
+        this.parkingRequestRepository = parkingRequestRepository;
     }
 
     public ParkingSpot create(int spotNumber, SpotType spotType, BigDecimal hourlyRate) {
@@ -41,6 +50,64 @@ public class ParkingSpotService {
         return parkingSpotRepository.findAll().stream()
             .filter(s -> s.getSpotType() == spotType)
             .toList();
+    }
+
+    public ParkingSpot findByNumber(int spotNumber) {
+        return parkingSpotRepository.findAll().stream()
+            .filter(s -> s.getSpotNumber() == spotNumber)
+            .findFirst()
+            .orElseThrow(() -> new EntityNotFoundException("Место с номером " + spotNumber + " не найдено"));
+    }
+
+    public List<ParkingSpot> findFreeDuring(Period period) {
+        if (!period.isBounded()) {
+            throw new BusinessException("Укажите начало и конец периода");
+        }
+        Set<Long> busySpotIds = parkingRequestRepository.findAll().stream()
+            .filter(ParkingRequest::isActive)
+            .filter(r -> r.overlaps(period))
+            .map(ParkingRequest::getSpotId)
+            .collect(Collectors.toSet());
+        return parkingSpotRepository.findAll().stream()
+            .filter(s -> !busySpotIds.contains(s.getId()))
+            .toList();
+    }
+
+    public List<ParkingSpot> filterByRateRange(BigDecimal min, BigDecimal max) {
+        if (min == null || max == null) {
+            throw new BusinessException("Укажите обе границы тарифа");
+        }
+        if (min.compareTo(max) > 0) {
+            throw new BusinessException("Нижняя граница тарифа не может быть больше верхней");
+        }
+        return parkingSpotRepository.findAll().stream()
+            .filter(s -> s.getHourlyRate().compareTo(min) >= 0 && s.getHourlyRate().compareTo(max) <= 0)
+            .toList();
+    }
+
+    public List<ParkingSpot> sortByNumber(boolean ascending) {
+        return sorted(Comparator.comparingInt(ParkingSpot::getSpotNumber), ascending);
+    }
+
+    public List<ParkingSpot> sortByRate(boolean ascending) {
+        return sorted(Comparator.comparing(ParkingSpot::getHourlyRate)
+            .thenComparingInt(ParkingSpot::getSpotNumber), ascending);
+    }
+
+    public ParkingSpotStatistics getStatistics(long spotId, Period period) {
+        ParkingSpot spot = getById(spotId);
+        List<ParkingRequest> requests = parkingRequestRepository.findAll().stream()
+            .filter(r -> r.getSpotId() == spotId)
+            .filter(r -> !r.isCancelled())
+            .filter(r -> r.overlaps(period))
+            .toList();
+        long minutes = requests.stream().mapToLong(ParkingRequest::durationMinutes).sum();
+        BigDecimal revenue = requests.stream()
+            .filter(ParkingRequest::isCompleted)
+            .map(r -> r.cost(spot.getHourlyRate()))
+            .reduce(BigDecimal.ZERO, BigDecimal::add)
+            .setScale(2, RoundingMode.HALF_UP);
+        return new ParkingSpotStatistics(spot, period, requests.size(), ParkingRequest.hours(minutes), revenue);
     }
 
     public ParkingSpot update(long id, int spotNumber, SpotType spotType, BigDecimal hourlyRate) {
@@ -118,5 +185,11 @@ public class ParkingSpotService {
             throw new BusinessException("Место с номером " + spotNumber + " уже существует");
         }
         return spotNumber;
+    }
+
+    private List<ParkingSpot> sorted(Comparator<ParkingSpot> comparator, boolean ascending) {
+        return parkingSpotRepository.findAll().stream()
+            .sorted(ascending ? comparator : comparator.reversed())
+            .toList();
     }
 }

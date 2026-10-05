@@ -1,4 +1,4 @@
-package ru.mirea.project.model;
+package ru.mirea.project.model.enums;
 
 public interface LookupValue {
     int getId();

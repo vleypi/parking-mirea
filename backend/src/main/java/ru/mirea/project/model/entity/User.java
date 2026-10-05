@@ -1,4 +1,4 @@
-package ru.mirea.project.model;
+package ru.mirea.project.model.entity;
 
 import java.time.LocalDateTime;
 
