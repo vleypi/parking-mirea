@@ -17,6 +17,8 @@
     </padding>
     <Label text="Заявки на парковку" styleClass="view-title"/>
     <HBox styleClass="toolbar">
+        <Button text="Добавить" onAction="#create" styleClass="button-primary"/>
+        <Button fx:id="editButton" text="Изменить" onAction="#edit"/>
         <Button text="Обновить" onAction="#refresh"/>
         <Region HBox.hgrow="ALWAYS"/>
         <Label fx:id="countLabel" styleClass="form-label"/>

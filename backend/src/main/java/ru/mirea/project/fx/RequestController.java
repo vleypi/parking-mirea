@@ -10,12 +10,18 @@ import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
 
 import ru.mirea.project.AppContext;
+import ru.mirea.project.exception.BusinessException;
 import ru.mirea.project.model.entity.Request;
 import ru.mirea.project.model.entity.Spot;
 import ru.mirea.project.model.entity.User;
@@ -29,6 +35,7 @@ import ru.mirea.project.service.VehicleService;
 public class RequestController {
     private static final DateTimeFormatter DATE_TIME_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
 
+    private final AppContext context;
     private final RequestService requestService;
     private final UserService userService;
     private final VehicleService vehicleService;
@@ -55,8 +62,11 @@ public class RequestController {
     private TableColumn<Request, RequestStatus> statusColumn;
     @FXML
     private Label countLabel;
+    @FXML
+    private Button editButton;
 
     public RequestController(AppContext context) {
+        this.context = context;
         this.requestService = context.getRequestService();
         this.userService = context.getUserService();
         this.vehicleService = context.getVehicleService();
@@ -79,7 +89,34 @@ public class RequestController {
         endColumn.setCellFactory(column -> new DateTimeCell());
 
         requestTable.setItems(requests);
+        requestTable.setRowFactory(table -> {
+            TableRow<Request> row = new TableRow<>();
+            row.setOnMouseClicked(event -> {
+                if (event.getClickCount() == 2 && !row.isEmpty()) {
+                    edit();
+                }
+            });
+            return row;
+        });
+        editButton.disableProperty().bind(requestTable.getSelectionModel().selectedItemProperty().isNull());
         refresh();
+    }
+
+    @FXML
+    private void create() {
+        openForm(null);
+    }
+
+    @FXML
+    private void edit() {
+        Request selected = requestTable.getSelectionModel().getSelectedItem();
+        try {
+            requestService.checkEditable(selected);
+        } catch (BusinessException e) {
+            Alerts.error(e);
+            return;
+        }
+        openForm(selected);
     }
 
     @FXML
@@ -96,6 +133,38 @@ public class RequestController {
             Alerts.error(e);
         }
         countLabel.setText("Всего заявок: " + requests.size());
+    }
+
+    private void openForm(Request request) {
+        try {
+            FXMLLoader loader = Views.load("RequestFormDialog.fxml", context);
+            RequestFormController form = loader.getController();
+            form.prepare(request);
+
+            Dialog<ButtonType> dialog = new Dialog<>();
+            dialog.setTitle(request == null ? "Новая заявка" : "Изменение заявки");
+            dialog.initOwner(requestTable.getScene().getWindow());
+            dialog.setDialogPane(loader.getRoot());
+            dialog.getDialogPane().getStylesheets().add(Views.stylesheet());
+            dialog.showAndWait();
+
+            form.getSavedRequest().ifPresent(saved -> {
+                refresh();
+                select(saved.getId());
+            });
+        } catch (RuntimeException e) {
+            Alerts.error(e);
+        }
+    }
+
+    private void select(long requestId) {
+        requests.stream()
+            .filter(request -> request.getId() == requestId)
+            .findFirst()
+            .ifPresent(request -> {
+                requestTable.getSelectionModel().select(request);
+                requestTable.scrollTo(request);
+            });
     }
 
     private static class DateTimeCell extends TableCell<Request, LocalDateTime> {
