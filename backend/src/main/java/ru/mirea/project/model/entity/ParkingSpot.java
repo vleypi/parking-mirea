@@ -1,6 +1,11 @@
-package ru.mirea.project.model;
+package ru.mirea.project.model.entity;
 
 import java.math.BigDecimal;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import ru.mirea.project.model.enums.SpotType;
 
 public class ParkingSpot {
     private long id;
@@ -45,6 +50,10 @@ public class ParkingSpot {
 
     public void setHourlyRate(BigDecimal hourlyRate) {
         this.hourlyRate = hourlyRate;
+    }
+
+    public static Map<Long, BigDecimal> ratesById(List<ParkingSpot> spots) {
+        return spots.stream().collect(Collectors.toMap(ParkingSpot::getId, ParkingSpot::getHourlyRate));
     }
 
     @Override

@@ -1,10 +1,10 @@
-package ru.mirea.project.service;
+package ru.mirea.project.util;
 
 import java.util.regex.Pattern;
 
 import ru.mirea.project.exception.BusinessException;
 
-final class InputFormats {
+public final class InputFormats {
     static final String PHONE_EXAMPLE = "89991234567";
     static final String PLATE_EXAMPLE = "А123ВС777";
 
@@ -21,7 +21,15 @@ final class InputFormats {
     private InputFormats() {
     }
 
-    static String normalizePhone(String raw) {
+    public static String requireText(String value, String message) {
+        String text = value == null ? "" : value.trim();
+        if (text.isEmpty()) {
+            throw new BusinessException(message);
+        }
+        return text;
+    }
+
+    public static String normalizePhone(String raw) {
         String input = raw.trim();
         if (!PHONE_ALLOWED_CHARS.matcher(input).matches() || input.lastIndexOf('+') > 0) {
             throw invalidPhone(input);
@@ -45,7 +53,7 @@ final class InputFormats {
             digits.substring(0, 3), digits.substring(3, 6), digits.substring(6, 8), digits.substring(8));
     }
 
-    static String normalizePlateText(String raw) {
+    public static String normalizePlateText(String raw) {
         StringBuilder result = new StringBuilder();
         for (char c : raw.toUpperCase().toCharArray()) {
             if (Character.isWhitespace(c) || c == '-') {
@@ -57,7 +65,7 @@ final class InputFormats {
         return result.toString();
     }
 
-    static String normalizePlate(String raw) {
+    public static String normalizePlate(String raw) {
         String plate = normalizePlateText(raw);
         var matcher = PLATE_PATTERN.matcher(plate);
         if (!matcher.matches() || matcher.group(1).equals("000")) {
@@ -68,7 +76,7 @@ final class InputFormats {
         return plate;
     }
 
-    static String normalizeName(String raw) {
+    public static String normalizeName(String raw) {
         String name = raw.trim().replaceAll("\\s+", " ");
         if (!NAME_PATTERN.matcher(name).matches()) {
             throw new BusinessException("Имя может содержать только буквы, пробелы, дефис, точку и апостроф");
@@ -82,7 +90,7 @@ final class InputFormats {
         return result.toString();
     }
 
-    static String normalizeTitle(String raw) {
+    public static String normalizeTitle(String raw) {
         String text = raw.trim().replaceAll("\\s+", " ");
         if (text.isEmpty()) {
             return text;

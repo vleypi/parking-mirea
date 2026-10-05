@@ -1,4 +1,4 @@
-package ru.mirea.project.model;
+package ru.mirea.project.model.enums;
 
 import java.util.Arrays;
 import java.util.Optional;

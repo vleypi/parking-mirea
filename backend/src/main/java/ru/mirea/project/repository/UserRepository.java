@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Optional;
 
 import ru.mirea.project.exception.DataAccessException;
-import ru.mirea.project.model.User;
+import ru.mirea.project.model.entity.User;
 import ru.mirea.project.util.DatabaseManager;
 
 public class UserRepository implements CrudRepository<User> {

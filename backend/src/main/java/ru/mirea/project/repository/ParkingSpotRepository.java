@@ -10,8 +10,8 @@ import java.util.List;
 import java.util.Optional;
 
 import ru.mirea.project.exception.DataAccessException;
-import ru.mirea.project.model.ParkingSpot;
-import ru.mirea.project.model.SpotType;
+import ru.mirea.project.model.entity.ParkingSpot;
+import ru.mirea.project.model.enums.SpotType;
 import ru.mirea.project.util.DatabaseManager;
 
 public class ParkingSpotRepository implements CrudRepository<ParkingSpot> {
