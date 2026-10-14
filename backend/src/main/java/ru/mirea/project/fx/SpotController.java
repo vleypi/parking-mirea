@@ -39,6 +39,8 @@ public class SpotController {
     private Label countLabel;
     @FXML
     private Button editButton;
+    @FXML
+    private Button deleteButton;
 
     public SpotController(AppContext context) {
         this.context = context;
@@ -63,6 +65,7 @@ public class SpotController {
             return row;
         });
         editButton.disableProperty().bind(spotTable.getSelectionModel().selectedItemProperty().isNull());
+        deleteButton.disableProperty().bind(spotTable.getSelectionModel().selectedItemProperty().isNull());
         refresh();
     }
 
@@ -77,6 +80,26 @@ public class SpotController {
         if (selected != null) {
             openForm(selected);
         }
+    }
+
+    @FXML
+    private void delete() {
+        Spot selected = spotTable.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            return;
+        }
+        String description = "Удалить парковочное место №" + selected.getSpotNumber()
+            + " (" + selected.getSpotType().getTitle()
+            + ", тариф " + selected.getHourlyRate().toPlainString() + " руб/ч)?";
+        if (!Alerts.confirm(description)) {
+            return;
+        }
+        try {
+            spotService.delete(selected.getId());
+        } catch (RuntimeException e) {
+            Alerts.error(e);
+        }
+        refresh();
     }
 
     @FXML
