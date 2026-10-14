@@ -1,31 +1,54 @@
 package ru.mirea.project.fx;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.function.Predicate;
 
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.collections.transformation.FilteredList;
+import javafx.collections.transformation.SortedList;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.Control;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
+import javafx.scene.control.TextField;
+import javafx.util.StringConverter;
 
 import ru.mirea.project.AppContext;
+import ru.mirea.project.dto.filter.SpotFilter;
+import ru.mirea.project.exception.BusinessException;
 import ru.mirea.project.model.entity.Spot;
+import ru.mirea.project.model.enums.SpotType;
+import ru.mirea.project.model.value.NumberRange;
 import ru.mirea.project.service.SpotService;
 
 public class SpotController {
+    private static final String ERROR_STYLE = "field-error";
+    private static final String ANY_TYPE = "Любой тип";
+
     private final AppContext context;
     private final SpotService spotService;
 
     private final ObservableList<Spot> spots = FXCollections.observableArrayList();
+    private final FilteredList<Spot> searchedSpots = new FilteredList<>(spots);
+    private final SortedList<Spot> sortedSpots = new SortedList<>(searchedSpots);
+
+    private SpotFilter currentFilter = new SpotFilter();
+    private List<Control> rangeFields = List.of();
+    private boolean resetting;
 
     @FXML
     private TableView<Spot> spotTable;
@@ -38,9 +61,25 @@ public class SpotController {
     @FXML
     private Label countLabel;
     @FXML
+    private Label placeholderLabel;
+    @FXML
     private Button editButton;
     @FXML
     private Button deleteButton;
+    @FXML
+    private TextField searchField;
+    @FXML
+    private ComboBox<SpotType> typeFilterBox;
+    @FXML
+    private TextField numberFromField;
+    @FXML
+    private TextField numberToField;
+    @FXML
+    private TextField rateFromField;
+    @FXML
+    private TextField rateToField;
+    @FXML
+    private Label filterErrorLabel;
 
     public SpotController(AppContext context) {
         this.context = context;
@@ -54,7 +93,8 @@ public class SpotController {
         rateColumn.setCellValueFactory(cell -> new SimpleObjectProperty<>(cell.getValue().getHourlyRate()));
         rateColumn.setCellFactory(column -> new RateCell());
 
-        spotTable.setItems(spots);
+        sortedSpots.comparatorProperty().bind(spotTable.comparatorProperty());
+        spotTable.setItems(sortedSpots);
         spotTable.setRowFactory(table -> {
             TableRow<Spot> row = new TableRow<>();
             row.setOnMouseClicked(event -> {
@@ -66,7 +106,43 @@ public class SpotController {
         });
         editButton.disableProperty().bind(spotTable.getSelectionModel().selectedItemProperty().isNull());
         deleteButton.disableProperty().bind(spotTable.getSelectionModel().selectedItemProperty().isNull());
+
+        initFilterPanel();
         refresh();
+    }
+
+    private void initFilterPanel() {
+        rangeFields = List.of(numberFromField, numberToField, rateFromField, rateToField);
+
+        List<SpotType> typeItems = new ArrayList<>();
+        typeItems.add(null);
+        typeItems.addAll(List.of(SpotType.values()));
+        typeFilterBox.getItems().setAll(typeItems);
+        typeFilterBox.setPromptText(ANY_TYPE);
+        typeFilterBox.setConverter(new StringConverter<>() {
+            @Override
+            public String toString(SpotType type) {
+                return type == null ? ANY_TYPE : type.getTitle();
+            }
+
+            @Override
+            public SpotType fromString(String text) {
+                return null;
+            }
+        });
+        typeFilterBox.valueProperty().addListener((observable, oldValue, newValue) -> {
+            if (!resetting) {
+                applyFilters();
+            }
+        });
+
+        searchField.textProperty().addListener((observable, oldValue, newValue) -> {
+            searchedSpots.setPredicate(createSearchPredicate(newValue));
+            updateStatus();
+        });
+
+        filterErrorLabel.managedProperty().bind(filterErrorLabel.textProperty().isNotEmpty());
+        filterErrorLabel.visibleProperty().bind(filterErrorLabel.textProperty().isNotEmpty());
     }
 
     @FXML
@@ -105,11 +181,103 @@ public class SpotController {
     @FXML
     private void refresh() {
         try {
-            spots.setAll(spotService.getAll());
+            spots.setAll(spotService.find(currentFilter));
         } catch (RuntimeException e) {
             Alerts.error(e);
         }
-        countLabel.setText("Всего мест: " + spots.size());
+        updateStatus();
+    }
+
+    @FXML
+    private void applyFilters() {
+        clearFilterErrors();
+        try {
+            SpotFilter filter = new SpotFilter();
+            SpotType type = typeFilterBox.getValue();
+            if (type != null) {
+                filter.setType(type);
+            }
+            filter.setNumberRange(readRange(numberFromField, numberToField, true));
+            filter.setRateRange(readRange(rateFromField, rateToField, false));
+            currentFilter = filter;
+        } catch (BusinessException e) {
+            filterErrorLabel.setText(e.getMessage());
+            return;
+        }
+        refresh();
+    }
+
+    @FXML
+    private void resetFilters() {
+        resetting = true;
+        try {
+            searchField.clear();
+            typeFilterBox.setValue(null);
+            numberFromField.clear();
+            numberToField.clear();
+            rateFromField.clear();
+            rateToField.clear();
+        } finally {
+            resetting = false;
+        }
+        clearFilterErrors();
+        currentFilter = new SpotFilter();
+        refresh();
+    }
+
+    private NumberRange readRange(TextField fromField, TextField toField, boolean integer) {
+        BigDecimal min = readBound(fromField, integer);
+        BigDecimal max = readBound(toField, integer);
+        try {
+            return new NumberRange(min, max);
+        } catch (BusinessException e) {
+            throw fieldError(e.getMessage(), fromField, toField);
+        }
+    }
+
+    private BigDecimal readBound(TextField field, boolean integer) {
+        if (field.getText() == null || field.getText().isBlank()) {
+            return null;
+        }
+        try {
+            if (integer) {
+                return BigDecimal.valueOf(spotService.parseSpotNumber(field.getText()));
+            }
+            return spotService.parseHourlyRate(field.getText());
+        } catch (BusinessException e) {
+            throw fieldError(e.getMessage(), field);
+        }
+    }
+
+    private BusinessException fieldError(String message, Control... invalidFields) {
+        for (Control field : invalidFields) {
+            field.getStyleClass().add(ERROR_STYLE);
+        }
+        return new BusinessException(message);
+    }
+
+    private void clearFilterErrors() {
+        filterErrorLabel.setText("");
+        rangeFields.forEach(field -> field.getStyleClass().remove(ERROR_STYLE));
+    }
+
+    private Predicate<Spot> createSearchPredicate(String text) {
+        String query = text == null ? "" : text.trim().toLowerCase(Locale.ROOT);
+        if (query.isEmpty()) {
+            return spot -> true;
+        }
+        return spot -> String.valueOf(spot.getSpotNumber()).contains(query)
+            || spot.getSpotType().getTitle().toLowerCase(Locale.ROOT).contains(query);
+    }
+
+    private boolean isFiltering() {
+        return !currentFilter.isEmpty() || !searchField.getText().isBlank();
+    }
+
+    private void updateStatus() {
+        boolean filtering = isFiltering();
+        countLabel.setText((filtering ? "Найдено мест: " : "Всего мест: ") + searchedSpots.size());
+        placeholderLabel.setText(filtering ? "Ничего не найдено" : "Парковочных мест нет");
     }
 
     private void openForm(Spot spot) {
@@ -135,7 +303,7 @@ public class SpotController {
     }
 
     private void select(long spotId) {
-        spots.stream()
+        sortedSpots.stream()
             .filter(spot -> spot.getId() == spotId)
             .findFirst()
             .ifPresent(spot -> {
