@@ -1,7 +1,11 @@
 package ru.mirea.project.fx;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -13,20 +17,29 @@ import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.Control;
+import javafx.scene.control.DatePicker;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
+import javafx.scene.control.TextField;
+import javafx.util.StringConverter;
 
 import ru.mirea.project.AppContext;
+import ru.mirea.project.dto.filter.RequestFilter;
 import ru.mirea.project.exception.BusinessException;
 import ru.mirea.project.model.entity.Request;
 import ru.mirea.project.model.entity.Spot;
 import ru.mirea.project.model.entity.User;
 import ru.mirea.project.model.entity.Vehicle;
+import ru.mirea.project.model.enums.LookupValue;
 import ru.mirea.project.model.enums.RequestStatus;
+import ru.mirea.project.model.enums.SpotType;
+import ru.mirea.project.model.value.Period;
 import ru.mirea.project.service.RequestService;
 import ru.mirea.project.service.SpotService;
 import ru.mirea.project.service.UserService;
@@ -34,6 +47,8 @@ import ru.mirea.project.service.VehicleService;
 
 public class RequestController {
     private static final DateTimeFormatter DATE_TIME_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
+    private static final String ERROR_STYLE = "field-error";
+    private static final String ANY_VALUE = "Любой";
 
     private final AppContext context;
     private final RequestService requestService;
@@ -45,6 +60,8 @@ public class RequestController {
     private Map<Long, String> ownerNames = Map.of();
     private Map<Long, String> plates = Map.of();
     private Map<Long, Integer> spotNumbers = Map.of();
+    private RequestFilter currentFilter = new RequestFilter();
+    private List<Control> filterFields = List.of();
 
     @FXML
     private TableView<Request> requestTable;
@@ -66,6 +83,24 @@ public class RequestController {
     private Button editButton;
     @FXML
     private Button deleteButton;
+    @FXML
+    private Label placeholderLabel;
+    @FXML
+    private TextField ownerSearchField;
+    @FXML
+    private TextField plateSearchField;
+    @FXML
+    private ComboBox<RequestStatus> statusFilterBox;
+    @FXML
+    private ComboBox<SpotType> spotTypeFilterBox;
+    @FXML
+    private TextField spotNumberField;
+    @FXML
+    private DatePicker periodFromPicker;
+    @FXML
+    private DatePicker periodToPicker;
+    @FXML
+    private Label filterErrorLabel;
 
     public RequestController(AppContext context) {
         this.context = context;
@@ -102,7 +137,19 @@ public class RequestController {
         });
         editButton.disableProperty().bind(requestTable.getSelectionModel().selectedItemProperty().isNull());
         deleteButton.disableProperty().bind(requestTable.getSelectionModel().selectedItemProperty().isNull());
+        initFilterPanel();
         refresh();
+    }
+
+    private void initFilterPanel() {
+        filterFields = List.of(ownerSearchField, plateSearchField, statusFilterBox, spotTypeFilterBox,
+            spotNumberField, periodFromPicker, periodToPicker);
+
+        fillWithAnyValue(statusFilterBox, RequestStatus.values());
+        fillWithAnyValue(spotTypeFilterBox, SpotType.values());
+
+        filterErrorLabel.managedProperty().bind(filterErrorLabel.textProperty().isNotEmpty());
+        filterErrorLabel.visibleProperty().bind(filterErrorLabel.textProperty().isNotEmpty());
     }
 
     @FXML
@@ -155,11 +202,96 @@ public class RequestController {
                 .collect(Collectors.toMap(Vehicle::getId, Vehicle::getLicensePlate));
             spotNumbers = spotService.getAll().stream()
                 .collect(Collectors.toMap(Spot::getId, Spot::getSpotNumber));
-            requests.setAll(requestService.getAll());
+            requests.setAll(requestService.find(currentFilter));
         } catch (RuntimeException e) {
             Alerts.error(e);
         }
-        countLabel.setText("Всего заявок: " + requests.size());
+        updateStatus();
+    }
+
+    @FXML
+    private void applyFilters() {
+        clearFilterErrors();
+        try {
+            currentFilter = readFilter();
+        } catch (BusinessException e) {
+            filterErrorLabel.setText(e.getMessage());
+            return;
+        }
+        refresh();
+    }
+
+    @FXML
+    private void resetFilters() {
+        ownerSearchField.clear();
+        plateSearchField.clear();
+        statusFilterBox.setValue(null);
+        spotTypeFilterBox.setValue(null);
+        spotNumberField.clear();
+        periodFromPicker.setValue(null);
+        periodToPicker.setValue(null);
+        clearFilterErrors();
+        currentFilter = new RequestFilter();
+        refresh();
+    }
+
+    private RequestFilter readFilter() {
+        RequestFilter filter = new RequestFilter();
+        if (!ownerSearchField.getText().isBlank()) {
+            filter.setOwnerNameContains(ownerSearchField.getText());
+        }
+        if (!plateSearchField.getText().isBlank()) {
+            filter.setPlateContains(plateSearchField.getText());
+        }
+        if (statusFilterBox.getValue() != null) {
+            filter.setStatus(statusFilterBox.getValue());
+        }
+        if (spotTypeFilterBox.getValue() != null) {
+            filter.setSpotType(spotTypeFilterBox.getValue());
+        }
+        if (!spotNumberField.getText().isBlank()) {
+            filter.setSpotNumber(readSpotNumber());
+        }
+        filter.setPeriod(readPeriod());
+        return filter;
+    }
+
+    private int readSpotNumber() {
+        try {
+            return spotService.parseSpotNumber(spotNumberField.getText());
+        } catch (BusinessException e) {
+            throw fieldError(e.getMessage(), spotNumberField);
+        }
+    }
+
+    private Period readPeriod() {
+        LocalDate fromDate = periodFromPicker.getValue();
+        LocalDate toDate = periodToPicker.getValue();
+        LocalDateTime from = fromDate == null ? null : fromDate.atStartOfDay();
+        LocalDateTime to = toDate == null ? null : toDate.atTime(LocalTime.MAX);
+        try {
+            return new Period(from, to);
+        } catch (BusinessException e) {
+            throw fieldError(e.getMessage(), periodFromPicker, periodToPicker);
+        }
+    }
+
+    private BusinessException fieldError(String message, Control... invalidFields) {
+        for (Control field : invalidFields) {
+            field.getStyleClass().add(ERROR_STYLE);
+        }
+        return new BusinessException(message);
+    }
+
+    private void clearFilterErrors() {
+        filterErrorLabel.setText("");
+        filterFields.forEach(field -> field.getStyleClass().remove(ERROR_STYLE));
+    }
+
+    private void updateStatus() {
+        boolean filtering = !currentFilter.isEmpty();
+        countLabel.setText((filtering ? "Найдено заявок: " : "Всего заявок: ") + requests.size());
+        placeholderLabel.setText(filtering ? "Ничего не найдено" : "Заявок нет");
     }
 
     private void openForm(Request request) {
@@ -192,6 +324,25 @@ public class RequestController {
                 requestTable.getSelectionModel().select(request);
                 requestTable.scrollTo(request);
             });
+    }
+
+    private static <T extends LookupValue> void fillWithAnyValue(ComboBox<T> box, T[] values) {
+        List<T> items = new ArrayList<>();
+        items.add(null);
+        items.addAll(List.of(values));
+        box.getItems().setAll(items);
+        box.setPromptText(ANY_VALUE);
+        box.setConverter(new StringConverter<>() {
+            @Override
+            public String toString(T value) {
+                return value == null ? ANY_VALUE : value.getTitle();
+            }
+
+            @Override
+            public T fromString(String text) {
+                return null;
+            }
+        });
     }
 
     private static class DateTimeCell extends TableCell<Request, LocalDateTime> {
