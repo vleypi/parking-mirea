@@ -2,6 +2,7 @@ package ru.mirea.project.fx;
 
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
+import javafx.scene.control.ButtonBar.ButtonData;
 import javafx.scene.control.ButtonType;
 
 import ru.mirea.project.exception.BusinessException;
@@ -9,6 +10,9 @@ import ru.mirea.project.exception.DataAccessException;
 import ru.mirea.project.exception.EntityNotFoundException;
 
 public final class Alerts {
+    private static final ButtonType YES = new ButtonType("Да", ButtonData.YES);
+    private static final ButtonType NO = new ButtonType("Нет", ButtonData.NO);
+
     private Alerts() {
     }
 
@@ -30,11 +34,11 @@ public final class Alerts {
     }
 
     public static boolean confirm(String message) {
-        Alert alert = new Alert(AlertType.CONFIRMATION, message, ButtonType.YES, ButtonType.NO);
+        Alert alert = new Alert(AlertType.CONFIRMATION, message, YES, NO);
         alert.setTitle("Подтверждение");
         alert.setHeaderText(null);
         alert.getDialogPane().getStylesheets().add(Views.stylesheet());
-        return alert.showAndWait().filter(ButtonType.YES::equals).isPresent();
+        return alert.showAndWait().filter(YES::equals).isPresent();
     }
 
     private static void show(AlertType type, String title, String message) {

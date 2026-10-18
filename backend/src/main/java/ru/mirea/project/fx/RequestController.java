@@ -64,6 +64,8 @@ public class RequestController {
     private Label countLabel;
     @FXML
     private Button editButton;
+    @FXML
+    private Button deleteButton;
 
     public RequestController(AppContext context) {
         this.context = context;
@@ -99,6 +101,7 @@ public class RequestController {
             return row;
         });
         editButton.disableProperty().bind(requestTable.getSelectionModel().selectedItemProperty().isNull());
+        deleteButton.disableProperty().bind(requestTable.getSelectionModel().selectedItemProperty().isNull());
         refresh();
     }
 
@@ -117,6 +120,30 @@ public class RequestController {
             return;
         }
         openForm(selected);
+    }
+
+    @FXML
+    private void delete() {
+        Request selected = requestTable.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            return;
+        }
+        String description = "Удалить заявку?\n\n"
+            + "Владелец: " + ownerNames.getOrDefault(selected.getUserId(), "?") + "\n"
+            + "Автомобиль: " + plates.getOrDefault(selected.getVehicleId(), "?") + "\n"
+            + "Место: " + spotNumbers.get(selected.getSpotId()) + "\n"
+            + "Период: с " + DATE_TIME_FORMAT.format(selected.getStartTime())
+            + " по " + DATE_TIME_FORMAT.format(selected.getEndTime()) + "\n"
+            + "Статус: " + selected.getStatus();
+        if (!Alerts.confirm(description)) {
+            return;
+        }
+        try {
+            requestService.delete(selected.getId());
+        } catch (RuntimeException e) {
+            Alerts.error(e);
+        }
+        refresh();
     }
 
     @FXML
