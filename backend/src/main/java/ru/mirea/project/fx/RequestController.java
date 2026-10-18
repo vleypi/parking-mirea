@@ -13,10 +13,12 @@ import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.collections.transformation.SortedList;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Control;
 import javafx.scene.control.DatePicker;
@@ -31,6 +33,7 @@ import javafx.util.StringConverter;
 
 import ru.mirea.project.AppContext;
 import ru.mirea.project.dto.filter.RequestFilter;
+import ru.mirea.project.dto.filter.RequestFilter.SortField;
 import ru.mirea.project.exception.BusinessException;
 import ru.mirea.project.model.entity.Request;
 import ru.mirea.project.model.entity.Spot;
@@ -49,6 +52,7 @@ public class RequestController {
     private static final DateTimeFormatter DATE_TIME_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
     private static final String ERROR_STYLE = "field-error";
     private static final String ANY_VALUE = "Любой";
+    private static final String NO_SORT = "Без сортировки";
 
     private final AppContext context;
     private final RequestService requestService;
@@ -57,6 +61,7 @@ public class RequestController {
     private final SpotService spotService;
 
     private final ObservableList<Request> requests = FXCollections.observableArrayList();
+    private final SortedList<Request> sortedRequests = new SortedList<>(requests);
     private Map<Long, String> ownerNames = Map.of();
     private Map<Long, String> plates = Map.of();
     private Map<Long, Integer> spotNumbers = Map.of();
@@ -100,6 +105,10 @@ public class RequestController {
     @FXML
     private DatePicker periodToPicker;
     @FXML
+    private ComboBox<SortField> sortFieldBox;
+    @FXML
+    private CheckBox descendingCheckBox;
+    @FXML
     private Label filterErrorLabel;
 
     public RequestController(AppContext context) {
@@ -125,7 +134,8 @@ public class RequestController {
         startColumn.setCellFactory(column -> new DateTimeCell());
         endColumn.setCellFactory(column -> new DateTimeCell());
 
-        requestTable.setItems(requests);
+        sortedRequests.comparatorProperty().bind(requestTable.comparatorProperty());
+        requestTable.setItems(sortedRequests);
         requestTable.setRowFactory(table -> {
             TableRow<Request> row = new TableRow<>();
             row.setOnMouseClicked(event -> {
@@ -147,6 +157,25 @@ public class RequestController {
 
         fillWithAnyValue(statusFilterBox, RequestStatus.values());
         fillWithAnyValue(spotTypeFilterBox, SpotType.values());
+
+        List<SortField> sortItems = new ArrayList<>(List.of(SortField.values()));
+        sortItems.remove(SortField.ID);
+        sortItems.add(0, null);
+        sortFieldBox.getItems().setAll(sortItems);
+        sortFieldBox.setPromptText(NO_SORT);
+        sortFieldBox.setConverter(new StringConverter<>() {
+            @Override
+            public String toString(SortField field) {
+                return field == null ? NO_SORT : field.getTitle();
+            }
+
+            @Override
+            public SortField fromString(String text) {
+                return null;
+            }
+        });
+        sortFieldBox.valueProperty().addListener((observable, oldField, newField) -> applySort());
+        descendingCheckBox.selectedProperty().addListener((observable, oldValue, newValue) -> applySort());
 
         filterErrorLabel.managedProperty().bind(filterErrorLabel.textProperty().isNotEmpty());
         filterErrorLabel.visibleProperty().bind(filterErrorLabel.textProperty().isNotEmpty());
@@ -231,8 +260,18 @@ public class RequestController {
         periodFromPicker.setValue(null);
         periodToPicker.setValue(null);
         clearFilterErrors();
-        currentFilter = new RequestFilter();
+        currentFilter = readFilter();
         refresh();
+    }
+
+    private void applySort() {
+        currentFilter.setSort(selectedSortField(), !descendingCheckBox.isSelected());
+        requestTable.getSortOrder().clear();
+        refresh();
+    }
+
+    private SortField selectedSortField() {
+        return sortFieldBox.getValue() == null ? SortField.ID : sortFieldBox.getValue();
     }
 
     private RequestFilter readFilter() {
@@ -253,6 +292,7 @@ public class RequestController {
             filter.setSpotNumber(readSpotNumber());
         }
         filter.setPeriod(readPeriod());
+        filter.setSort(selectedSortField(), !descendingCheckBox.isSelected());
         return filter;
     }
 
