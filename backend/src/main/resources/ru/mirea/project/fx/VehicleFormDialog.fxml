@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.ButtonType?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.DialogPane?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.VBox?>
+
+<DialogPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="ru.mirea.project.fx.VehicleFormController" fx:id="dialogPane"
+            prefWidth="480">
+    <buttonTypes>
+        <ButtonType fx:id="saveButtonType" text="Сохранить" buttonData="OK_DONE"/>
+        <ButtonType text="Отмена" buttonData="CANCEL_CLOSE"/>
+    </buttonTypes>
+    <content>
+        <VBox spacing="12">
+            <GridPane hgap="10" vgap="10">
+                <columnConstraints>
+                    <ColumnConstraints minWidth="110"/>
+                    <ColumnConstraints hgrow="ALWAYS"/>
+                </columnConstraints>
+
+                <Label text="Владелец" styleClass="form-label" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+                <ComboBox fx:id="ownerBox" promptText="Выберите владельца" maxWidth="Infinity"
+                          GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+
+                <Label text="Гос. номер" styleClass="form-label" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                <TextField fx:id="plateField" promptText="Например, А123ВС777"
+                           GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+
+                <Label text="Марка" styleClass="form-label" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+                <TextField fx:id="brandField" promptText="Например, Toyota"
+                           GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+
+                <Label text="Модель" styleClass="form-label" GridPane.rowIndex="3" GridPane.columnIndex="0"/>
+                <TextField fx:id="modelField" promptText="Например, Camry"
+                           GridPane.rowIndex="3" GridPane.columnIndex="1"/>
+            </GridPane>
+            <Label fx:id="ownerHintLabel" text="Владельца существующего автомобиля сменить нельзя"
+                   styleClass="form-label" visible="false" managed="false"/>
+            <Label fx:id="errorLabel" styleClass="error-label" wrapText="true" minHeight="-Infinity"/>
+        </VBox>
+    </content>
+</DialogPane>
