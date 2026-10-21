@@ -4,6 +4,7 @@ import ru.mirea.project.repository.RequestRepository;
 import ru.mirea.project.repository.SpotRepository;
 import ru.mirea.project.repository.UserRepository;
 import ru.mirea.project.repository.VehicleRepository;
+import ru.mirea.project.service.ExportService;
 import ru.mirea.project.service.RequestService;
 import ru.mirea.project.service.SpotService;
 import ru.mirea.project.service.StatisticsService;
@@ -16,6 +17,7 @@ public class AppContext {
     private final SpotService spotService;
     private final RequestService requestService;
     private final StatisticsService statisticsService;
+    private final ExportService exportService;
 
     public AppContext() {
         UserRepository userRepository = new UserRepository();
@@ -28,6 +30,7 @@ public class AppContext {
         spotService = new SpotService(spotRepository, requestRepository);
         requestService = new RequestService(requestRepository, userService, vehicleService, spotService);
         statisticsService = new StatisticsService(userRepository, vehicleRepository, spotRepository, requestRepository);
+        exportService = new ExportService();
     }
 
     public UserService getUserService() {
@@ -48,5 +51,9 @@ public class AppContext {
 
     public StatisticsService getStatisticsService() {
         return statisticsService;
+    }
+
+    public ExportService getExportService() {
+        return exportService;
     }
 }
