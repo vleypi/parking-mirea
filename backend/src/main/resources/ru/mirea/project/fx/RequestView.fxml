@@ -28,6 +28,7 @@
         <Button fx:id="statusButton" text="Сменить статус" onAction="#changeStatus"/>
         <Button fx:id="detailsButton" text="Подробнее" onAction="#showDetails"/>
         <Button text="Обновить" onAction="#refresh"/>
+        <Button text="Статистика" onAction="#showStatistics"/>
         <Region HBox.hgrow="ALWAYS"/>
         <Label fx:id="countLabel" styleClass="form-label"/>
     </HBox>
