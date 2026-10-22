@@ -9,6 +9,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import javafx.beans.binding.Bindings;
+import javafx.beans.binding.BooleanBinding;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -17,8 +19,10 @@ import javafx.collections.transformation.SortedList;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonBar.ButtonData;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.CheckBox;
+import javafx.scene.control.ChoiceDialog;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Control;
 import javafx.scene.control.DatePicker;
@@ -91,6 +95,8 @@ public class RequestController {
     @FXML
     private Button detailsButton;
     @FXML
+    private Button statusButton;
+    @FXML
     private Label placeholderLabel;
     @FXML
     private TextField ownerSearchField;
@@ -147,7 +153,12 @@ public class RequestController {
             });
             return row;
         });
-        editButton.disableProperty().bind(requestTable.getSelectionModel().selectedItemProperty().isNull());
+        BooleanBinding notEditable = Bindings.createBooleanBinding(() -> {
+            Request selected = requestTable.getSelectionModel().getSelectedItem();
+            return selected == null || !selected.isActive();
+        }, requestTable.getSelectionModel().selectedItemProperty());
+        editButton.disableProperty().bind(notEditable);
+        statusButton.disableProperty().bind(notEditable);
         deleteButton.disableProperty().bind(requestTable.getSelectionModel().selectedItemProperty().isNull());
         detailsButton.disableProperty().bind(requestTable.getSelectionModel().selectedItemProperty().isNull());
         initFilterPanel();
@@ -335,6 +346,39 @@ public class RequestController {
         boolean filtering = !currentFilter.isEmpty();
         countLabel.setText((filtering ? "Найдено заявок: " : "Всего заявок: ") + requests.size());
         placeholderLabel.setText(filtering ? "Ничего не найдено" : "Заявок нет");
+    }
+
+    @FXML
+    private void changeStatus() {
+        Request selected = requestTable.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            return;
+        }
+        List<RequestStatus> allowed = requestService.allowedTransitions(selected.getStatus());
+        if (allowed.isEmpty()) {
+            Alerts.error("Заявку в статусе «" + selected.getStatus() + "» изменить нельзя");
+            return;
+        }
+
+        ChoiceDialog<RequestStatus> dialog = new ChoiceDialog<>(allowed.get(0), allowed);
+        dialog.setTitle("Смена статуса");
+        dialog.setHeaderText("Текущий статус: " + selected.getStatus());
+        dialog.setContentText("Новый статус:");
+        dialog.initOwner(requestTable.getScene().getWindow());
+        dialog.getDialogPane().getButtonTypes().setAll(
+            new ButtonType("Сменить", ButtonData.OK_DONE),
+            new ButtonType("Отмена", ButtonData.CANCEL_CLOSE));
+        dialog.getDialogPane().getStylesheets().add(Views.stylesheet());
+
+        dialog.showAndWait().ifPresent(newStatus -> {
+            try {
+                requestService.changeStatus(selected.getId(), newStatus);
+            } catch (RuntimeException e) {
+                Alerts.error(e);
+            }
+            refresh();
+            select(selected.getId());
+        });
     }
 
     @FXML

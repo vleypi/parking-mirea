@@ -183,6 +183,12 @@ public class RequestService {
         return request;
     }
 
+    public List<RequestStatus> allowedTransitions(RequestStatus currentStatus) {
+        return ALLOWED_STATUS_TRANSITIONS.get(currentStatus).stream()
+            .sorted(Comparator.comparingInt(RequestStatus::getId))
+            .toList();
+    }
+
     public void delete(long id) {
         getById(id);
         requestRepository.delete(id);
