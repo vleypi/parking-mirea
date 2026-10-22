@@ -382,6 +382,21 @@ public class RequestController {
     }
 
     @FXML
+    private void showStatistics() {
+        try {
+            FXMLLoader loader = Views.load("RequestStatisticsDialog.fxml", context);
+            Dialog<ButtonType> dialog = new Dialog<>();
+            dialog.setTitle("Статистика заявок");
+            dialog.initOwner(requestTable.getScene().getWindow());
+            dialog.setDialogPane(loader.getRoot());
+            dialog.getDialogPane().getStylesheets().add(Views.stylesheet());
+            dialog.showAndWait();
+        } catch (RuntimeException e) {
+            Alerts.error(e);
+        }
+    }
+
+    @FXML
     private void showDetails() {
         Request selected = requestTable.getSelectionModel().getSelectedItem();
         if (selected == null) {
