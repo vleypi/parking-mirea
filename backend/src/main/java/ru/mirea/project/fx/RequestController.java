@@ -1,5 +1,7 @@
 package ru.mirea.project.fx;
 
+import java.io.File;
+import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -33,6 +35,7 @@ import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
+import javafx.stage.FileChooser;
 import javafx.util.StringConverter;
 
 import ru.mirea.project.AppContext;
@@ -47,6 +50,7 @@ import ru.mirea.project.model.enums.LookupValue;
 import ru.mirea.project.model.enums.RequestStatus;
 import ru.mirea.project.model.enums.SpotType;
 import ru.mirea.project.model.value.Period;
+import ru.mirea.project.service.ExportService;
 import ru.mirea.project.service.RequestService;
 import ru.mirea.project.service.SpotService;
 import ru.mirea.project.service.UserService;
@@ -59,6 +63,7 @@ public class RequestController {
     private static final String NO_SORT = "Без сортировки";
 
     private final AppContext context;
+    private final ExportService exportService;
     private final RequestService requestService;
     private final UserService userService;
     private final VehicleService vehicleService;
@@ -121,6 +126,7 @@ public class RequestController {
 
     public RequestController(AppContext context) {
         this.context = context;
+        this.exportService = context.getExportService();
         this.requestService = context.getRequestService();
         this.userService = context.getUserService();
         this.vehicleService = context.getVehicleService();
@@ -394,6 +400,52 @@ public class RequestController {
         } catch (RuntimeException e) {
             Alerts.error(e);
         }
+    }
+
+    @FXML
+    private void export() {
+        if (requestTable.getItems().isEmpty()) {
+            Alerts.info("Экспорт", "В таблице нет строк, экспортировать нечего");
+            return;
+        }
+        FileChooser chooser = new FileChooser();
+        chooser.setTitle("Экспорт заявок");
+        chooser.setInitialFileName("Заявки.xlsx");
+        chooser.getExtensionFilters().setAll(
+            new FileChooser.ExtensionFilter("Excel (*.xlsx)", "*.xlsx"),
+            new FileChooser.ExtensionFilter("CSV (*.csv)", "*.csv"));
+        File file = chooser.showSaveDialog(requestTable.getScene().getWindow());
+        if (file == null) {
+            return;
+        }
+        exportTo(withExtension(file, chooser.getSelectedExtensionFilter()));
+    }
+
+    private void exportTo(Path file) {
+        List<TableColumn<Request, ?>> columns = requestTable.getColumns();
+        List<String> headers = columns.stream()
+            .map(TableColumn::getText)
+            .toList();
+        List<List<Object>> rows = requestTable.getItems().stream()
+            .map(request -> columns.stream()
+                .<Object>map(column -> column.getCellData(request))
+                .toList())
+            .toList();
+        try {
+            exportService.export("Заявки", headers, rows, file);
+            Alerts.info("Экспорт", "Сохранено строк: " + rows.size() + "\nФайл: " + file);
+        } catch (RuntimeException e) {
+            Alerts.error(e);
+        }
+    }
+
+    private Path withExtension(File file, FileChooser.ExtensionFilter filter) {
+        String name = file.getName().toLowerCase();
+        if (name.endsWith(".xlsx") || name.endsWith(".csv")) {
+            return file.toPath();
+        }
+        String extension = filter != null && filter.getExtensions().contains("*.csv") ? ".csv" : ".xlsx";
+        return file.toPath().resolveSibling(file.getName() + extension);
     }
 
     @FXML

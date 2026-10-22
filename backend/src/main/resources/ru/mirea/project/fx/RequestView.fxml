@@ -28,9 +28,9 @@
         <Button fx:id="statusButton" text="Сменить статус" onAction="#changeStatus"/>
         <Button fx:id="detailsButton" text="Подробнее" onAction="#showDetails"/>
         <Button text="Обновить" onAction="#refresh"/>
-        <Button text="Статистика" onAction="#showStatistics"/>
         <Region HBox.hgrow="ALWAYS"/>
-        <Label fx:id="countLabel" styleClass="form-label"/>
+        <Button text="Статистика" onAction="#showStatistics"/>
+        <Button text="Экспорт" onAction="#export"/>
     </HBox>
     <VBox spacing="8">
         <FlowPane hgap="10" vgap="8" alignment="CENTER_LEFT">
@@ -53,11 +53,13 @@
             <Button text="Применить" onAction="#applyFilters"/>
             <Button text="Сбросить фильтры" onAction="#resetFilters"/>
         </FlowPane>
-        <FlowPane hgap="10" vgap="8" alignment="CENTER_LEFT">
+        <HBox spacing="10" alignment="CENTER_LEFT">
             <Label text="Сортировать по" styleClass="form-label"/>
             <ComboBox fx:id="sortFieldBox" prefWidth="170"/>
             <CheckBox fx:id="descendingCheckBox" text="по убыванию"/>
-        </FlowPane>
+            <Region HBox.hgrow="ALWAYS"/>
+            <Label fx:id="countLabel" styleClass="form-label"/>
+        </HBox>
         <Label fx:id="filterErrorLabel" styleClass="error-label" wrapText="true"/>
     </VBox>
     <TableView fx:id="requestTable" VBox.vgrow="ALWAYS">
