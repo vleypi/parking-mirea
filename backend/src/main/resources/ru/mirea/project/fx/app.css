@@ -84,3 +84,9 @@
 .table-view .table-row-cell:selected .table-cell {
     -fx-text-fill: #ffffff;
 }
+
+.details-section {
+    -fx-font-weight: bold;
+    -fx-text-fill: #1f2933;
+    -fx-padding: 8 0 0 0;
+}
