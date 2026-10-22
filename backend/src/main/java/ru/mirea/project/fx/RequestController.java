@@ -89,6 +89,8 @@ public class RequestController {
     @FXML
     private Button deleteButton;
     @FXML
+    private Button detailsButton;
+    @FXML
     private Label placeholderLabel;
     @FXML
     private TextField ownerSearchField;
@@ -147,6 +149,7 @@ public class RequestController {
         });
         editButton.disableProperty().bind(requestTable.getSelectionModel().selectedItemProperty().isNull());
         deleteButton.disableProperty().bind(requestTable.getSelectionModel().selectedItemProperty().isNull());
+        detailsButton.disableProperty().bind(requestTable.getSelectionModel().selectedItemProperty().isNull());
         initFilterPanel();
         refresh();
     }
@@ -332,6 +335,28 @@ public class RequestController {
         boolean filtering = !currentFilter.isEmpty();
         countLabel.setText((filtering ? "Найдено заявок: " : "Всего заявок: ") + requests.size());
         placeholderLabel.setText(filtering ? "Ничего не найдено" : "Заявок нет");
+    }
+
+    @FXML
+    private void showDetails() {
+        Request selected = requestTable.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            return;
+        }
+        try {
+            FXMLLoader loader = Views.load("RequestDetailsDialog.fxml", context);
+            RequestDetailsController details = loader.getController();
+            details.prepare(selected);
+
+            Dialog<ButtonType> dialog = new Dialog<>();
+            dialog.setTitle("Заявка: подробные данные");
+            dialog.initOwner(requestTable.getScene().getWindow());
+            dialog.setDialogPane(loader.getRoot());
+            dialog.getDialogPane().getStylesheets().add(Views.stylesheet());
+            dialog.showAndWait();
+        } catch (RuntimeException e) {
+            Alerts.error(e);
+        }
     }
 
     private void openForm(Request request) {

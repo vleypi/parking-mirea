@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.ButtonType?>
+<?import javafx.scene.control.DialogPane?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+
+<DialogPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="ru.mirea.project.fx.RequestDetailsController" prefWidth="460">
+    <buttonTypes>
+        <ButtonType text="Закрыть" buttonData="CANCEL_CLOSE"/>
+    </buttonTypes>
+    <content>
+        <GridPane hgap="12" vgap="6">
+            <columnConstraints>
+                <ColumnConstraints minWidth="130"/>
+                <ColumnConstraints hgrow="ALWAYS"/>
+            </columnConstraints>
+
+            <Label text="Заявка" styleClass="details-section" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+            <Label text="Статус" styleClass="form-label" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+            <Label fx:id="statusValue" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+            <Label text="Период" styleClass="form-label" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+            <Label fx:id="periodValue" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+            <Label text="Длительность" styleClass="form-label" GridPane.rowIndex="3" GridPane.columnIndex="0"/>
+            <Label fx:id="durationValue" GridPane.rowIndex="3" GridPane.columnIndex="1"/>
+            <Label text="Стоимость по тарифу" styleClass="form-label" GridPane.rowIndex="4" GridPane.columnIndex="0"/>
+            <Label fx:id="costValue" GridPane.rowIndex="4" GridPane.columnIndex="1"/>
+            <Label text="Создана" styleClass="form-label" GridPane.rowIndex="5" GridPane.columnIndex="0"/>
+            <Label fx:id="createdValue" GridPane.rowIndex="5" GridPane.columnIndex="1"/>
+
+            <Label text="Владелец" styleClass="details-section" GridPane.rowIndex="6" GridPane.columnIndex="0"/>
+            <Label text="Имя" styleClass="form-label" GridPane.rowIndex="7" GridPane.columnIndex="0"/>
+            <Label fx:id="ownerNameValue" GridPane.rowIndex="7" GridPane.columnIndex="1"/>
+            <Label text="Телефон" styleClass="form-label" GridPane.rowIndex="8" GridPane.columnIndex="0"/>
+            <Label fx:id="ownerPhoneValue" GridPane.rowIndex="8" GridPane.columnIndex="1"/>
+
+            <Label text="Автомобиль" styleClass="details-section" GridPane.rowIndex="9" GridPane.columnIndex="0"/>
+            <Label text="Гос. номер" styleClass="form-label" GridPane.rowIndex="10" GridPane.columnIndex="0"/>
+            <Label fx:id="plateValue" GridPane.rowIndex="10" GridPane.columnIndex="1"/>
+            <Label text="Марка и модель" styleClass="form-label" GridPane.rowIndex="11" GridPane.columnIndex="0"/>
+            <Label fx:id="carValue" GridPane.rowIndex="11" GridPane.columnIndex="1"/>
+            <Label text="Регион" styleClass="form-label" GridPane.rowIndex="12" GridPane.columnIndex="0"/>
+            <Label fx:id="regionValue" GridPane.rowIndex="12" GridPane.columnIndex="1"/>
+
+            <Label text="Место" styleClass="details-section" GridPane.rowIndex="13" GridPane.columnIndex="0"/>
+            <Label text="Номер" styleClass="form-label" GridPane.rowIndex="14" GridPane.columnIndex="0"/>
+            <Label fx:id="spotNumberValue" GridPane.rowIndex="14" GridPane.columnIndex="1"/>
+            <Label text="Тип" styleClass="form-label" GridPane.rowIndex="15" GridPane.columnIndex="0"/>
+            <Label fx:id="spotTypeValue" GridPane.rowIndex="15" GridPane.columnIndex="1"/>
+            <Label text="Тариф" styleClass="form-label" GridPane.rowIndex="16" GridPane.columnIndex="0"/>
+            <Label fx:id="rateValue" GridPane.rowIndex="16" GridPane.columnIndex="1"/>
+        </GridPane>
+    </content>
+</DialogPane>
