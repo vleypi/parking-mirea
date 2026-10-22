@@ -116,7 +116,8 @@ public class VehicleService {
 
         Comparator<Vehicle> comparator = switch (filter.getSortField()) {
             case ID -> Comparator.comparingLong(Vehicle::getId);
-            case PLATE -> Comparator.comparing(Vehicle::getLicensePlate);
+            case PLATE -> Comparator.comparingInt((Vehicle v) -> Integer.parseInt(v.getLicensePlate().substring(1, 4)))
+                .thenComparing(Vehicle::getLicensePlate);
             case REGION -> Comparator.comparingInt((Vehicle v) -> Integer.parseInt(v.getRegion()));
             case BRAND -> Comparator.comparing(Vehicle::getBrand, String.CASE_INSENSITIVE_ORDER)
                 .thenComparing(Vehicle::getModel, String.CASE_INSENSITIVE_ORDER);
