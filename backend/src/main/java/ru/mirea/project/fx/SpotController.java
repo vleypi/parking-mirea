@@ -16,6 +16,7 @@ import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Control;
 import javafx.scene.control.Dialog;
@@ -29,6 +30,7 @@ import javafx.util.StringConverter;
 
 import ru.mirea.project.AppContext;
 import ru.mirea.project.dto.filter.SpotFilter;
+import ru.mirea.project.dto.filter.SpotFilter.SortField;
 import ru.mirea.project.exception.BusinessException;
 import ru.mirea.project.model.entity.Spot;
 import ru.mirea.project.model.enums.SpotType;
@@ -38,6 +40,7 @@ import ru.mirea.project.service.SpotService;
 public class SpotController {
     private static final String ERROR_STYLE = "field-error";
     private static final String ANY_TYPE = "Любой тип";
+    private static final String NO_SORT = "Без сортировки";
 
     private final AppContext context;
     private final SpotService spotService;
@@ -78,6 +81,10 @@ public class SpotController {
     private TextField rateFromField;
     @FXML
     private TextField rateToField;
+    @FXML
+    private ComboBox<SortField> sortFieldBox;
+    @FXML
+    private CheckBox descendingCheckBox;
     @FXML
     private Label filterErrorLabel;
 
@@ -141,6 +148,25 @@ public class SpotController {
             updateStatus();
         });
 
+        List<SortField> sortItems = new ArrayList<>(List.of(SortField.values()));
+        sortItems.remove(SortField.ID);
+        sortItems.add(0, null);
+        sortFieldBox.getItems().setAll(sortItems);
+        sortFieldBox.setPromptText(NO_SORT);
+        sortFieldBox.setConverter(new StringConverter<>() {
+            @Override
+            public String toString(SortField field) {
+                return field == null ? NO_SORT : field.getTitle();
+            }
+
+            @Override
+            public SortField fromString(String text) {
+                return null;
+            }
+        });
+        sortFieldBox.valueProperty().addListener((observable, oldField, newField) -> applySort());
+        descendingCheckBox.selectedProperty().addListener((observable, oldValue, newValue) -> applySort());
+
         filterErrorLabel.managedProperty().bind(filterErrorLabel.textProperty().isNotEmpty());
         filterErrorLabel.visibleProperty().bind(filterErrorLabel.textProperty().isNotEmpty());
     }
@@ -192,7 +218,7 @@ public class SpotController {
     private void applyFilters() {
         clearFilterErrors();
         try {
-            SpotFilter filter = new SpotFilter();
+            SpotFilter filter = createFilter();
             SpotType type = typeFilterBox.getValue();
             if (type != null) {
                 filter.setType(type);
@@ -221,8 +247,24 @@ public class SpotController {
             resetting = false;
         }
         clearFilterErrors();
-        currentFilter = new SpotFilter();
+        currentFilter = createFilter();
         refresh();
+    }
+
+    private void applySort() {
+        currentFilter.setSort(selectedSortField(), !descendingCheckBox.isSelected());
+        spotTable.getSortOrder().clear();
+        refresh();
+    }
+
+    private SpotFilter createFilter() {
+        SpotFilter filter = new SpotFilter();
+        filter.setSort(selectedSortField(), !descendingCheckBox.isSelected());
+        return filter;
+    }
+
+    private SortField selectedSortField() {
+        return sortFieldBox.getValue() == null ? SortField.ID : sortFieldBox.getValue();
     }
 
     private NumberRange readRange(TextField fromField, TextField toField, boolean integer) {
