@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ButtonType?>
+<?import javafx.scene.control.DatePicker?>
+<?import javafx.scene.control.DialogPane?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<DialogPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="ru.mirea.project.fx.GeneralStatisticsController" prefWidth="520">
+    <buttonTypes>
+        <ButtonType text="Закрыть" buttonData="CANCEL_CLOSE"/>
+    </buttonTypes>
+    <content>
+        <VBox spacing="12">
+            <Label text="Общая статистика парковки" styleClass="view-title"/>
+            <HBox spacing="10" alignment="CENTER_LEFT">
+                <Label text="Период с" styleClass="form-label"/>
+                <DatePicker fx:id="fromPicker" editable="false" prefWidth="140"/>
+                <Label text="по" styleClass="form-label"/>
+                <DatePicker fx:id="toPicker" editable="false" prefWidth="140"/>
+                <Button text="Показать" onAction="#calculate" styleClass="button-primary"/>
+            </HBox>
+            <Label text="Пустые даты означают «за всё время»" styleClass="form-label"/>
+            <Label fx:id="errorLabel" styleClass="error-label" wrapText="true" minHeight="30"/>
+            <GridPane hgap="12" vgap="8">
+                <columnConstraints>
+                    <ColumnConstraints minWidth="250"/>
+                    <ColumnConstraints hgrow="ALWAYS"/>
+                </columnConstraints>
+                <Label text="Период" styleClass="form-label" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+                <Label fx:id="periodValue" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+                <Label text="Всего владельцев" styleClass="form-label" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                <Label fx:id="usersValue" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+                <Label text="Всего автомобилей" styleClass="form-label" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+                <Label fx:id="vehiclesValue" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+                <Label text="Всего парковочных мест" styleClass="form-label" GridPane.rowIndex="3" GridPane.columnIndex="0"/>
+                <Label fx:id="spotsValue" GridPane.rowIndex="3" GridPane.columnIndex="1"/>
+                <Label text="Заявок за период" styleClass="form-label" GridPane.rowIndex="4" GridPane.columnIndex="0"/>
+                <Label fx:id="requestsValue" GridPane.rowIndex="4" GridPane.columnIndex="1"/>
+                <Label text="Активных (Новая + Подтверждена)" styleClass="form-label" GridPane.rowIndex="5" GridPane.columnIndex="0"/>
+                <Label fx:id="activeValue" GridPane.rowIndex="5" GridPane.columnIndex="1"/>
+                <Label text="Завершённых" styleClass="form-label" GridPane.rowIndex="6" GridPane.columnIndex="0"/>
+                <Label fx:id="completedValue" GridPane.rowIndex="6" GridPane.columnIndex="1"/>
+                <Label text="Отменённых" styleClass="form-label" GridPane.rowIndex="7" GridPane.columnIndex="0"/>
+                <Label fx:id="cancelledValue" GridPane.rowIndex="7" GridPane.columnIndex="1"/>
+                <Label text="Занятых мест прямо сейчас" styleClass="form-label" GridPane.rowIndex="8" GridPane.columnIndex="0"/>
+                <Label fx:id="occupiedValue" GridPane.rowIndex="8" GridPane.columnIndex="1"/>
+                <Label text="Выручка по завершённым, руб." styleClass="form-label" GridPane.rowIndex="9" GridPane.columnIndex="0"/>
+                <Label fx:id="revenueValue" GridPane.rowIndex="9" GridPane.columnIndex="1"/>
+            </GridPane>
+        </VBox>
+    </content>
+</DialogPane>

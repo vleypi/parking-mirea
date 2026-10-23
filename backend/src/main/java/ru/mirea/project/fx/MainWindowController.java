@@ -1,6 +1,9 @@
 package ru.mirea.project.fx;
 
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.Dialog;
 
 import ru.mirea.project.AppContext;
 
@@ -13,7 +16,16 @@ public class MainWindowController {
 
     @FXML
     private void showGeneralStatistics() {
-        Alerts.info("Общая статистика", "Окно общей статистики ещё не готово.");
+        try {
+            FXMLLoader loader = Views.load("GeneralStatisticsDialog.fxml", context);
+            Dialog<ButtonType> dialog = new Dialog<>();
+            dialog.setTitle("Общая статистика");
+            dialog.setDialogPane(loader.getRoot());
+            dialog.getDialogPane().getStylesheets().add(Views.stylesheet());
+            dialog.showAndWait();
+        } catch (RuntimeException e) {
+            Alerts.error(e);
+        }
     }
 
     @FXML
