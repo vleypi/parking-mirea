@@ -90,3 +90,13 @@
     -fx-text-fill: #1f2933;
     -fx-padding: 8 0 0 0;
 }
+
+.occupancy-busy {
+    -fx-text-fill: #c0392b;
+    -fx-font-weight: bold;
+}
+
+.occupancy-free {
+    -fx-text-fill: #2e7d32;
+    -fx-font-weight: bold;
+}
