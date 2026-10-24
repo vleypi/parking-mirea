@@ -26,6 +26,7 @@
         <Button fx:id="editButton" text="Изменить" onAction="#edit"/>
         <Button fx:id="deleteButton" text="Удалить" onAction="#delete"/>
         <Button text="Обновить" onAction="#refresh"/>
+        <Button text="Свободные на период" onAction="#showFreeSpots"/>
         <Region HBox.hgrow="ALWAYS"/>
         <Label fx:id="countLabel" styleClass="form-label"/>
     </HBox>

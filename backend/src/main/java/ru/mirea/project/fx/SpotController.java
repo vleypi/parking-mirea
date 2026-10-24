@@ -277,6 +277,21 @@ public class SpotController {
     }
 
     @FXML
+    private void showFreeSpots() {
+        try {
+            FXMLLoader loader = Views.load("SpotFreeDialog.fxml", context);
+            Dialog<ButtonType> dialog = new Dialog<>();
+            dialog.setTitle("Свободные места на период");
+            dialog.initOwner(spotTable.getScene().getWindow());
+            dialog.setDialogPane(loader.getRoot());
+            dialog.getDialogPane().getStylesheets().add(Views.stylesheet());
+            dialog.showAndWait();
+        } catch (RuntimeException e) {
+            Alerts.error(e);
+        }
+    }
+
+    @FXML
     private void delete() {
         Spot selected = spotTable.getSelectionModel().getSelectedItem();
         if (selected == null) {
