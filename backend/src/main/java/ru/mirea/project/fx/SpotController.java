@@ -1,10 +1,14 @@
 package ru.mirea.project.fx;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
@@ -29,21 +33,39 @@ import javafx.scene.control.TextField;
 import javafx.util.StringConverter;
 
 import ru.mirea.project.AppContext;
+import ru.mirea.project.dto.filter.RequestFilter;
 import ru.mirea.project.dto.filter.SpotFilter;
 import ru.mirea.project.dto.filter.SpotFilter.SortField;
 import ru.mirea.project.exception.BusinessException;
+import ru.mirea.project.model.entity.Request;
 import ru.mirea.project.model.entity.Spot;
+import ru.mirea.project.model.entity.User;
+import ru.mirea.project.model.entity.Vehicle;
+import ru.mirea.project.model.enums.RequestStatus;
 import ru.mirea.project.model.enums.SpotType;
 import ru.mirea.project.model.value.NumberRange;
+import ru.mirea.project.service.RequestService;
 import ru.mirea.project.service.SpotService;
+import ru.mirea.project.service.UserService;
+import ru.mirea.project.service.VehicleService;
 
 public class SpotController {
     private static final String ERROR_STYLE = "field-error";
     private static final String ANY_TYPE = "Любой тип";
     private static final String NO_SORT = "Без сортировки";
+    private static final String BUSY_STYLE = "occupancy-busy";
+    private static final String FREE_STYLE = "occupancy-free";
+    private static final DateTimeFormatter DATE_TIME_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
 
     private final AppContext context;
     private final SpotService spotService;
+    private final RequestService requestService;
+    private final UserService userService;
+    private final VehicleService vehicleService;
+
+    private final ObservableList<Request> relatedRequests = FXCollections.observableArrayList();
+    private Map<Long, String> ownerNames = Map.of();
+    private Map<Long, String> plates = Map.of();
 
     private final ObservableList<Spot> spots = FXCollections.observableArrayList();
     private final FilteredList<Spot> searchedSpots = new FilteredList<>(spots);
@@ -87,10 +109,31 @@ public class SpotController {
     private CheckBox descendingCheckBox;
     @FXML
     private Label filterErrorLabel;
+    @FXML
+    private Label relatedTitleLabel;
+    @FXML
+    private Label occupancyLabel;
+    @FXML
+    private Label relatedPlaceholderLabel;
+    @FXML
+    private TableView<Request> relatedTable;
+    @FXML
+    private TableColumn<Request, String> relatedOwnerColumn;
+    @FXML
+    private TableColumn<Request, String> relatedPlateColumn;
+    @FXML
+    private TableColumn<Request, LocalDateTime> relatedStartColumn;
+    @FXML
+    private TableColumn<Request, LocalDateTime> relatedEndColumn;
+    @FXML
+    private TableColumn<Request, RequestStatus> relatedStatusColumn;
 
     public SpotController(AppContext context) {
         this.context = context;
         this.spotService = context.getSpotService();
+        this.requestService = context.getRequestService();
+        this.userService = context.getUserService();
+        this.vehicleService = context.getVehicleService();
     }
 
     @FXML
@@ -114,8 +157,57 @@ public class SpotController {
         editButton.disableProperty().bind(spotTable.getSelectionModel().selectedItemProperty().isNull());
         deleteButton.disableProperty().bind(spotTable.getSelectionModel().selectedItemProperty().isNull());
 
+        initRelatedPanel();
         initFilterPanel();
         refresh();
+    }
+
+    private void initRelatedPanel() {
+        relatedOwnerColumn.setCellValueFactory(cell ->
+            new SimpleStringProperty(ownerNames.getOrDefault(cell.getValue().getUserId(), "?")));
+        relatedPlateColumn.setCellValueFactory(cell ->
+            new SimpleStringProperty(plates.getOrDefault(cell.getValue().getVehicleId(), "?")));
+        relatedStartColumn.setCellValueFactory(cell -> new SimpleObjectProperty<>(cell.getValue().getStartTime()));
+        relatedEndColumn.setCellValueFactory(cell -> new SimpleObjectProperty<>(cell.getValue().getEndTime()));
+        relatedStatusColumn.setCellValueFactory(cell -> new SimpleObjectProperty<>(cell.getValue().getStatus()));
+        relatedStartColumn.setCellFactory(column -> new DateTimeCell());
+        relatedEndColumn.setCellFactory(column -> new DateTimeCell());
+        relatedTable.setItems(relatedRequests);
+
+        spotTable.getSelectionModel().selectedItemProperty()
+            .addListener((observable, oldSpot, newSpot) -> showRelated(newSpot));
+        showRelated(null);
+    }
+
+    private void showRelated(Spot spot) {
+        occupancyLabel.getStyleClass().removeAll(BUSY_STYLE, FREE_STYLE);
+        if (spot == null) {
+            relatedRequests.clear();
+            relatedTitleLabel.setText("Заявки на место");
+            occupancyLabel.setText("");
+            relatedPlaceholderLabel.setText("Выберите место в таблице выше");
+            return;
+        }
+        try {
+            ownerNames = userService.getAll().stream()
+                .collect(Collectors.toMap(User::getId, User::getName));
+            plates = vehicleService.getAll().stream()
+                .collect(Collectors.toMap(Vehicle::getId, Vehicle::getLicensePlate));
+
+            RequestFilter filter = new RequestFilter();
+            filter.setSpotNumber(spot.getSpotNumber());
+            filter.setSort(RequestFilter.SortField.START, false);
+            relatedRequests.setAll(requestService.find(filter));
+
+            boolean occupied = spotService.isOccupiedNow(spot.getId());
+            occupancyLabel.setText(occupied ? "Занято сейчас" : "Свободно сейчас");
+            occupancyLabel.getStyleClass().add(occupied ? BUSY_STYLE : FREE_STYLE);
+            relatedTitleLabel.setText("Заявки на место №" + spot.getSpotNumber()
+                + " (" + relatedRequests.size() + ")");
+            relatedPlaceholderLabel.setText("На это место заявок нет");
+        } catch (RuntimeException e) {
+            Alerts.error(e);
+        }
     }
 
     private void initFilterPanel() {
@@ -185,6 +277,21 @@ public class SpotController {
     }
 
     @FXML
+    private void showFreeSpots() {
+        try {
+            FXMLLoader loader = Views.load("SpotFreeDialog.fxml", context);
+            Dialog<ButtonType> dialog = new Dialog<>();
+            dialog.setTitle("Свободные места на период");
+            dialog.initOwner(spotTable.getScene().getWindow());
+            dialog.setDialogPane(loader.getRoot());
+            dialog.getDialogPane().getStylesheets().add(Views.stylesheet());
+            dialog.showAndWait();
+        } catch (RuntimeException e) {
+            Alerts.error(e);
+        }
+    }
+
+    @FXML
     private void delete() {
         Spot selected = spotTable.getSelectionModel().getSelectedItem();
         if (selected == null) {
@@ -206,12 +313,16 @@ public class SpotController {
 
     @FXML
     private void refresh() {
+        Spot selected = spotTable.getSelectionModel().getSelectedItem();
         try {
             spots.setAll(spotService.find(currentFilter));
         } catch (RuntimeException e) {
             Alerts.error(e);
         }
         updateStatus();
+        if (selected != null) {
+            select(selected.getId());
+        }
     }
 
     @FXML
@@ -359,6 +470,14 @@ public class SpotController {
         protected void updateItem(BigDecimal value, boolean empty) {
             super.updateItem(value, empty);
             setText(empty || value == null ? null : value.toPlainString());
+        }
+    }
+
+    private static class DateTimeCell extends TableCell<Request, LocalDateTime> {
+        @Override
+        protected void updateItem(LocalDateTime value, boolean empty) {
+            super.updateItem(value, empty);
+            setText(empty || value == null ? null : DATE_TIME_FORMAT.format(value));
         }
     }
 }
