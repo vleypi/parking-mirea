@@ -2,6 +2,7 @@ package ru.mirea.project.service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
@@ -68,6 +69,14 @@ public class SpotService {
         return spotRepository.findAll().stream()
             .filter(s -> !busySpotIds.contains(s.getId()))
             .toList();
+    }
+
+    public boolean isOccupiedNow(long spotId) {
+        LocalDateTime now = LocalDateTime.now();
+        return requestRepository.findAll().stream()
+            .filter(Request::isActive)
+            .filter(r -> r.getSpotId() == spotId)
+            .anyMatch(r -> !r.getStartTime().isAfter(now) && r.getEndTime().isAfter(now));
     }
 
     public List<Spot> find(SpotFilter filter) {
