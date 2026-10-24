@@ -5,6 +5,7 @@
 <?import javafx.scene.control.CheckBox?>
 <?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.control.SplitPane?>
 <?import javafx.scene.control.TableColumn?>
 <?import javafx.scene.control.TableView?>
 <?import javafx.scene.control.TextField?>
@@ -25,6 +26,8 @@
         <Button fx:id="editButton" text="Изменить" onAction="#edit"/>
         <Button fx:id="deleteButton" text="Удалить" onAction="#delete"/>
         <Button text="Обновить" onAction="#refresh"/>
+        <Button text="Свободные на период" onAction="#showFreeSpots"/>
+        <Button fx:id="statisticsButton" text="Статистика" onAction="#showStatistics"/>
         <Region HBox.hgrow="ALWAYS"/>
         <Label fx:id="countLabel" styleClass="form-label"/>
     </HBox>
@@ -49,17 +52,41 @@
         </FlowPane>
         <Label fx:id="filterErrorLabel" styleClass="error-label" wrapText="true"/>
     </VBox>
-    <TableView fx:id="spotTable" VBox.vgrow="ALWAYS">
-        <columnResizePolicy>
-            <TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>
-        </columnResizePolicy>
-        <placeholder>
-            <Label fx:id="placeholderLabel" text="Парковочных мест нет" styleClass="placeholder"/>
-        </placeholder>
-        <columns>
-            <TableColumn fx:id="numberColumn" text="Номер места"/>
-            <TableColumn fx:id="typeColumn" text="Тип"/>
-            <TableColumn fx:id="rateColumn" text="Тариф, руб/ч"/>
-        </columns>
-    </TableView>
+    <SplitPane orientation="VERTICAL" dividerPositions="0.6" VBox.vgrow="ALWAYS">
+        <TableView fx:id="spotTable">
+            <columnResizePolicy>
+                <TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>
+            </columnResizePolicy>
+            <placeholder>
+                <Label fx:id="placeholderLabel" text="Парковочных мест нет" styleClass="placeholder"/>
+            </placeholder>
+            <columns>
+                <TableColumn fx:id="numberColumn" text="Номер места"/>
+                <TableColumn fx:id="typeColumn" text="Тип"/>
+                <TableColumn fx:id="rateColumn" text="Тариф, руб/ч"/>
+            </columns>
+        </TableView>
+        <VBox spacing="6">
+            <HBox spacing="12" alignment="CENTER_LEFT">
+                <Label fx:id="relatedTitleLabel" styleClass="details-section"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <Label fx:id="occupancyLabel"/>
+            </HBox>
+            <TableView fx:id="relatedTable" VBox.vgrow="ALWAYS">
+                <columnResizePolicy>
+                    <TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>
+                </columnResizePolicy>
+                <placeholder>
+                    <Label fx:id="relatedPlaceholderLabel" styleClass="placeholder"/>
+                </placeholder>
+                <columns>
+                    <TableColumn fx:id="relatedOwnerColumn" text="Владелец"/>
+                    <TableColumn fx:id="relatedPlateColumn" text="Автомобиль"/>
+                    <TableColumn fx:id="relatedStartColumn" text="Начало"/>
+                    <TableColumn fx:id="relatedEndColumn" text="Окончание"/>
+                    <TableColumn fx:id="relatedStatusColumn" text="Статус"/>
+                </columns>
+            </TableView>
+        </VBox>
+    </SplitPane>
 </VBox>

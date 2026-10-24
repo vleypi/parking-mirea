@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ButtonType?>
+<?import javafx.scene.control.DatePicker?>
+<?import javafx.scene.control.DialogPane?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<DialogPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="ru.mirea.project.fx.SpotStatisticsController" prefWidth="520">
+    <buttonTypes>
+        <ButtonType text="Закрыть" buttonData="CANCEL_CLOSE"/>
+    </buttonTypes>
+    <content>
+        <VBox spacing="12">
+            <Label fx:id="spotLabel" styleClass="details-section"/>
+            <HBox spacing="10" alignment="CENTER_LEFT">
+                <Label text="Период с" styleClass="form-label"/>
+                <DatePicker fx:id="fromPicker" editable="false" prefWidth="140"/>
+                <Label text="по" styleClass="form-label"/>
+                <DatePicker fx:id="toPicker" editable="false" prefWidth="140"/>
+                <Button text="Показать" onAction="#calculate" styleClass="button-primary"/>
+            </HBox>
+            <Label text="Пустые даты означают «за всё время»" styleClass="form-label"/>
+            <Label fx:id="errorLabel" styleClass="error-label" wrapText="true"/>
+            <GridPane hgap="12" vgap="8">
+                <columnConstraints>
+                    <ColumnConstraints minWidth="260"/>
+                    <ColumnConstraints hgrow="ALWAYS"/>
+                </columnConstraints>
+                <Label text="Период" styleClass="form-label" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+                <Label fx:id="periodValue" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+                <Label text="Заявок (без отменённых)" styleClass="form-label" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                <Label fx:id="requestCountValue" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+                <Label text="Занято часов" styleClass="form-label" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+                <Label fx:id="occupiedHoursValue" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+                <Label text="Выручка по завершённым заявкам, руб." styleClass="form-label" GridPane.rowIndex="3" GridPane.columnIndex="0"/>
+                <Label fx:id="revenueValue" GridPane.rowIndex="3" GridPane.columnIndex="1"/>
+            </GridPane>
+        </VBox>
+    </content>
+</DialogPane>
