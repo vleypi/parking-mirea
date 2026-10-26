@@ -1,6 +1,8 @@
 package ru.mirea.project.fx;
 
+import java.io.File;
 import java.math.BigDecimal;
+import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -30,6 +32,7 @@ import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
+import javafx.stage.FileChooser;
 import javafx.util.StringConverter;
 
 import ru.mirea.project.AppContext;
@@ -44,6 +47,7 @@ import ru.mirea.project.model.entity.Vehicle;
 import ru.mirea.project.model.enums.RequestStatus;
 import ru.mirea.project.model.enums.SpotType;
 import ru.mirea.project.model.value.NumberRange;
+import ru.mirea.project.service.ExportService;
 import ru.mirea.project.service.RequestService;
 import ru.mirea.project.service.SpotService;
 import ru.mirea.project.service.UserService;
@@ -59,6 +63,7 @@ public class SpotController {
 
     private final AppContext context;
     private final SpotService spotService;
+    private final ExportService exportService;
     private final RequestService requestService;
     private final UserService userService;
     private final VehicleService vehicleService;
@@ -91,6 +96,8 @@ public class SpotController {
     private Button editButton;
     @FXML
     private Button deleteButton;
+    @FXML
+    private Button statisticsButton;
     @FXML
     private TextField searchField;
     @FXML
@@ -131,6 +138,7 @@ public class SpotController {
     public SpotController(AppContext context) {
         this.context = context;
         this.spotService = context.getSpotService();
+        this.exportService = context.getExportService();
         this.requestService = context.getRequestService();
         this.userService = context.getUserService();
         this.vehicleService = context.getVehicleService();
@@ -156,6 +164,7 @@ public class SpotController {
         });
         editButton.disableProperty().bind(spotTable.getSelectionModel().selectedItemProperty().isNull());
         deleteButton.disableProperty().bind(spotTable.getSelectionModel().selectedItemProperty().isNull());
+        statisticsButton.disableProperty().bind(spotTable.getSelectionModel().selectedItemProperty().isNull());
 
         initRelatedPanel();
         initFilterPanel();
@@ -289,6 +298,74 @@ public class SpotController {
         } catch (RuntimeException e) {
             Alerts.error(e);
         }
+    }
+
+    @FXML
+    private void showStatistics() {
+        Spot selected = spotTable.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            return;
+        }
+        try {
+            FXMLLoader loader = Views.load("SpotStatisticsDialog.fxml", context);
+            SpotStatisticsController statistics = loader.getController();
+            statistics.prepare(selected);
+
+            Dialog<ButtonType> dialog = new Dialog<>();
+            dialog.setTitle("Статистика места");
+            dialog.initOwner(spotTable.getScene().getWindow());
+            dialog.setDialogPane(loader.getRoot());
+            dialog.getDialogPane().getStylesheets().add(Views.stylesheet());
+            dialog.showAndWait();
+        } catch (RuntimeException e) {
+            Alerts.error(e);
+        }
+    }
+
+    @FXML
+    private void export() {
+        if (spotTable.getItems().isEmpty()) {
+            Alerts.info("Экспорт", "В таблице нет строк, экспортировать нечего");
+            return;
+        }
+        FileChooser chooser = new FileChooser();
+        chooser.setTitle("Экспорт парковочных мест");
+        chooser.setInitialFileName("Места.xlsx");
+        chooser.getExtensionFilters().setAll(
+            new FileChooser.ExtensionFilter("Excel (*.xlsx)", "*.xlsx"),
+            new FileChooser.ExtensionFilter("CSV (*.csv)", "*.csv"));
+        File file = chooser.showSaveDialog(spotTable.getScene().getWindow());
+        if (file == null) {
+            return;
+        }
+        exportTo(withExtension(file, chooser.getSelectedExtensionFilter()));
+    }
+
+    private void exportTo(Path file) {
+        List<TableColumn<Spot, ?>> columns = spotTable.getColumns();
+        List<String> headers = columns.stream()
+            .map(TableColumn::getText)
+            .toList();
+        List<List<Object>> rows = spotTable.getItems().stream()
+            .map(spot -> columns.stream()
+                .<Object>map(column -> column.getCellData(spot))
+                .toList())
+            .toList();
+        try {
+            exportService.export("Места", headers, rows, file);
+            Alerts.info("Экспорт", "Сохранено строк: " + rows.size() + "\nФайл: " + file);
+        } catch (RuntimeException e) {
+            Alerts.error(e);
+        }
+    }
+
+    private Path withExtension(File file, FileChooser.ExtensionFilter filter) {
+        String name = file.getName().toLowerCase(Locale.ROOT);
+        if (name.endsWith(".xlsx") || name.endsWith(".csv")) {
+            return file.toPath();
+        }
+        String extension = filter != null && filter.getExtensions().contains("*.csv") ? ".csv" : ".xlsx";
+        return file.toPath().resolveSibling(file.getName() + extension);
     }
 
     @FXML

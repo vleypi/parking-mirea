@@ -27,6 +27,8 @@
         <Button fx:id="deleteButton" text="Удалить" onAction="#delete"/>
         <Button text="Обновить" onAction="#refresh"/>
         <Button text="Свободные на период" onAction="#showFreeSpots"/>
+        <Button fx:id="statisticsButton" text="Статистика" onAction="#showStatistics"/>
+        <Button text="Экспорт" onAction="#export"/>
         <Region HBox.hgrow="ALWAYS"/>
         <Label fx:id="countLabel" styleClass="form-label"/>
     </HBox>
