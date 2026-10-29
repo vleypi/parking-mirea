@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.ButtonType?>
+<?import javafx.scene.control.DialogPane?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.VBox?>
+
+<DialogPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="ru.mirea.project.fx.UserFormController" fx:id="dialogPane"
+            prefWidth="460">
+    <buttonTypes>
+        <ButtonType fx:id="saveButtonType" text="Сохранить" buttonData="OK_DONE"/>
+        <ButtonType text="Отмена" buttonData="CANCEL_CLOSE"/>
+    </buttonTypes>
+    <content>
+        <VBox spacing="12">
+            <GridPane hgap="10" vgap="10">
+                <columnConstraints>
+                    <ColumnConstraints minWidth="90"/>
+                    <ColumnConstraints hgrow="ALWAYS"/>
+                </columnConstraints>
+
+                <Label text="Имя" styleClass="form-label" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+                <TextField fx:id="nameField" promptText="Например, Иван Петров"
+                           GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+
+                <Label text="Телефон" styleClass="form-label" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                <TextField fx:id="phoneField" promptText="Например, 89991234567"
+                           GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+            </GridPane>
+            <Label text="Формат телефона: 89991234567, +7 999 123-45-67 или 9991234567"
+                   styleClass="form-label" wrapText="true"/>
+            <Label fx:id="errorLabel" styleClass="error-label" wrapText="true" minHeight="-Infinity"/>
+        </VBox>
+    </content>
+</DialogPane>
