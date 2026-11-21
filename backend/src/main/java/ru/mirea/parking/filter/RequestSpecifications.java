@@ -21,8 +21,6 @@ import static ru.mirea.parking.service.RequestPriorityCalculator.MEDIUM_WINDOW;
 
 public final class RequestSpecifications {
 
-    private static final char ESCAPE = '\\';
-
     private RequestSpecifications() {
     }
 
@@ -73,11 +71,11 @@ public final class RequestSpecifications {
     }
 
     public static Specification<Request> textSearch(String text) {
-        String pattern = "%" + escapeLike(text.trim().toLowerCase(Locale.ROOT)) + "%";
+        String pattern = LikePattern.contains(text);
         return (root, query, cb) -> cb.or(
-                cb.like(cb.lower(root.get("code")), pattern, ESCAPE),
-                cb.like(cb.lower(root.get("vehicle").get("licensePlate")), pattern, ESCAPE),
-                cb.like(cb.lower(root.get("owner").get("name")), pattern, ESCAPE));
+                cb.like(cb.lower(root.get("code")), pattern, LikePattern.ESCAPE),
+                cb.like(cb.lower(root.get("vehicle").get("licensePlate")), pattern, LikePattern.ESCAPE),
+                cb.like(cb.lower(root.get("owner").get("name")), pattern, LikePattern.ESCAPE));
     }
 
     public static Specification<Request> hasStatus(String code) {
@@ -111,10 +109,6 @@ public final class RequestSpecifications {
 
     public static Specification<Request> startsTo(LocalDateTime to) {
         return (root, query, cb) -> cb.lessThanOrEqualTo(root.get("startTime"), to);
-    }
-
-    static String escapeLike(String value) {
-        return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
     }
 
     private static boolean hasText(String value) {

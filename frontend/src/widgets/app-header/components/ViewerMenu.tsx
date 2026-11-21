@@ -2,8 +2,10 @@
 
 import { useId } from "react";
 import { ROLE_LABELS } from "@/shared/config";
+import { getTopRole } from "@/shared/lib";
 import { Avatar, HeaderPopover } from "@/shared/ui";
-import { getTopRole, useViewer } from "@/entities/viewer";
+import { useViewer } from "@/entities/viewer";
+import { ChangePasswordMenuItem } from "@/features/change-password";
 import { LogoutButton } from "@/features/logout";
 import { APP_HEADER_TEXT } from "@/widgets/app-header/constants/app-header.constant";
 
@@ -23,10 +25,11 @@ export const ViewerMenu = () => {
           <Avatar name={viewer.displayName} size="sm" />
           <span className="min-w-0">
             <span className="block truncate text-sm font-medium text-ink">{viewer.displayName}</span>
-            <span className="block truncate text-xs text-gray-500">{ROLE_LABELS[getTopRole(viewer)]}</span>
+            <span className="block truncate text-xs text-gray-500">{ROLE_LABELS[getTopRole(viewer.roles)]}</span>
           </span>
         </div>
         <div className="my-2 h-px bg-gray-100" />
+        <ChangePasswordMenuItem />
         <LogoutButton />
       </HeaderPopover>
     </>
