@@ -27,7 +27,7 @@ public class Vehicle {
     /** Владелец машины. Нужен заявке для проверки «машина принадлежит владельцу». */
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", nullable = false)
-    private User owner;
+    private Owner owner;
 
     @Column(name = "license_plate", nullable = false, unique = true, length = 12)
     private String licensePlate;
@@ -42,7 +42,7 @@ public class Vehicle {
     }
 
     public Long getId() { return id; }
-    public User getOwner() { return owner; }
+    public Owner getOwner() { return owner; }
     public String getLicensePlate() { return licensePlate; }
     public String getBrand() { return brand; }
     public String getModel() { return model; }

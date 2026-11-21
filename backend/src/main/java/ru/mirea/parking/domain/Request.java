@@ -54,12 +54,12 @@ public class Request {
     private String code;
 
     /**
-     * Владелец. LAZY: сам объект User загрузится из БД, только когда к нему обратятся,
+     * Владелец. LAZY: сам объект Owner загрузится из БД, только когда к нему обратятся,
      * а не при каждом чтении заявки.
      */
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", nullable = false)
-    private User owner;
+    private Owner owner;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "vehicle_id", nullable = false)
@@ -121,7 +121,7 @@ public class Request {
     protected Request() {
     }
 
-    public Request(User owner, Vehicle vehicle, Spot spot, RequestStatus status,
+    public Request(Owner owner, Vehicle vehicle, Spot spot, RequestStatus status,
                    LocalDateTime startTime, LocalDateTime endTime) {
         this.owner = owner;
         this.vehicle = vehicle;
@@ -149,8 +149,8 @@ public class Request {
     public UUID getUuid() { return uuid; }
     public String getCode() { return code; }
 
-    public User getOwner() { return owner; }
-    public void setOwner(User owner) { this.owner = owner; }
+    public Owner getOwner() { return owner; }
+    public void setOwner(Owner owner) { this.owner = owner; }
     public Vehicle getVehicle() { return vehicle; }
     public void setVehicle(Vehicle vehicle) { this.vehicle = vehicle; }
     public Spot getSpot() { return spot; }
