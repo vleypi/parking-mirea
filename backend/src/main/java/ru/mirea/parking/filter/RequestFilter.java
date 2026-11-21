@@ -18,4 +18,8 @@ public record RequestFilter(
         CompareOp costOp,
         @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
         @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to) {
+
+    public RequestFilter withArchived(ArchiveScope scope) {
+        return new RequestFilter(q, status, spotType, paid, priority, tag, scope, cost, costOp, from, to);
+    }
 }
