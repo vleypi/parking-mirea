@@ -1,5 +1,6 @@
 package ru.mirea.parking.service;
 
+import org.springframework.data.domain.Pageable;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -9,9 +10,13 @@ import ru.mirea.parking.domain.Request;
 import ru.mirea.parking.domain.RequestStatus;
 import ru.mirea.parking.domain.Spot;
 import ru.mirea.parking.domain.Vehicle;
+import ru.mirea.parking.dto.PageResponse;
 import ru.mirea.parking.dto.request.RequestCreateRequest;
 import ru.mirea.parking.dto.request.RequestResponse;
 import ru.mirea.parking.dto.request.RequestUpdateRequest;
+import ru.mirea.parking.filter.PageRequestFactory;
+import ru.mirea.parking.filter.RequestFilter;
+import ru.mirea.parking.filter.RequestSpecifications;
 import ru.mirea.parking.repository.OwnerRepository;
 import ru.mirea.parking.repository.RequestRepository;
 import ru.mirea.parking.repository.RequestStatusRepository;
@@ -20,6 +25,7 @@ import ru.mirea.parking.repository.VehicleRepository;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Clock;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.LinkedHashSet;
@@ -46,6 +52,8 @@ public class RequestService {
             COMPLETED, Set.of(COMPLETED),
             CANCELLED, Set.of(CANCELLED));
 
+    public static final Set<String> SORT_FIELDS = Set.of("startTime", "cost", "createdAt", "code");
+
     private static final long NO_REQUEST = -1L;
 
     private final RequestRepository requests;
@@ -54,16 +62,25 @@ public class RequestService {
     private final SpotRepository spots;
     private final RequestStatusRepository statuses;
     private final RequestPriorityCalculator priorityCalculator;
+    private final Clock clock;
 
     public RequestService(RequestRepository requests, OwnerRepository owners, VehicleRepository vehicles,
                           SpotRepository spots, RequestStatusRepository statuses,
-                          RequestPriorityCalculator priorityCalculator) {
+                          RequestPriorityCalculator priorityCalculator, Clock clock) {
         this.requests = requests;
         this.owners = owners;
         this.vehicles = vehicles;
         this.spots = spots;
         this.statuses = statuses;
         this.priorityCalculator = priorityCalculator;
+        this.clock = clock;
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponse<RequestResponse> search(RequestFilter filter, int page, int size, String sort, String direction) {
+        Pageable pageable = PageRequestFactory.create(page, size, sort, direction, SORT_FIELDS);
+        var spec = RequestSpecifications.byFilter(filter, LocalDateTime.now(clock));
+        return PageResponse.from(requests.findAll(spec, pageable), this::toResponse);
     }
 
     @Transactional(readOnly = true)

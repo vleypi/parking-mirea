@@ -44,9 +44,10 @@ public record RequestResponse(
         }
     }
 
-    public record SpotSummary(UUID id, Integer number, BigDecimal hourlyRate) {
+    public record SpotSummary(UUID id, Integer number, String type, String typeTitle, BigDecimal hourlyRate) {
         static SpotSummary from(Spot spot) {
-            return new SpotSummary(spot.getUuid(), spot.getSpotNumber(), spot.getHourlyRate());
+            return new SpotSummary(spot.getUuid(), spot.getSpotNumber(), spot.getSpotType().getCode(),
+                    spot.getSpotType().getTitle(), spot.getHourlyRate());
         }
     }
 

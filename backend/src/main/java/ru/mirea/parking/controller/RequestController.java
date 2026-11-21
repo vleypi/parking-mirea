@@ -5,15 +5,19 @@ import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import ru.mirea.parking.dto.PageResponse;
 import ru.mirea.parking.dto.request.RequestCreateRequest;
 import ru.mirea.parking.dto.request.RequestResponse;
 import ru.mirea.parking.dto.request.RequestUpdateRequest;
+import ru.mirea.parking.filter.RequestFilter;
 import ru.mirea.parking.service.RequestService;
 
 import java.net.URI;
@@ -28,6 +32,15 @@ public class RequestController {
 
     public RequestController(RequestService requestService) {
         this.requestService = requestService;
+    }
+
+    @GetMapping
+    public PageResponse<RequestResponse> search(@ModelAttribute RequestFilter filter,
+                                                @RequestParam(defaultValue = "0") int page,
+                                                @RequestParam(defaultValue = "20") int size,
+                                                @RequestParam(defaultValue = "createdAt") String sort,
+                                                @RequestParam(defaultValue = "desc") String direction) {
+        return requestService.search(filter, page, size, sort, direction);
     }
 
     @GetMapping("/{id}")

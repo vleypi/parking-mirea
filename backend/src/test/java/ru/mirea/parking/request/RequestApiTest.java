@@ -49,9 +49,10 @@ class RequestApiTest {
 
     @BeforeEach
     void seed() {
-        for (String table : List.of("request_tag", "requests", "vehicles", "spots", "users", "request_statuses")) {
+        for (String table : List.of("request_tag", "requests", "vehicles", "spots", "spot_types", "users", "request_statuses")) {
             jdbc.update("delete from " + table);
         }
+        jdbc.update("insert into spot_types (id, code, title) values (1, 'STANDARD', 'Стандартное'), (3, 'ELECTRIC', 'Для электромобилей')");
         jdbc.update("insert into request_statuses (id, code, title) values "
                 + "(1, 'NEW', 'Новая'), (2, 'CONFIRMED', 'Подтверждена'), (3, 'COMPLETED', 'Завершена'), (4, 'CANCELLED', 'Отменена')");
         jdbc.update("insert into users (id, uuid, name, phone, created_at) values "
@@ -60,7 +61,7 @@ class RequestApiTest {
         jdbc.update("insert into vehicles (id, uuid, user_id, license_plate, brand, model) values "
                 + "(1, ?, 1, 'А123ВС777', 'Toyota', 'Camry'), (2, ?, 1, 'М777АА777', 'Tesla', 'Model 3'), "
                 + "(3, ?, 2, 'В456КМ177', 'Kia', 'Rio')", IVAN_CAR, IVAN_TESLA, MARIA_CAR);
-        jdbc.update("insert into spots (id, uuid, spot_number, hourly_rate) values (1, ?, 1, 100.00), (2, ?, 2, 150.00)",
+        jdbc.update("insert into spots (id, uuid, spot_number, spot_type_id, hourly_rate) values (1, ?, 1, 1, 100.00), (2, ?, 2, 3, 150.00)",
                 SPOT_1, SPOT_2);
     }
 

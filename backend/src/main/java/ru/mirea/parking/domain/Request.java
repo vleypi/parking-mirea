@@ -14,6 +14,7 @@ import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
+import org.hibernate.annotations.BatchSize;
 import org.hibernate.annotations.Generated;
 
 import java.math.BigDecimal;
@@ -81,6 +82,7 @@ public class Request {
     @Column(nullable = false)
     private long version;
 
+    @BatchSize(size = 100)
     @ElementCollection(fetch = FetchType.LAZY)
     @CollectionTable(name = "request_tag", joinColumns = @JoinColumn(name = "request_id"))
     @Column(name = "tag", nullable = false, length = 50)

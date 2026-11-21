@@ -36,16 +36,17 @@ class RequestPrioritySpecificationTest {
 
     @BeforeEach
     void seed() {
-        for (String table : List.of("request_tag", "requests", "vehicles", "spots", "users", "request_statuses")) {
+        for (String table : List.of("request_tag", "requests", "vehicles", "spots", "spot_types", "users", "request_statuses")) {
             jdbc.update("delete from " + table);
         }
+        jdbc.update("insert into spot_types (id, code, title) values (1, 'STANDARD', 'Стандартное'), (3, 'ELECTRIC', 'Для электромобилей')");
         jdbc.update("insert into request_statuses (id, code, title) values "
                 + "(1, 'NEW', 'Новая'), (2, 'CONFIRMED', 'Подтверждена'), (3, 'COMPLETED', 'Завершена'), (4, 'CANCELLED', 'Отменена')");
         jdbc.update("insert into users (id, uuid, name, phone, created_at) values (1, ?, 'Иван', '+7-900-100-00-01', now())",
                 UUID.randomUUID());
         jdbc.update("insert into vehicles (id, uuid, user_id, license_plate, brand, model) values (1, ?, 1, 'А123ВС777', 'Toyota', 'Camry')",
                 UUID.randomUUID());
-        jdbc.update("insert into spots (id, uuid, spot_number, hourly_rate) values (1, ?, 1, 100.00)", UUID.randomUUID());
+        jdbc.update("insert into spots (id, uuid, spot_number, spot_type_id, hourly_rate) values (1, ?, 1, 1, 100.00)", UUID.randomUUID());
 
         for (int s = 0; s < STATUSES.size(); s++) {
             for (long offset : OFFSETS_MINUTES) {
