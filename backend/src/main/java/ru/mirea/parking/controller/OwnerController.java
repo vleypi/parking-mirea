@@ -7,16 +7,20 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import ru.mirea.parking.dto.PageResponse;
 import ru.mirea.parking.dto.owner.OwnerCreateRequest;
 import ru.mirea.parking.dto.owner.OwnerResponse;
 import ru.mirea.parking.dto.owner.OwnerUpdateRequest;
+import ru.mirea.parking.filter.OwnerFilter;
 import ru.mirea.parking.service.OwnerService;
 
 import java.net.URI;
@@ -32,6 +36,15 @@ public class OwnerController {
 
     public OwnerController(OwnerService ownerService) {
         this.ownerService = ownerService;
+    }
+
+    @GetMapping
+    public PageResponse<OwnerResponse> search(@ModelAttribute OwnerFilter filter,
+                                              @RequestParam(defaultValue = "0") int page,
+                                              @RequestParam(defaultValue = "20") int size,
+                                              @RequestParam(defaultValue = "createdAt") String sort,
+                                              @RequestParam(defaultValue = "desc") String direction) {
+        return ownerService.search(filter, page, size, sort, direction);
     }
 
     @GetMapping("/{id}")

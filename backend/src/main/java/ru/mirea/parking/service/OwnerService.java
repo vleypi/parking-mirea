@@ -1,5 +1,9 @@
 package ru.mirea.parking.service;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -11,10 +15,14 @@ import ru.mirea.parking.domain.ClientCategory;
 import ru.mirea.parking.domain.Owner;
 import ru.mirea.parking.domain.OwnerStatus;
 import ru.mirea.parking.domain.RequestStatus;
+import ru.mirea.parking.dto.PageResponse;
 import ru.mirea.parking.dto.owner.OwnerCreateRequest;
 import ru.mirea.parking.dto.owner.OwnerResponse;
 import ru.mirea.parking.dto.owner.OwnerResponse.Counters;
 import ru.mirea.parking.dto.owner.OwnerUpdateRequest;
+import ru.mirea.parking.filter.OwnerFilter;
+import ru.mirea.parking.filter.OwnerSpecifications;
+import ru.mirea.parking.filter.PageRequestFactory;
 import ru.mirea.parking.repository.ClientCategoryRepository;
 import ru.mirea.parking.repository.OwnerRepository;
 
@@ -40,6 +48,12 @@ import static org.springframework.http.HttpStatus.NOT_FOUND;
 @Service
 public class OwnerService {
 
+    /** Поля сортировки из API и соответствующие им поля сущности. */
+    public static final Map<String, String> SORT_FIELDS = Map.of(
+            "name", "name",
+            "createdAt", "createdAt",
+            "discount", "discountPercent");
+
     static final String STALE_VERSION = "Запись изменил другой пользователь, обновите карточку";
 
     private final OwnerRepository owners;
@@ -53,6 +67,19 @@ public class OwnerService {
         this.categories = categories;
         this.audit = audit;
         this.permanentDeleteEnabled = properties.permanentDeleteEnabled();
+    }
+
+    /** GET /api/owners: фильтры, сортировка и страница (size не больше 100). */
+    @Transactional(readOnly = true)
+    public PageResponse<OwnerResponse> search(OwnerFilter filter, int page, int size, String sort, String direction) {
+        Pageable requested = PageRequestFactory.create(page, size, sort, direction, SORT_FIELDS.keySet());
+        Sort.Order order = requested.getSort().getOrderFor(sort);
+        Pageable pageable = PageRequest.of(requested.getPageNumber(), requested.getPageSize(),
+                Sort.by(order.getDirection(), SORT_FIELDS.get(sort)).and(Sort.by(Sort.Direction.ASC, "id")));
+
+        Page<Owner> result = owners.findAll(OwnerSpecifications.byFilter(filter), pageable);
+        Map<Long, Counters> counters = counters(result.getContent().stream().map(Owner::getId).toList());
+        return PageResponse.from(result, owner -> OwnerResponse.from(owner, counters.getOrDefault(owner.getId(), Counters.ZERO)));
     }
 
     @Transactional(readOnly = true)
