@@ -19,7 +19,7 @@ import java.util.Map;
  * Действует только на контроллеры владельцев; когда появится общий обработчик ошибок, этот класс можно убрать.
  */
 @Order(Ordered.HIGHEST_PRECEDENCE)
-@RestControllerAdvice(assignableTypes = OwnerController.class)
+@RestControllerAdvice(assignableTypes = {OwnerController.class, OwnerNoteController.class})
 public class OwnerValidationAdvice {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

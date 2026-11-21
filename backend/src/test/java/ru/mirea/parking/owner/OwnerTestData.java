@@ -16,7 +16,7 @@ final class OwnerTestData {
 
     static void clean(JdbcTemplate jdbc) {
         for (String table : List.of("request_note", "request_tag", "requests", "vehicles", "spots", "spot_types",
-                "owner_tag", "users", "request_statuses")) {
+                "owner_note", "owner_tag", "users", "request_statuses")) {
             jdbc.update("delete from " + table);
         }
         // Тестовые владельцы вставляются с явными id, новые через API получают id начиная с 1000.
