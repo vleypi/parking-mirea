@@ -26,6 +26,7 @@ export { SelectField } from "@/shared/ui/SelectField";
 export { TableTitleCell } from "@/shared/ui/TableTitleCell";
 export { TextAreaField } from "@/shared/ui/TextAreaField";
 export { TextField } from "@/shared/ui/TextField";
+export { ToolbarField } from "@/shared/ui/ToolbarField";
 export { ToolbarMenu } from "@/shared/ui/ToolbarMenu";
 export { CARD_CLASS_NAME, MENU_ITEM_CLASS_NAME, TOOLBAR_CONTROL_CLASS_NAME } from "@/shared/ui/ui.constant";
 export { SidebarProvider } from "@/shared/ui/sidebar/SidebarProvider";

@@ -1,9 +1,9 @@
 "use client";
 
 import { Icon } from "@/shared/ui/Icon";
-import { joinClassNames } from "@/shared/lib";
-import { useEffect, useEffectEvent, useState } from "react";
-import { LIST_TEXT, SEARCH_DEBOUNCE_MS } from "@/shared/config";
+import { joinClassNames } from "@/shared/lib/join-class-names";
+import { useDebouncedDraft } from "@/shared/lib/useDebouncedDraft";
+import { LIST_TEXT } from "@/shared/config";
 import { TOOLBAR_CONTROL_CLASS_NAME } from "@/shared/ui/ui.constant";
 
 interface ISearchFieldProps {
@@ -13,33 +13,7 @@ interface ISearchFieldProps {
 }
 
 export const SearchField = ({ value, placeholder, onSearch }: ISearchFieldProps) => {
-  const [draft, setDraft] = useState(value);
-  const [syncedValue, setSyncedValue] = useState(value);
-  const [sentValue, setSentValue] = useState(value);
-
-  if (value !== syncedValue) {
-    setSyncedValue(value);
-    if (value !== sentValue) setDraft(value);
-  }
-
-  const submit = (nextValue: string) => {
-    setSentValue(nextValue);
-    onSearch(nextValue);
-  };
-  const submitAfterPause = useEffectEvent(submit);
-
-  useEffect(() => {
-    const nextValue = draft.trim();
-    if (nextValue === value) return;
-
-    const timer = setTimeout(() => submitAfterPause(nextValue), SEARCH_DEBOUNCE_MS);
-    return () => clearTimeout(timer);
-  }, [draft, value]);
-
-  const clear = () => {
-    setDraft("");
-    submit("");
-  };
+  const { draft, setDraft, clear } = useDebouncedDraft(value, onSearch);
 
   return (
     <div className="relative w-full sm:w-80">
