@@ -115,24 +115,12 @@ public class RequestService {
     @Transactional
     public RequestResponse update(UUID id, RequestUpdateRequest body) {
         Request request = findRequest(id);
-        if (request.isArchived()) {
-            throw new ResponseStatusException(CONFLICT, "Архивную заявку изменить нельзя");
-        }
+        checkNotArchived(request);
         if (body.version() != request.getVersion()) {
             throw new ResponseStatusException(CONFLICT, "Запись изменил другой пользователь, обновите карточку");
         }
-
-        String currentStatus = request.getStatus().getCode();
-        if (!ACTIVE_STATUSES.contains(currentStatus)) {
-            throw new ResponseStatusException(CONFLICT, "Заявку в статусе «" + request.getStatus().getTitle()
-                    + "» изменить нельзя: редактируются только новые и подтверждённые заявки");
-        }
-        RequestStatus newStatus = statuses.findByCode(body.status())
-                .orElseThrow(() -> new ResponseStatusException(BAD_REQUEST, "Неизвестный статус " + body.status()));
-        if (!ALLOWED_TRANSITIONS.get(currentStatus).contains(newStatus.getCode())) {
-            throw new ResponseStatusException(CONFLICT, "Недопустимый переход статуса: «"
-                    + request.getStatus().getTitle() + "» -> «" + newStatus.getTitle() + "»");
-        }
+        checkActive(request);
+        RequestStatus newStatus = resolveTransition(request, body.status());
 
         Vehicle vehicle = findVehicle(body.vehicleId());
         Spot spot = findSpot(body.spotId());
@@ -191,6 +179,29 @@ public class RequestService {
         requests.delete(findRequest(id));
     }
 
+    void checkNotArchived(Request request) {
+        if (request.isArchived()) {
+            throw new ResponseStatusException(CONFLICT, "Архивную заявку изменить нельзя");
+        }
+    }
+
+    void checkActive(Request request) {
+        if (!ACTIVE_STATUSES.contains(request.getStatus().getCode())) {
+            throw new ResponseStatusException(CONFLICT, "Заявку в статусе «" + request.getStatus().getTitle()
+                    + "» изменить нельзя: редактируются только новые и подтверждённые заявки");
+        }
+    }
+
+    RequestStatus resolveTransition(Request request, String statusCode) {
+        RequestStatus newStatus = statuses.findByCode(statusCode)
+                .orElseThrow(() -> new ResponseStatusException(BAD_REQUEST, "Неизвестный статус " + statusCode));
+        if (!ALLOWED_TRANSITIONS.get(request.getStatus().getCode()).contains(newStatus.getCode())) {
+            throw new ResponseStatusException(CONFLICT, "Недопустимый переход статуса: «"
+                    + request.getStatus().getTitle() + "» -> «" + newStatus.getTitle() + "»");
+        }
+        return newStatus;
+    }
+
     void archive(Request request) {
         if (request.isArchived()) {
             throw new ResponseStatusException(CONFLICT, "Заявка " + request.getCode() + " уже в архиве");
@@ -205,7 +216,7 @@ public class RequestService {
         request.setArchived(false);
     }
 
-    private Request findRequest(UUID id) {
+    Request findRequest(UUID id) {
         return requests.findByUuid(id)
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Заявка " + id + " не найдена"));
     }
@@ -252,8 +263,12 @@ public class RequestService {
     private Set<String> normalizeTags(Set<String> tags) {
         Set<String> result = new LinkedHashSet<>();
         if (tags != null) {
-            tags.stream().map(String::trim).filter(t -> !t.isEmpty()).map(String::toLowerCase).forEach(result::add);
+            tags.stream().map(RequestService::normalizeTag).filter(t -> !t.isEmpty()).forEach(result::add);
         }
         return result;
+    }
+
+    static String normalizeTag(String tag) {
+        return tag.trim().toLowerCase();
     }
 }

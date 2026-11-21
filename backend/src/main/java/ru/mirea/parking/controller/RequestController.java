@@ -17,10 +17,13 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import ru.mirea.parking.dto.PageResponse;
+import ru.mirea.parking.dto.request.RequestBulkRequest;
+import ru.mirea.parking.dto.request.RequestBulkResponse;
 import ru.mirea.parking.dto.request.RequestCreateRequest;
 import ru.mirea.parking.dto.request.RequestResponse;
 import ru.mirea.parking.dto.request.RequestUpdateRequest;
 import ru.mirea.parking.filter.RequestFilter;
+import ru.mirea.parking.service.RequestBulkService;
 import ru.mirea.parking.service.RequestService;
 
 import java.net.URI;
@@ -32,9 +35,11 @@ import java.util.UUID;
 public class RequestController {
 
     private final RequestService requestService;
+    private final RequestBulkService bulkService;
 
-    public RequestController(RequestService requestService) {
+    public RequestController(RequestService requestService, RequestBulkService bulkService) {
         this.requestService = requestService;
+        this.bulkService = bulkService;
     }
 
     @GetMapping
@@ -81,5 +86,11 @@ public class RequestController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deletePermanently(@PathVariable UUID id) {
         requestService.deletePermanently(id);
+    }
+
+    @PostMapping("/bulk")
+    @PreAuthorize("hasRole('OPERATOR')")
+    public RequestBulkResponse bulk(@Valid @RequestBody RequestBulkRequest body) {
+        return bulkService.apply(body);
     }
 }
