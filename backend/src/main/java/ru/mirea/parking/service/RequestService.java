@@ -97,6 +97,9 @@ public class RequestService {
     public RequestResponse create(RequestCreateRequest body) {
         Owner owner = owners.findByUuid(body.ownerId())
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Владелец " + body.ownerId() + " не найден"));
+        if (owner.isArchived()) {
+            throw new ResponseStatusException(CONFLICT, "Владелец " + owner.getName() + " в архиве: новую заявку оформить нельзя");
+        }
         Vehicle vehicle = findVehicle(body.vehicleId());
         Spot spot = findSpot(body.spotId());
 

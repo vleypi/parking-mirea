@@ -5,6 +5,8 @@ import org.springframework.format.FormatterRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import ru.mirea.parking.domain.AuditEntityType;
 import ru.mirea.parking.domain.AuditEventType;
+import ru.mirea.parking.domain.LoyaltyLevel;
+import ru.mirea.parking.domain.OwnerStatus;
 import ru.mirea.parking.domain.RequestPriority;
 
 import java.util.Locale;
@@ -19,6 +21,8 @@ public class CaseInsensitiveEnumConverters implements WebMvcConfigurer {
         registry.addConverter(String.class, RequestPriority.class, s -> RequestPriority.valueOf(upper(s)));
         registry.addConverter(String.class, AuditEventType.class, s -> AuditEventType.valueOf(upper(s)));
         registry.addConverter(String.class, AuditEntityType.class, s -> AuditEntityType.valueOf(upper(s)));
+        registry.addConverter(String.class, OwnerStatus.class, s -> OwnerStatus.valueOf(upper(s)));
+        registry.addConverter(String.class, LoyaltyLevel.class, s -> LoyaltyLevel.valueOf(upper(s)));
     }
 
     private static String upper(String value) {
