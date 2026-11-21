@@ -7,6 +7,8 @@ spring:
   jpa:
     hibernate:
       ddl-auto: create-drop
+    # data.sql выполняется после того, как Hibernate создал схему
+    defer-datasource-initialization: true
   flyway:
     enabled: false
 app:
