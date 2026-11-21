@@ -4,6 +4,7 @@ export { formatDateTime, formatMoney } from "@/shared/lib/format.util";
 export { joinClassNames } from "@/shared/lib/join-class-names";
 export type { IListControls, IListField, IListFilter, IListFilterOption, ListFieldType } from "@/shared/lib/list.interface";
 export { countPages, getPageItems, PAGE_GAP, type PageItem } from "@/shared/lib/pagination.util";
+export { getTopRole, hasMinRole } from "@/shared/lib/role.util";
 export { replaceSearchParams, type SearchParamChanges } from "@/shared/lib/search-params.util";
 export { toSortValue } from "@/shared/lib/sort-value.util";
 export { type PopoverAlign, useAnchoredPopover } from "@/shared/lib/useAnchoredPopover";

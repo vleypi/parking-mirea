@@ -4,4 +4,6 @@ export const QUERY_KEYS = {
   viewer: ["viewer"],
   requests: ["requests"],
   requestPage: (request: IListRequest<string>) => ["requests", request],
+  accounts: ["accounts"],
+  accountPage: (request: IListRequest<string>) => ["accounts", request],
 } as const;
