@@ -20,10 +20,12 @@ import ru.mirea.parking.dto.PageResponse;
 import ru.mirea.parking.dto.owner.OwnerBulkRequest;
 import ru.mirea.parking.dto.owner.OwnerBulkResponse;
 import ru.mirea.parking.dto.owner.OwnerCreateRequest;
+import ru.mirea.parking.dto.owner.OwnerRelatedResponse;
 import ru.mirea.parking.dto.owner.OwnerResponse;
 import ru.mirea.parking.dto.owner.OwnerUpdateRequest;
 import ru.mirea.parking.filter.OwnerFilter;
 import ru.mirea.parking.service.OwnerBulkService;
+import ru.mirea.parking.service.OwnerRelatedService;
 import ru.mirea.parking.service.OwnerService;
 
 import java.net.URI;
@@ -37,10 +39,12 @@ public class OwnerController {
 
     private final OwnerService ownerService;
     private final OwnerBulkService bulkService;
+    private final OwnerRelatedService relatedService;
 
-    public OwnerController(OwnerService ownerService, OwnerBulkService bulkService) {
+    public OwnerController(OwnerService ownerService, OwnerBulkService bulkService, OwnerRelatedService relatedService) {
         this.ownerService = ownerService;
         this.bulkService = bulkService;
+        this.relatedService = relatedService;
     }
 
     @GetMapping
@@ -55,6 +59,12 @@ public class OwnerController {
     @GetMapping("/{id}")
     public OwnerResponse get(@PathVariable UUID id) {
         return ownerService.get(id);
+    }
+
+    /** Машины владельца и его последние 20 заявок для карточки. */
+    @GetMapping("/{id}/related")
+    public OwnerRelatedResponse related(@PathVariable UUID id) {
+        return relatedService.related(id);
     }
 
     @PostMapping

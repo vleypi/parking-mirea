@@ -50,3 +50,29 @@ export interface IOwnerBulkPayload {
   status?: OwnerStatus;
   tag?: string;
 }
+
+export interface IOwnerVehicle {
+  id: string;
+  licensePlate: string;
+  brand: string;
+  model: string;
+}
+
+export interface IOwnerRequestItem {
+  id: string;
+  code: string;
+  licensePlate: string;
+  spotNumber: number;
+  statusCode: string;
+  statusTitle: string;
+  startTime: string;
+  endTime: string;
+  cost: number;
+  archived: boolean;
+}
+
+export interface IOwnerRelated {
+  vehicles: IOwnerVehicle[];
+  requests: IOwnerRequestItem[];
+  requestsTotal: number;
+}
