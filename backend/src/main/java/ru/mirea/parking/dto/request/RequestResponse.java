@@ -2,6 +2,7 @@ package ru.mirea.parking.dto.request;
 
 import ru.mirea.parking.domain.Owner;
 import ru.mirea.parking.domain.Request;
+import ru.mirea.parking.domain.RequestPriority;
 import ru.mirea.parking.domain.RequestStatus;
 import ru.mirea.parking.domain.Spot;
 import ru.mirea.parking.domain.Vehicle;
@@ -19,6 +20,7 @@ public record RequestResponse(
         VehicleSummary vehicle,
         SpotSummary spot,
         StatusSummary status,
+        RequestPriority priority,
         LocalDateTime startTime,
         LocalDateTime endTime,
         String description,
@@ -54,7 +56,7 @@ public record RequestResponse(
         }
     }
 
-    public static RequestResponse from(Request request) {
+    public static RequestResponse from(Request request, RequestPriority priority) {
         return new RequestResponse(
                 request.getUuid(),
                 request.getCode(),
@@ -62,6 +64,7 @@ public record RequestResponse(
                 VehicleSummary.from(request.getVehicle()),
                 SpotSummary.from(request.getSpot()),
                 StatusSummary.from(request.getStatus()),
+                priority,
                 request.getStartTime(),
                 request.getEndTime(),
                 request.getDescription(),
