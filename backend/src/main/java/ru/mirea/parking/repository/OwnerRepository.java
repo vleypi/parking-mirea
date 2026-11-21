@@ -30,6 +30,12 @@ public interface OwnerRepository extends JpaRepository<Owner, Long>, JpaSpecific
     @EntityGraph(attributePaths = {"category"})
     Page<Owner> findAll(Specification<Owner> spec, Pageable pageable);
 
+    @Query("select count(v) > 0 from Vehicle v where v.owner.id = :ownerId")
+    boolean hasVehicles(@Param("ownerId") Long ownerId);
+
+    @Query("select count(r) > 0 from Request r where r.owner.id = :ownerId")
+    boolean hasRequests(@Param("ownerId") Long ownerId);
+
     /** Количество машин у каждого владельца из списка одним запросом (без N+1 на странице). */
     @Query("""
             select v.owner.id, count(v) from Vehicle v
