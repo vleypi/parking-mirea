@@ -1,6 +1,7 @@
 "use client";
 
 import { formatDateTime, formatMoney } from "@/shared/lib";
+import type { IRowSelection } from "@/shared/lib";
 import { Badge, DataTable, Highlight, type IDataTableColumn, type IDataTableSorting, TableTitleCell } from "@/shared/ui";
 import {
   REQUEST_PRIORITY_LABELS,
@@ -18,6 +19,8 @@ interface IRequestTableProps {
   search: string;
   emptyText: string;
   sorting: IDataTableSorting<RequestSortField>;
+  selection?: IRowSelection;
+  onSelect: (request: IRequest) => void;
 }
 
 const getColumns = (search: string): IDataTableColumn<IRequest, RequestSortField>[] => [
@@ -70,6 +73,15 @@ const getColumns = (search: string): IDataTableColumn<IRequest, RequestSortField
   },
 ];
 
-export const RequestTable = ({ requests, isLoading, search, emptyText, sorting }: IRequestTableProps) => (
-  <DataTable columns={getColumns(search)} sorting={sorting} rows={requests} getRowKey={({ id }) => id} isLoading={isLoading} emptyText={emptyText} />
+export const RequestTable = ({ requests, isLoading, search, emptyText, sorting, selection, onSelect }: IRequestTableProps) => (
+  <DataTable
+    columns={getColumns(search)}
+    sorting={sorting}
+    rows={requests}
+    getRowKey={({ id }) => id}
+    isLoading={isLoading}
+    emptyText={emptyText}
+    selection={selection}
+    onRowClick={onSelect}
+  />
 );

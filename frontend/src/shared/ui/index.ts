@@ -1,6 +1,8 @@
 export { AddButton, type IAddAction } from "@/shared/ui/AddButton";
 export { Avatar } from "@/shared/ui/Avatar";
 export { Badge, type BadgeTone } from "@/shared/ui/Badge";
+export { BulkActionBar } from "@/shared/ui/BulkActionBar";
+export { BulkResult } from "@/shared/ui/BulkResult";
 export { Button } from "@/shared/ui/Button";
 export { CheckboxField } from "@/shared/ui/CheckboxField";
 export { ConfirmModal } from "@/shared/ui/ConfirmModal";

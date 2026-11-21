@@ -29,3 +29,11 @@ export interface IListControls {
   setParam: (param: string, value: string) => void;
   resetParams: (params: readonly string[]) => void;
 }
+
+export interface IRowSelection {
+  ids: string[];
+  isSelected: (key: string) => boolean;
+  toggle: (key: string) => void;
+  toggleAll: (keys: readonly string[]) => void;
+  clear: () => void;
+}

@@ -1,9 +1,11 @@
 "use client";
 
-import { useListParams } from "@/shared/lib";
-import { FormError, ListToolbar, PageHeader, Pagination } from "@/shared/ui";
+import { ROLES } from "@/shared/config";
+import { useEntityModal, useListParams, useRowSelection } from "@/shared/lib";
+import { BulkActionBar, FormError, ListToolbar, Modal, PageHeader, Pagination } from "@/shared/ui";
 import {
   buildRequestListRequest,
+  type IRequest,
   REQUEST_FIELDS,
   REQUEST_FILTERS,
   REQUEST_LIST_PARAMS,
@@ -13,6 +15,9 @@ import {
   RequestTable,
   useRequestPage,
 } from "@/entities/request";
+import { hasRole, useViewer } from "@/entities/viewer";
+import { BulkRequestActions } from "@/features/bulk-requests";
+import { RequestCard } from "@/widgets/request-card";
 import { REQUESTS_PAGE_TEXT } from "@/views/requests/constants/requests-page.constant";
 
 const REQUEST_SORT_FIELD_LIST = Object.values(REQUEST_SORT_FIELDS);
@@ -22,6 +27,11 @@ const REQUEST_LIST_FIELDS = Object.values(REQUEST_FIELDS);
 export const RequestsCatalog = () => {
   const list = useListParams(REQUEST_SORT_FIELD_LIST);
   const { data, isPending, error } = useRequestPage(buildRequestListRequest(list.request, list.getParam));
+  const { data: viewer } = useViewer();
+  const card = useEntityModal<IRequest>();
+  const selection = useRowSelection();
+  const canEdit = hasRole(viewer, ROLES.operator);
+  const codes = new Map(data?.content.map(({ id, code }) => [id, code]));
 
   return (
     <>
@@ -35,14 +45,31 @@ export const RequestsCatalog = () => {
         sortOptions={REQUEST_SORT_OPTIONS}
       />
       <FormError message={error?.message} />
+      {canEdit && (
+        <BulkActionBar count={selection.ids.length} onClear={selection.clear}>
+          <BulkRequestActions ids={selection.ids} getLabel={(id) => codes.get(id) ?? id} onDone={selection.clear} />
+        </BulkActionBar>
+      )}
       <RequestTable
         requests={data?.content}
         isLoading={isPending}
         search={list.search}
         emptyText={list.getEmptyText(REQUEST_TEXT.empty, REQUEST_LIST_PARAMS)}
         sorting={list.sorting}
+        selection={canEdit ? selection : undefined}
+        onSelect={card.openEdit}
       />
       <Pagination page={list.page} pageSize={list.pageSize} total={data?.totalElements ?? 0} onChange={list.setPage} />
+      <Modal size="xl" isOpen={card.isOpen} title={card.entity?.code ?? ""} onClose={card.close}>
+        {card.entity && (
+          <RequestCard
+            requestId={card.entity.id}
+            canEdit={canEdit}
+            canRemovePermanently={hasRole(viewer, ROLES.admin)}
+            onRemoved={card.close}
+          />
+        )}
+      </Modal>
     </>
   );
 };
