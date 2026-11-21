@@ -1,0 +1,58 @@
+spring:
+  application:
+    name: parking-server
+
+  # Та же база, что у JavaFX-версии КР2 (docker/docker-compose.yml).
+  # Значения можно переопределить переменными окружения из .env.
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/project_db}
+    username: ${SPRING_DATASOURCE_USERNAME:project_user}
+    password: ${SPRING_DATASOURCE_PASSWORD:project_password}
+    hikari:
+      maximum-pool-size: 10
+      connection-timeout: 5000
+
+  jpa:
+    # Не держать соединение с БД открытым до конца HTTP-ответа: все запросы к БД только в сервисах.
+    open-in-view: false
+    hibernate:
+      # Hibernate ничего не создаёт сам, только сверяет сущности со схемой.
+      # Схему меняют исключительно миграции Flyway.
+      ddl-auto: validate
+
+  flyway:
+    enabled: true
+    # База КР2 уже содержит таблицы (их создаёт sql/init.sql), но в ней нет истории Flyway.
+    # baseline помечает V1 как уже применённую и дальше накатывает только V2, V3, ...
+    # На пустой базе baseline не срабатывает и V1 выполняется как обычно.
+    baseline-on-migrate: true
+    baseline-version: 1
+
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 6MB
+
+  jackson:
+    default-property-inclusion: non_null
+    deserialization:
+      # Неизвестное поле в JSON-запросе даёт 400, а не молча игнорируется
+      fail-on-unknown-properties: true
+
+server:
+  port: ${APP_PORT:8080}
+  error:
+    include-message: never
+    include-stacktrace: never
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs
