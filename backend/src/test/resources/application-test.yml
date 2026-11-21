@@ -1,4 +1,3 @@
-# Профиль для mvn test: H2 в памяти вместо PostgreSQL, Docker не нужен.
 spring:
   datasource:
     url: jdbc:h2:mem:parking;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH
@@ -7,7 +6,6 @@ spring:
     password:
   jpa:
     hibernate:
-      # В тестах таблицы создаются по сущностям, миграции PostgreSQL на H2 не запускаются
       ddl-auto: create-drop
   flyway:
     enabled: false

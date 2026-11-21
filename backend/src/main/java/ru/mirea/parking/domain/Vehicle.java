@@ -10,12 +10,6 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
-/**
- * Автомобиль (таблица vehicles из КР1).
- *
- * <p>МИНИМАЛЬНАЯ ЗАГОТОВКА: создана в задаче Request для связи {@code @ManyToOne}.
- * Сущность принадлежит задаче «Миграция и JPA-сущность (Vehicle)»: Рома дописывает сюда свои поля.</p>
- */
 @Entity
 @Table(name = "vehicles")
 public class Vehicle {
@@ -24,7 +18,6 @@ public class Vehicle {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /** Владелец машины. Нужен заявке для проверки «машина принадлежит владельцу». */
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", nullable = false)
     private Owner owner;

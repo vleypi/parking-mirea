@@ -22,41 +22,21 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.UUID;
 
-/**
- * Заявка на парковку: основная сущность системы (таблица requests, миграции V1 и V10).
- *
- * <p>Наружу через REST эта сущность не отдаётся: контроллер возвращает RequestResponse (DTO).
- * Удаление заменено архивированием: флаг {@link #archived}.</p>
- */
 @Entity
 @Table(name = "requests")
 public class Request {
 
-    /** Внутренний ключ БД. Через него связаны другие таблицы, наружу не показывается. */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /**
-     * Внешний идентификатор для API: /api/requests/{uuid}.
-     * Генерируем в Java сразу при создании объекта, чтобы он был известен ещё до сохранения.
-     */
     @Column(nullable = false, unique = true, updatable = false)
     private UUID uuid = UUID.randomUUID();
 
-    /**
-     * Номер заявки REQ-000001. Его выдаёт база: DEFAULT из последовательности request_code_seq.
-     * insertable = false: Hibernate не пишет столбец в INSERT, чтобы сработал DEFAULT.
-     * {@code @Generated}: после INSERT Hibernate перечитывает значение из БД в это поле.
-     */
     @Generated
     @Column(insertable = false, updatable = false, length = 20)
     private String code;
 
-    /**
-     * Владелец. LAZY: сам объект Owner загрузится из БД, только когда к нему обратятся,
-     * а не при каждом чтении заявки.
-     */
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", nullable = false)
     private Owner owner;
@@ -69,7 +49,6 @@ public class Request {
     @JoinColumn(name = "spot_id", nullable = false)
     private Spot spot;
 
-    /** Статус из справочника request_statuses. EAGER (по умолчанию у ManyToOne): он почти всегда нужен. */
     @ManyToOne(optional = false)
     @JoinColumn(name = "status_id", nullable = false)
     private RequestStatus status;
@@ -83,7 +62,6 @@ public class Request {
     @Column(length = 500)
     private String description;
 
-    /** Деньги храним в BigDecimal, а не double: double даёт ошибки округления (0.1 + 0.2 != 0.3). */
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal cost = BigDecimal.ZERO;
 
@@ -99,25 +77,15 @@ public class Request {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    /**
-     * Optimistic locking. Hibernate добавляет к UPDATE условие "WHERE version = ?" и увеличивает version.
-     * Если запись уже изменил кто-то другой, строка не найдётся и будет
-     * OptimisticLockException, которую мы превратим в ответ 409.
-     */
     @Version
     @Column(nullable = false)
     private long version;
 
-    /**
-     * Теги: простые строки без отдельной сущности. Хранятся в таблице request_tag
-     * (request_id, tag). Set, а не List: один тег у заявки может быть только один раз.
-     */
     @ElementCollection(fetch = FetchType.LAZY)
     @CollectionTable(name = "request_tag", joinColumns = @JoinColumn(name = "request_id"))
     @Column(name = "tag", nullable = false, length = 50)
     private Set<String> tags = new LinkedHashSet<>();
 
-    /** Нужен Hibernate для создания объекта при чтении из БД. protected: снаружи им не пользуются. */
     protected Request() {
     }
 
@@ -131,7 +99,6 @@ public class Request {
         this.endTime = endTime;
     }
 
-    /** Вызывается Hibernate перед первым INSERT. */
     @PrePersist
     protected void onCreate() {
         LocalDateTime now = LocalDateTime.now();
@@ -139,7 +106,6 @@ public class Request {
         updatedAt = now;
     }
 
-    /** Вызывается Hibernate перед каждым UPDATE. */
     @PreUpdate
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
