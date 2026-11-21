@@ -19,6 +19,9 @@ export const useListParams = <TSort extends string>(sortFields: readonly TSort[]
   const search = searchParams.get(LIST_PARAMS.search) ?? "";
   const page = parsePage(searchParams.get(LIST_PARAMS.page));
 
+  const getParam = (param: string): string => searchParams.get(param) ?? "";
+  const setParam = (param: string, value: string) => replaceSearchParams({ [param]: value || undefined, [LIST_PARAMS.page]: undefined });
+
   const setSort = (field: TSort | undefined, nextOrder: SortOrder = SORT_ORDERS.asc) =>
     replaceSearchParams({
       [LIST_PARAMS.sort]: field,
@@ -39,21 +42,29 @@ export const useListParams = <TSort extends string>(sortFields: readonly TSort[]
   const getFilter = <TValue extends string>({ param, options }: IListFilter<TValue>): TValue | undefined =>
     options.find(({ value }) => value === searchParams.get(param))?.value;
 
+  const resetParams = (params: readonly string[]) =>
+    replaceSearchParams(Object.fromEntries([LIST_PARAMS.search, LIST_PARAMS.page, ...params].map((param) => [param, undefined])));
+
+  const hasAnyParam = (params: readonly string[]) => Boolean(search) || params.some((param) => searchParams.has(param));
+
   return {
     search,
     sortValue: sort ? toSortValue(sort, order) : "",
-    setSearch: (value: string) => replaceSearchParams({ [LIST_PARAMS.search]: value.trim() || undefined, [LIST_PARAMS.page]: undefined }),
+    setSearch: (value: string) => setParam(LIST_PARAMS.search, value.trim()),
     setSortValue,
     getFilter,
-    setFilter: ({ param }: IListFilter, value: string) => replaceSearchParams({ [param]: value || undefined, [LIST_PARAMS.page]: undefined }),
+    setFilter: ({ param }: IListFilter, value: string) => setParam(param, value),
+    getParam,
+    setParam,
+    resetParams,
+    hasAnyParam,
     sort,
     order,
     page,
     pageSize,
-    request: { search: search || undefined, sort, order: sort ? order : undefined, page, pageSize },
+    request: { q: search || undefined, sort, direction: sort ? order : undefined, page: page - FIRST_PAGE, size: pageSize },
     sorting: { field: sort, order, onToggle: toggleSort },
-    getEmptyText: (emptyListText: string, filters: readonly IListFilter[] = []) =>
-      search || filters.some((filter) => getFilter(filter)) ? LIST_TEXT.notFound : emptyListText,
+    getEmptyText: (emptyListText: string, params: readonly string[] = []) => (hasAnyParam(params) ? LIST_TEXT.notFound : emptyListText),
     setPage: (value: number) => replaceSearchParams({ [LIST_PARAMS.page]: value > FIRST_PAGE ? String(value) : undefined }),
     setSort,
   };

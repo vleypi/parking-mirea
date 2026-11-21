@@ -10,6 +10,14 @@ export interface IListFilter<TValue extends string = string> {
   options: readonly IListFilterOption<TValue>[];
 }
 
+export type ListFieldType = "text" | "number" | "datetime-local";
+
+export interface IListField {
+  param: string;
+  label: string;
+  type: ListFieldType;
+}
+
 export interface IListControls {
   search: string;
   sortValue: string;
@@ -17,4 +25,7 @@ export interface IListControls {
   setSortValue: (value: string) => void;
   getFilter: <TValue extends string>(filter: IListFilter<TValue>) => TValue | undefined;
   setFilter: (filter: IListFilter, value: string) => void;
+  getParam: (param: string) => string;
+  setParam: (param: string, value: string) => void;
+  resetParams: (params: readonly string[]) => void;
 }

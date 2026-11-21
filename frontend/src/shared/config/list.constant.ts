@@ -1,7 +1,7 @@
 export const LIST_PARAMS = {
-  search: "search",
+  search: "q",
   sort: "sort",
-  order: "order",
+  order: "direction",
   page: "page",
 } as const;
 
@@ -35,4 +35,5 @@ export const LIST_TEXT = {
   nextPage: "Следующая страница",
   pagination: "Страницы",
   sort: "Сортировка",
+  resetFilters: "Сбросить фильтры",
 } as const;
