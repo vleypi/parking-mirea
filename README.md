@@ -121,10 +121,11 @@ PostgreSQL
 │   ├── src/main/java/ru/mirea/parking/  # domain, dto, repository, service, controller, filter, error, security, config
 │   ├── src/main/resources/db/migration/ # Миграции Flyway (V1 = схема из sql/init.sql)
 │   └── pom.xml
+├── frontend/                         # Web-клиент КР3 на Next.js 16 (FSD), см. frontend/README.md
 ├── sql/init.sql                       # Схема базы данных и тестовые данные
 ├── docker/docker-compose.yml          # PostgreSQL в контейнере
 ├── android-client/                    # Заготовка под Android-клиент (КР4)
-└── docs/                              # Требования к КР, ER-диаграмма, конвенция коммитов
+└── docs/                              # requirements/ (требования к КР), ER-диаграмма, конвенция коммитов
 ```
 
 ## Установка и запуск
