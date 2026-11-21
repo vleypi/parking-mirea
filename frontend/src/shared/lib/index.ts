@@ -1,14 +1,17 @@
 export { applyServerErrors, SERVER_ERROR_FIELD } from "@/shared/lib/apply-server-errors";
 export { loginSchema, passwordSchema } from "@/shared/lib/credentials.schema";
+export { toDateTimeInput } from "@/shared/lib/date-time-input.util";
 export { formatDateTime, formatMoney } from "@/shared/lib/format.util";
 export { joinClassNames } from "@/shared/lib/join-class-names";
-export type { IListControls, IListField, IListFilter, IListFilterOption, ListFieldType } from "@/shared/lib/list.interface";
+export type { IListControls, IListField, IListFilter, IListFilterOption, IRowSelection, ListFieldType } from "@/shared/lib/list.interface";
 export { countPages, getPageItems, PAGE_GAP, type PageItem } from "@/shared/lib/pagination.util";
 export { getTopRole, hasMinRole } from "@/shared/lib/role.util";
 export { replaceSearchParams, type SearchParamChanges } from "@/shared/lib/search-params.util";
 export { toSortValue } from "@/shared/lib/sort-value.util";
+export { formatTags, parseTags } from "@/shared/lib/tags.util";
 export { type PopoverAlign, useAnchoredPopover } from "@/shared/lib/useAnchoredPopover";
 export { useDebouncedDraft } from "@/shared/lib/useDebouncedDraft";
 export { useEntityModal } from "@/shared/lib/useEntityModal";
 export { useListParams } from "@/shared/lib/useListParams";
+export { useRowSelection } from "@/shared/lib/useRowSelection";
 export { PREFERENCE_COOKIE_MAX_AGE_SECONDS, writeCookie } from "@/shared/lib/write-cookie";

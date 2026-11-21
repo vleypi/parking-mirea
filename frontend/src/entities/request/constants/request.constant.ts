@@ -34,6 +34,25 @@ export const REQUEST_STATUS_TONES: Record<RequestStatus, BadgeTone> = {
   CANCELLED: "danger",
 };
 
+export const ACTIVE_REQUEST_STATUSES: readonly RequestStatus[] = [REQUEST_STATUSES.new, REQUEST_STATUSES.confirmed];
+
+export const REQUEST_STATUS_TRANSITIONS: Record<RequestStatus, readonly RequestStatus[]> = {
+  NEW: [REQUEST_STATUSES.new, REQUEST_STATUSES.confirmed, REQUEST_STATUSES.cancelled],
+  CONFIRMED: [REQUEST_STATUSES.confirmed, REQUEST_STATUSES.completed, REQUEST_STATUSES.cancelled],
+  COMPLETED: [REQUEST_STATUSES.completed],
+  CANCELLED: [REQUEST_STATUSES.cancelled],
+};
+
+export const REQUEST_BULK_ACTIONS = {
+  archive: "ARCHIVE",
+  restore: "RESTORE",
+  changeStatus: "CHANGE_STATUS",
+  addTag: "ADD_TAG",
+  removeTag: "REMOVE_TAG",
+} as const;
+
+export type RequestBulkAction = (typeof REQUEST_BULK_ACTIONS)[keyof typeof REQUEST_BULK_ACTIONS];
+
 export const REQUEST_PRIORITIES = {
   high: "HIGH",
   medium: "MEDIUM",
@@ -158,6 +177,11 @@ export const REQUEST_TEXT = {
   unpaid: "Не оплачена",
   archived: "В архиве",
   spotNumber: "№",
+  tags: "Теги",
+  description: "Описание",
+  createdAt: "Создана",
+  updatedAt: "Изменена",
+  hourlyRate: "₽/ч",
   empty: "Заявок пока нет",
   searchPlaceholder: "Номер, госномер или владелец",
 } as const;

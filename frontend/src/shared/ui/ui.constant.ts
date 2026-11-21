@@ -16,4 +16,10 @@ export const MENU_ITEM_CLASS_NAME = "flex w-full items-center gap-3 rounded-lg p
 export const UI_TEXT = {
   cancel: "Отмена",
   close: "Закрыть",
+  selected: "Выбрано",
+  clearSelection: "Снять выделение",
+  selectAll: "Выбрать все на странице",
+  selectRow: "Выбрать строку",
+  bulkSucceeded: "Выполнено",
+  bulkFailed: "Не выполнено",
 } as const;

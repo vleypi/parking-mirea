@@ -1,7 +1,9 @@
-import { joinClassNames } from "@/shared/lib";
+import { joinClassNames } from "@/shared/lib/join-class-names";
+import type { IRowSelection } from "@/shared/lib/list.interface";
 import { Icon } from "@/shared/ui/Icon";
 import type { KeyboardEvent, ReactNode } from "react";
 import { SORT_ORDERS, type SortOrder } from "@/shared/config";
+import { UI_TEXT } from "@/shared/ui/ui.constant";
 
 export interface IDataTableColumn<TRow, TSort extends string = string> {
   key: string;
@@ -26,6 +28,7 @@ interface IDataTableProps<TRow, TSort extends string> {
   emptyText: string;
   onRowClick?: (row: TRow) => void;
   isRowClickable?: (row: TRow) => boolean;
+  selection?: IRowSelection;
 }
 
 const SKELETON_ROW_KEYS = ["first", "second", "third", "fourth"] as const;
@@ -56,7 +59,11 @@ export const DataTable = <TRow, TSort extends string = string>({
   emptyText,
   onRowClick,
   isRowClickable = () => true,
+  selection,
 }: IDataTableProps<TRow, TSort>) => {
+  const pageKeys = rows?.map(getRowKey) ?? [];
+  const isPageSelected = pageKeys.length > 0 && pageKeys.every((key) => selection?.isSelected(key));
+
   const activate = (row: TRow) => {
     if (onRowClick && isRowClickable(row)) onRowClick(row);
   };
@@ -70,6 +77,17 @@ export const DataTable = <TRow, TSort extends string = string>({
       <table className="w-full min-w-xl border-separate border-spacing-0 text-left text-[15px]">
         <thead className="text-sm text-gray-600">
           <tr>
+            {selection && (
+              <th scope="col" className="w-10 px-4 pb-3">
+                <input
+                  type="checkbox"
+                  aria-label={UI_TEXT.selectAll}
+                  checked={isPageSelected}
+                  onChange={() => selection.toggleAll(pageKeys)}
+                  className="size-4 accent-brand"
+                />
+              </th>
+            )}
             {columns.map(({ key, header, className, sortField }) => {
               const isSorted = Boolean(sortField) && sorting?.field === sortField;
 
@@ -101,6 +119,7 @@ export const DataTable = <TRow, TSort extends string = string>({
           {isLoading &&
             SKELETON_ROW_KEYS.map((key) => (
               <tr key={key} className="animate-pulse">
+                {selection && <td className={joinClassNames(CELL_CLASS_NAME, ROW_DIVIDER_CLASS_NAME)} />}
                 {columns.map((column) => (
                   <td key={column.key} className={joinClassNames(CELL_CLASS_NAME, ROW_DIVIDER_CLASS_NAME)}>
                     <div className="h-4 w-3/4 rounded bg-gray-200/70" />
@@ -110,7 +129,7 @@ export const DataTable = <TRow, TSort extends string = string>({
             ))}
           {!isLoading && !rows?.length && (
             <tr>
-              <td colSpan={columns.length} className="px-4 py-12 text-center text-gray-500">
+              <td colSpan={columns.length + (selection ? 1 : 0)} className="px-4 py-12 text-center text-gray-500">
                 {emptyText}
               </td>
             </tr>
@@ -127,6 +146,17 @@ export const DataTable = <TRow, TSort extends string = string>({
                   onKeyDown={(event) => handleKeyDown(event, row)}
                   className={joinClassNames("group/row", ABOVE_CARD_ROW_CLASS_NAME, isClickable && "cursor-pointer focus-visible:outline-none")}
                 >
+                  {selection && (
+                    <td className={joinClassNames(CELL_CLASS_NAME, ROW_DIVIDER_CLASS_NAME, isClickable && ROW_CARD_CLASS_NAME)} onClick={(event) => event.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        aria-label={UI_TEXT.selectRow}
+                        checked={selection.isSelected(getRowKey(row))}
+                        onChange={() => selection.toggle(getRowKey(row))}
+                        className="size-4 accent-brand"
+                      />
+                    </td>
+                  )}
                   {columns.map(({ key, className, render }) => (
                     <td key={key} className={joinClassNames(CELL_CLASS_NAME, ROW_DIVIDER_CLASS_NAME, isClickable && ROW_CARD_CLASS_NAME, className)}>
                       {render(row)}

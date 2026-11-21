@@ -1,5 +1,5 @@
 import type { IListRequest } from "@/shared/api";
-import type { RequestPriority, RequestSortField, RequestStatus, SpotType } from "@/entities/request/constants/request.constant";
+import type { RequestBulkAction, RequestPriority, RequestSortField, RequestStatus, SpotType } from "@/entities/request/constants/request.constant";
 
 export interface IRequestOwner {
   id: string;
@@ -48,3 +48,22 @@ export interface IRequest {
 }
 
 export type IRequestListRequest = IListRequest<RequestSortField> & Record<string, string | number | undefined>;
+
+export interface IRequestUpdatePayload {
+  vehicleId: string;
+  spotId: string;
+  startTime: string;
+  endTime: string;
+  status: RequestStatus;
+  description: string;
+  paid: boolean;
+  tags: string[];
+  version: number;
+}
+
+export interface IRequestBulkPayload {
+  ids: string[];
+  action: RequestBulkAction;
+  status?: RequestStatus;
+  tag?: string;
+}
