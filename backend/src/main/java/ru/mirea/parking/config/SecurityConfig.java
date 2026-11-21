@@ -17,6 +17,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import ru.mirea.parking.logging.CorrelationId;
 import ru.mirea.parking.repository.UserAccountRepository;
 import ru.mirea.parking.security.AuthCookies;
 import ru.mirea.parking.security.JsonSecurityErrorHandler;
@@ -75,7 +76,8 @@ public class SecurityConfig {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOrigins(properties.cors().allowedOrigins());
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        config.setAllowedHeaders(List.of("Content-Type", "X-Correlation-Id"));
+        config.setAllowedHeaders(List.of("Content-Type", CorrelationId.HEADER));
+        config.setExposedHeaders(List.of(CorrelationId.HEADER));
         config.setAllowCredentials(true);
         config.setMaxAge(3600L);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

@@ -41,6 +41,11 @@ server:
     include-message: never
     include-stacktrace: never
 
+logging:
+  pattern:
+    # correlation id из CorrelationIdFilter в каждой строке лога: [cid=...]
+    level: "%5p [cid=%X{correlationId:-}]"
+
 management:
   endpoints:
     web:
