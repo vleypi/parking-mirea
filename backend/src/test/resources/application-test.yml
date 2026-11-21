@@ -11,3 +11,10 @@ spring:
       ddl-auto: create-drop
   flyway:
     enabled: false
+app:
+  jwt:
+    secret-base64: dGVzdC1zZWNyZXQtdGVzdC1zZWNyZXQtdGVzdC1zZWNyZXQ=
+    issuer: parking-test
+  bootstrap:
+    login:
+    password:
