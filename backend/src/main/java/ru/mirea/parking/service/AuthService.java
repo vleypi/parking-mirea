@@ -47,18 +47,20 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final PasswordPolicy passwordPolicy;
     private final JwtService jwtService;
+    private final AuditService audit;
     private final Duration refreshTtl;
     private final String dummyHash;
     private final SecureRandom random = new SecureRandom();
 
     public AuthService(UserAccountRepository users, RefreshSessionRepository sessions,
                        PasswordEncoder passwordEncoder, PasswordPolicy passwordPolicy,
-                       JwtService jwtService, AppProperties properties) {
+                       JwtService jwtService, AuditService audit, AppProperties properties) {
         this.users = users;
         this.sessions = sessions;
         this.passwordEncoder = passwordEncoder;
         this.passwordPolicy = passwordPolicy;
         this.jwtService = jwtService;
+        this.audit = audit;
         this.refreshTtl = Duration.ofDays(properties.jwt().refreshDays());
         this.dummyHash = passwordEncoder.encode("dummy-password-for-timing-1");
     }
@@ -70,21 +72,26 @@ public class AuthService {
         Instant now = Instant.now();
 
         if (user == null) {
+            audit.recordLoginFailure(null, normalizeLogin(rawLogin), "неизвестный логин");
             throw new ResponseStatusException(UNAUTHORIZED, AuthMessages.INVALID_CREDENTIALS);
         }
         if (user.isLockedAt(now)) {
+            audit.recordLoginFailure(user, user.getLogin(), "вход временно заблокирован");
             throw new ResponseStatusException(TOO_MANY_REQUESTS, AuthMessages.LOGIN_LOCKED);
         }
         if (!passwordMatches) {
             registerFailedAttempt(user, now);
+            audit.recordLoginFailure(user, user.getLogin(), "неверный пароль");
             throw new ResponseStatusException(UNAUTHORIZED, AuthMessages.INVALID_CREDENTIALS);
         }
         if (!user.isEnabled()) {
+            audit.recordLoginFailure(user, user.getLogin(), "учётная запись отключена");
             throw new ResponseStatusException(FORBIDDEN, AuthMessages.ACCOUNT_DISABLED);
         }
 
         user.setFailedLoginAttempts(0);
         user.setLockedUntil(null);
+        audit.recordLoginSuccess(user);
         return new AuthResult(user, issueTokens(user, userAgent, ip, now));
     }
 

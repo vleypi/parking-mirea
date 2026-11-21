@@ -8,4 +8,5 @@ export const QUERY_KEYS = {
   notes: (basePath: string) => ["notes", basePath],
   accounts: ["accounts"],
   accountPage: (request: IListRequest<string>) => ["accounts", request],
+  auditPage: (request: IListRequest<string>) => ["audit", request],
 } as const;

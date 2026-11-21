@@ -7,7 +7,7 @@
 |---|---|---|
 | V1  | Каркас: схема и тестовые данные КР1 (`V1__kr1_baseline.sql`) | Вова |
 | V2  | Вход, JWT и refresh-сессии (`V2__security.sql`) | Вова |
-| V3  | Журнал аудита | Иракли |
+| V3  | Журнал аудита (`V3__audit.sql`) | Иракли |
 | V4  | Справочники (типы мест и др.) | Руслан |
 | V9  | `uuid` в users, vehicles, spots (`V9__entity_uuid.sql`), уже сделано | Вова |
 | V10 | Request: `V10__request_kr3.sql` | Вова |
