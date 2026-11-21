@@ -9,6 +9,7 @@
 | V2  | Вход, JWT и refresh-сессии (`V2__security.sql`) | Вова |
 | V3  | Журнал аудита | Иракли |
 | V4  | Справочники (типы мест и др.) | Руслан |
+| V9  | `uuid` в users, vehicles, spots (`V9__entity_uuid.sql`), уже сделано | Вова |
 | V10 | Request: `V10__request_kr3.sql` | Вова |
 | V11 | User (сущность Owner) | Иракли |
 | V12 | Vehicle | Рома |

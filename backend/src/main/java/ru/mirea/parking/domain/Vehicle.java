@@ -10,6 +10,8 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
+import java.util.UUID;
+
 @Entity
 @Table(name = "vehicles")
 public class Vehicle {
@@ -17,6 +19,9 @@ public class Vehicle {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(nullable = false, unique = true, updatable = false)
+    private UUID uuid = UUID.randomUUID();
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", nullable = false)
@@ -35,6 +40,7 @@ public class Vehicle {
     }
 
     public Long getId() { return id; }
+    public UUID getUuid() { return uuid; }
     public Owner getOwner() { return owner; }
     public String getLicensePlate() { return licensePlate; }
     public String getBrand() { return brand; }
