@@ -5,6 +5,7 @@ import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+import ru.mirea.parking.config.AppProperties;
 import ru.mirea.parking.domain.Owner;
 import ru.mirea.parking.domain.Request;
 import ru.mirea.parking.domain.RequestStatus;
@@ -35,6 +36,7 @@ import java.util.UUID;
 
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.CONFLICT;
+import static org.springframework.http.HttpStatus.FORBIDDEN;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 import static ru.mirea.parking.domain.RequestStatus.CANCELLED;
 import static ru.mirea.parking.domain.RequestStatus.COMPLETED;
@@ -63,10 +65,12 @@ public class RequestService {
     private final RequestStatusRepository statuses;
     private final RequestPriorityCalculator priorityCalculator;
     private final Clock clock;
+    private final boolean permanentDeleteEnabled;
 
     public RequestService(RequestRepository requests, OwnerRepository owners, VehicleRepository vehicles,
                           SpotRepository spots, RequestStatusRepository statuses,
-                          RequestPriorityCalculator priorityCalculator, Clock clock) {
+                          RequestPriorityCalculator priorityCalculator, Clock clock,
+                          AppProperties properties) {
         this.requests = requests;
         this.owners = owners;
         this.vehicles = vehicles;
@@ -74,6 +78,7 @@ public class RequestService {
         this.statuses = statuses;
         this.priorityCalculator = priorityCalculator;
         this.clock = clock;
+        this.permanentDeleteEnabled = properties.permanentDeleteEnabled();
     }
 
     @Transactional(readOnly = true)
@@ -162,6 +167,42 @@ public class RequestService {
         return spot.getHourlyRate()
                 .multiply(BigDecimal.valueOf(minutes))
                 .divide(BigDecimal.valueOf(60), 2, RoundingMode.HALF_UP);
+    }
+
+    @Transactional
+    public RequestResponse archive(UUID id) {
+        Request request = findRequest(id);
+        archive(request);
+        return toResponse(requests.saveAndFlush(request));
+    }
+
+    @Transactional
+    public RequestResponse restore(UUID id) {
+        Request request = findRequest(id);
+        restore(request);
+        return toResponse(requests.saveAndFlush(request));
+    }
+
+    @Transactional
+    public void deletePermanently(UUID id) {
+        if (!permanentDeleteEnabled) {
+            throw new ResponseStatusException(FORBIDDEN, "Окончательное удаление отключено настройкой PERMANENT_DELETE_ENABLED");
+        }
+        requests.delete(findRequest(id));
+    }
+
+    void archive(Request request) {
+        if (request.isArchived()) {
+            throw new ResponseStatusException(CONFLICT, "Заявка " + request.getCode() + " уже в архиве");
+        }
+        request.setArchived(true);
+    }
+
+    void restore(Request request) {
+        if (!request.isArchived()) {
+            throw new ResponseStatusException(CONFLICT, "Заявка " + request.getCode() + " не в архиве");
+        }
+        request.setArchived(false);
     }
 
     private Request findRequest(UUID id) {
