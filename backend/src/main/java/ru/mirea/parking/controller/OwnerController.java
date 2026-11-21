@@ -17,10 +17,13 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import ru.mirea.parking.dto.PageResponse;
+import ru.mirea.parking.dto.owner.OwnerBulkRequest;
+import ru.mirea.parking.dto.owner.OwnerBulkResponse;
 import ru.mirea.parking.dto.owner.OwnerCreateRequest;
 import ru.mirea.parking.dto.owner.OwnerResponse;
 import ru.mirea.parking.dto.owner.OwnerUpdateRequest;
 import ru.mirea.parking.filter.OwnerFilter;
+import ru.mirea.parking.service.OwnerBulkService;
 import ru.mirea.parking.service.OwnerService;
 
 import java.net.URI;
@@ -33,9 +36,11 @@ import java.util.UUID;
 public class OwnerController {
 
     private final OwnerService ownerService;
+    private final OwnerBulkService bulkService;
 
-    public OwnerController(OwnerService ownerService) {
+    public OwnerController(OwnerService ownerService, OwnerBulkService bulkService) {
         this.ownerService = ownerService;
+        this.bulkService = bulkService;
     }
 
     @GetMapping
@@ -82,5 +87,11 @@ public class OwnerController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deletePermanently(@PathVariable UUID id) {
         ownerService.deletePermanently(id);
+    }
+
+    @PostMapping("/bulk")
+    @PreAuthorize("hasRole('OPERATOR')")
+    public OwnerBulkResponse bulk(@Valid @RequestBody OwnerBulkRequest body) {
+        return bulkService.apply(body);
     }
 }
