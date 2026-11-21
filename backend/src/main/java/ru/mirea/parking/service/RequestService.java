@@ -53,19 +53,22 @@ public class RequestService {
     private final VehicleRepository vehicles;
     private final SpotRepository spots;
     private final RequestStatusRepository statuses;
+    private final RequestPriorityCalculator priorityCalculator;
 
     public RequestService(RequestRepository requests, OwnerRepository owners, VehicleRepository vehicles,
-                          SpotRepository spots, RequestStatusRepository statuses) {
+                          SpotRepository spots, RequestStatusRepository statuses,
+                          RequestPriorityCalculator priorityCalculator) {
         this.requests = requests;
         this.owners = owners;
         this.vehicles = vehicles;
         this.spots = spots;
         this.statuses = statuses;
+        this.priorityCalculator = priorityCalculator;
     }
 
     @Transactional(readOnly = true)
     public RequestResponse get(UUID id) {
-        return RequestResponse.from(findRequest(id));
+        return toResponse(findRequest(id));
     }
 
     @Transactional
@@ -84,7 +87,7 @@ public class RequestService {
         request.setPaid(Boolean.TRUE.equals(body.paid()));
         request.setTags(normalizeTags(body.tags()));
         request.setCost(calculateCost(spot, body.startTime(), body.endTime()));
-        return RequestResponse.from(requests.saveAndFlush(request));
+        return toResponse(requests.saveAndFlush(request));
     }
 
     @Transactional
@@ -127,10 +130,14 @@ public class RequestService {
         request.setTags(normalizeTags(body.tags()));
         request.setCost(calculateCost(spot, body.startTime(), body.endTime()));
         try {
-            return RequestResponse.from(requests.saveAndFlush(request));
+            return toResponse(requests.saveAndFlush(request));
         } catch (ObjectOptimisticLockingFailureException e) {
             throw new ResponseStatusException(CONFLICT, "Запись изменил другой пользователь, обновите карточку");
         }
+    }
+
+    private RequestResponse toResponse(Request request) {
+        return RequestResponse.from(request, priorityCalculator.calculate(request));
     }
 
     static BigDecimal calculateCost(Spot spot, LocalDateTime start, LocalDateTime end) {

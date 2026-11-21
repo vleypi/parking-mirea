@@ -70,6 +70,7 @@ class RequestApiTest {
                 .andExpect(status().isCreated())
                 .andExpect(header().exists("Location"))
                 .andExpect(jsonPath("$.status.code").value("NEW"))
+                .andExpect(jsonPath("$.priority").exists())
                 .andExpect(jsonPath("$.cost").value(375.00))
                 .andExpect(jsonPath("$.owner.name").value("Иван Иванов"))
                 .andExpect(jsonPath("$.vehicle.licensePlate").value("А123ВС777"))
