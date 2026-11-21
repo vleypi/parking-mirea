@@ -15,7 +15,7 @@ final class RequestTestData {
     }
 
     static void seed(JdbcTemplate jdbc) {
-        for (String table : List.of("request_tag", "requests", "vehicles", "spots", "spot_types", "users", "request_statuses")) {
+        for (String table : List.of("request_note", "request_tag", "requests", "vehicles", "spots", "spot_types", "users", "request_statuses")) {
             jdbc.update("delete from " + table);
         }
         jdbc.update("insert into spot_types (id, code, title) values "

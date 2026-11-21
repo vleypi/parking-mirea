@@ -14,3 +14,4 @@
 | V11 | User (сущность Owner) | Иракли |
 | V12 | Vehicle | Рома |
 | V13 | Spot | Руслан |
+| V14 | Автор заметки к заявке: внешний ключ на user_account (`V14__request_note_author.sql`) | Вова |
