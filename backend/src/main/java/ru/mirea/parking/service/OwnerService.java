@@ -4,6 +4,7 @@ import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+import ru.mirea.parking.config.AppProperties;
 import ru.mirea.parking.domain.AuditEntityType;
 import ru.mirea.parking.domain.AuditEventType;
 import ru.mirea.parking.domain.ClientCategory;
@@ -27,6 +28,7 @@ import java.util.UUID;
 
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.CONFLICT;
+import static org.springframework.http.HttpStatus.FORBIDDEN;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 /**
@@ -41,11 +43,14 @@ public class OwnerService {
     private final OwnerRepository owners;
     private final ClientCategoryRepository categories;
     private final AuditService audit;
+    private final boolean permanentDeleteEnabled;
 
-    public OwnerService(OwnerRepository owners, ClientCategoryRepository categories, AuditService audit) {
+    public OwnerService(OwnerRepository owners, ClientCategoryRepository categories, AuditService audit,
+                        AppProperties properties) {
         this.owners = owners;
         this.categories = categories;
         this.audit = audit;
+        this.permanentDeleteEnabled = properties.permanentDeleteEnabled();
     }
 
     @Transactional(readOnly = true)
@@ -73,6 +78,7 @@ public class OwnerService {
     @Transactional
     public OwnerResponse update(UUID id, OwnerUpdateRequest body) {
         Owner owner = findOwner(id);
+        checkNotArchived(owner);
         if (body.version() != owner.getVersion()) {
             throw new ResponseStatusException(CONFLICT, STALE_VERSION);
         }
@@ -94,6 +100,65 @@ public class OwnerService {
             return toResponse(saved);
         } catch (ObjectOptimisticLockingFailureException e) {
             throw new ResponseStatusException(CONFLICT, STALE_VERSION);
+        }
+    }
+
+    /** DELETE /api/owners/{id}: архив вместо удаления. Связанные машины и заявки остаются. */
+    @Transactional
+    public OwnerResponse archive(UUID id) {
+        Owner owner = findOwner(id);
+        archive(owner);
+        return toResponse(owners.saveAndFlush(owner));
+    }
+
+    @Transactional
+    public OwnerResponse restore(UUID id) {
+        Owner owner = findOwner(id);
+        restore(owner);
+        return toResponse(owners.saveAndFlush(owner));
+    }
+
+    /**
+     * Окончательное удаление: только Администратор (проверяет контроллер), только при PERMANENT_DELETE_ENABLED=true
+     * и только если у владельца нет машин и заявок (правило КР2). Теги и заметки удаляются каскадом.
+     */
+    @Transactional
+    public void deletePermanently(UUID id) {
+        if (!permanentDeleteEnabled) {
+            throw new ResponseStatusException(FORBIDDEN, "Окончательное удаление отключено настройкой PERMANENT_DELETE_ENABLED");
+        }
+        Owner owner = findOwner(id);
+        if (owners.hasVehicles(owner.getId()) || owners.hasRequests(owner.getId())) {
+            throw new ResponseStatusException(CONFLICT,
+                    "Владельца " + owner.getName() + " нельзя удалить окончательно: у владельца есть автомобили или заявки");
+        }
+        audit.record(AuditEventType.DELETE, AuditEntityType.OWNER, owner.getUuid(),
+                "Окончательно удалён владелец " + owner.getName() + " (" + owner.getPhone() + ")");
+        owners.delete(owner);
+        owners.flush();
+    }
+
+    void archive(Owner owner) {
+        if (owner.isArchived()) {
+            throw new ResponseStatusException(CONFLICT, "Владелец " + owner.getName() + " уже в архиве");
+        }
+        owner.setArchived(true);
+        audit.record(AuditEventType.ARCHIVE, AuditEntityType.OWNER, owner.getUuid(),
+                "Владелец " + owner.getName() + " перенесён в архив");
+    }
+
+    void restore(Owner owner) {
+        if (!owner.isArchived()) {
+            throw new ResponseStatusException(CONFLICT, "Владелец " + owner.getName() + " не в архиве");
+        }
+        owner.setArchived(false);
+        audit.record(AuditEventType.RESTORE, AuditEntityType.OWNER, owner.getUuid(),
+                "Владелец " + owner.getName() + " восстановлен из архива");
+    }
+
+    void checkNotArchived(Owner owner) {
+        if (owner.isArchived()) {
+            throw new ResponseStatusException(CONFLICT, "Архивного владельца изменить нельзя");
         }
     }
 
