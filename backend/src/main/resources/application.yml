@@ -27,6 +27,10 @@ spring:
     # На пустой базе baseline не срабатывает и V1 выполняется как обычно.
     baseline-on-migrate: true
     baseline-version: 1
+    # Миграции пишут четыре человека параллельно, номера закреплены заранее (см. db/migration/README.md).
+    # Если у кого-то в базе уже есть V10, а потом в main приходит V2, без out-of-order Flyway откажется
+    # стартовать. С ним V2 просто применится позже. На чистой базе порядок всегда по номерам.
+    out-of-order: true
 
   servlet:
     multipart:
