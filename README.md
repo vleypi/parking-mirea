@@ -102,7 +102,7 @@ PostgreSQL
 
 ```text
 .
-├── backend/                          # Java-проект (Maven) для КР1, КР2 и КР3
+├── javafx-client/                    # Java-проект (Maven) для КР1 (консоль) и КР2 (JavaFX)
 │   ├── src/main/java/ru/mirea/project/
 │   │   ├── model/
 │   │   │   ├── entity/               # Сущности: User, Vehicle, Spot, Request
@@ -117,9 +117,13 @@ PostgreSQL
 │   │   ├── ui/                       # MainMenu, EntityMenu и меню четырёх сущностей, ConsoleInput, TablePrinter
 │   │   └── util/                     # DatabaseManager, ExcelExporter, InputFormats
 │   └── pom.xml
+├── backend/                          # Spring Boot REST API для КР3 (пакет ru.mirea.parking)
+│   ├── src/main/java/ru/mirea/parking/  # domain, dto, repository, service, controller, filter, error, security, config
+│   ├── src/main/resources/db/migration/ # Миграции Flyway (V1 = схема из sql/init.sql)
+│   └── pom.xml
 ├── sql/init.sql                       # Схема базы данных и тестовые данные
 ├── docker/docker-compose.yml          # PostgreSQL в контейнере
-├── mobile/                            # Заготовка под Android-клиент (КР4)
+├── android-client/                    # Заготовка под Android-клиент (КР4)
 └── docs/                              # Требования к КР, ER-диаграмма, конвенция коммитов
 ```
 
@@ -133,12 +137,12 @@ PostgreSQL
 docker compose -f docker/docker-compose.yml up -d
 ```
 
-База будет доступна на `localhost:5432` (база `project_db`, пользователь `project_user`) со схемой и тестовыми данными из `sql/init.sql`. Параметры подключения лежат в `backend/src/main/resources/db.properties`.
+База будет доступна на `localhost:5432` (база `project_db`, пользователь `project_user`) со схемой и тестовыми данными из `sql/init.sql`. Параметры подключения лежат в `javafx-client/src/main/resources/db.properties`.
 
 Соберите и запустите консольное приложение:
 
 ```bash
-cd backend
+cd javafx-client
 mvn compile exec:java
 ```
 
