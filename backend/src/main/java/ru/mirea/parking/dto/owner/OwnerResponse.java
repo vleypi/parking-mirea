@@ -1,7 +1,9 @@
 package ru.mirea.parking.dto.owner;
 
+import ru.mirea.parking.domain.LoyaltyLevel;
 import ru.mirea.parking.domain.Owner;
 import ru.mirea.parking.dto.reference.ClientCategoryResponse;
+import ru.mirea.parking.service.LoyaltyCalculator;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -20,6 +22,8 @@ public record OwnerResponse(
         BigDecimal discountPercent,
         boolean notificationsEnabled,
         long vehiclesCount,
+        long completedRequests,
+        LoyaltySummary loyalty,
         boolean archived,
         Set<String> tags,
         LocalDateTime createdAt,
@@ -29,7 +33,18 @@ public record OwnerResponse(
     public record StatusSummary(String code, String title) {
     }
 
-    public static OwnerResponse from(Owner owner, long vehiclesCount) {
+    public record LoyaltySummary(LoyaltyLevel code, String title) {
+        static LoyaltySummary from(LoyaltyLevel level) {
+            return new LoyaltySummary(level, level.getTitle());
+        }
+    }
+
+    /** Счётчики считаются в сервисе одним GROUP BY на страницу, сюда приходят готовые числа. */
+    public record Counters(long vehicles, long completedRequests) {
+        public static final Counters ZERO = new Counters(0, 0);
+    }
+
+    public static OwnerResponse from(Owner owner, Counters counters) {
         return new OwnerResponse(
                 owner.getUuid(),
                 owner.getName(),
@@ -39,7 +54,9 @@ public record OwnerResponse(
                 new StatusSummary(owner.getStatus().name(), owner.getStatus().getTitle()),
                 owner.getDiscountPercent(),
                 owner.isNotificationsEnabled(),
-                vehiclesCount,
+                counters.vehicles(),
+                counters.completedRequests(),
+                LoyaltySummary.from(LoyaltyCalculator.calculate(counters.completedRequests())),
                 owner.isArchived(),
                 new TreeSet<>(owner.getTags()),
                 owner.getCreatedAt(),

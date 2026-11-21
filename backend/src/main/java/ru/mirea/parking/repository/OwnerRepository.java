@@ -43,4 +43,12 @@ public interface OwnerRepository extends JpaRepository<Owner, Long>, JpaSpecific
             group by v.owner.id
             """)
     List<Object[]> countVehiclesByOwnerIds(@Param("ownerIds") Collection<Long> ownerIds);
+
+    /** Количество завершённых заявок у каждого владельца из списка — основа уровня лояльности. */
+    @Query("""
+            select r.owner.id, count(r) from Request r
+            where r.owner.id in :ownerIds and r.status.code = :status
+            group by r.owner.id
+            """)
+    List<Object[]> countRequestsByOwnerIds(@Param("ownerIds") Collection<Long> ownerIds, @Param("status") String status);
 }

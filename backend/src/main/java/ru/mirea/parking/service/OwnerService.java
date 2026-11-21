@@ -10,8 +10,10 @@ import ru.mirea.parking.domain.AuditEventType;
 import ru.mirea.parking.domain.ClientCategory;
 import ru.mirea.parking.domain.Owner;
 import ru.mirea.parking.domain.OwnerStatus;
+import ru.mirea.parking.domain.RequestStatus;
 import ru.mirea.parking.dto.owner.OwnerCreateRequest;
 import ru.mirea.parking.dto.owner.OwnerResponse;
+import ru.mirea.parking.dto.owner.OwnerResponse.Counters;
 import ru.mirea.parking.dto.owner.OwnerUpdateRequest;
 import ru.mirea.parking.repository.ClientCategoryRepository;
 import ru.mirea.parking.repository.OwnerRepository;
@@ -163,18 +165,32 @@ public class OwnerService {
     }
 
     OwnerResponse toResponse(Owner owner) {
-        return OwnerResponse.from(owner, countVehicles(List.of(owner.getId())).getOrDefault(owner.getId(), 0L));
+        return OwnerResponse.from(owner, counters(List.of(owner.getId())).getOrDefault(owner.getId(), Counters.ZERO));
     }
 
-    /** Количество машин для страницы владельцев: один GROUP BY вместо запроса на каждую строку. */
-    Map<Long, Long> countVehicles(Collection<Long> ownerIds) {
-        Map<Long, Long> result = new HashMap<>();
-        if (!ownerIds.isEmpty()) {
-            for (Object[] row : owners.countVehiclesByOwnerIds(ownerIds)) {
-                result.put((Long) row[0], (Long) row[1]);
-            }
+    /**
+     * Машины и завершённые заявки для списка владельцев: два GROUP BY на всю страницу вместо запросов на каждую строку.
+     * Количество завершённых заявок даёт уровень лояльности.
+     */
+    Map<Long, Counters> counters(Collection<Long> ownerIds) {
+        Map<Long, Counters> result = new HashMap<>();
+        if (ownerIds.isEmpty()) {
+            return result;
+        }
+        Map<Long, Long> vehicles = toMap(owners.countVehiclesByOwnerIds(ownerIds));
+        Map<Long, Long> completed = toMap(owners.countRequestsByOwnerIds(ownerIds, RequestStatus.COMPLETED));
+        for (Long id : ownerIds) {
+            result.put(id, new Counters(vehicles.getOrDefault(id, 0L), completed.getOrDefault(id, 0L)));
         }
         return result;
+    }
+
+    private static Map<Long, Long> toMap(List<Object[]> rows) {
+        Map<Long, Long> map = new HashMap<>();
+        for (Object[] row : rows) {
+            map.put((Long) row[0], (Long) row[1]);
+        }
+        return map;
     }
 
     Owner findOwner(UUID id) {
