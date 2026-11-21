@@ -1,5 +1,8 @@
 package ru.mirea.parking.repository;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -14,8 +17,12 @@ import java.util.UUID;
 
 public interface RequestRepository extends JpaRepository<Request, Long>, JpaSpecificationExecutor<Request> {
 
-    @EntityGraph(attributePaths = {"owner", "vehicle", "spot", "status", "tags"})
+    @EntityGraph(attributePaths = {"owner", "vehicle", "spot", "spot.spotType", "status", "tags"})
     Optional<Request> findByUuid(UUID uuid);
+
+    @Override
+    @EntityGraph(attributePaths = {"owner", "vehicle", "spot", "spot.spotType", "status"})
+    Page<Request> findAll(Specification<Request> spec, Pageable pageable);
 
     @Query("""
             select count(r) > 0 from Request r
