@@ -5,6 +5,7 @@ import type {
   IOwnerBulkPayload,
   IOwnerListRequest,
   IOwnerPayload,
+  IOwnerRelated,
   IOwnerUpdatePayload,
 } from "@/entities/owner/interfaces/owner.interface";
 
@@ -19,6 +20,11 @@ class OwnerService {
 
   async getById(id: string): Promise<IOwner> {
     const { data } = await apiClient.get<IOwner>(`${OWNERS_PATH}/${id}`);
+    return data;
+  }
+
+  async getRelated(id: string): Promise<IOwnerRelated> {
+    const { data } = await apiClient.get<IOwnerRelated>(`${OWNERS_PATH}/${id}/related`);
     return data;
   }
 

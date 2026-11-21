@@ -12,6 +12,7 @@ import ru.mirea.parking.domain.Request;
 
 import java.time.LocalDateTime;
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -23,6 +24,12 @@ public interface RequestRepository extends JpaRepository<Request, Long>, JpaSpec
     @Override
     @EntityGraph(attributePaths = {"owner", "vehicle", "spot", "spot.spotType", "status"})
     Page<Request> findAll(Specification<Request> spec, Pageable pageable);
+
+    /** Последние заявки владельца для его карточки, вместе с архивными. */
+    @EntityGraph(attributePaths = {"vehicle", "spot", "status"})
+    List<Request> findTop20ByOwnerIdOrderByStartTimeDescIdDesc(Long ownerId);
+
+    long countByOwnerId(Long ownerId);
 
     @Query("""
             select count(r) > 0 from Request r

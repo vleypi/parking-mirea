@@ -9,6 +9,7 @@ export const QUERY_KEYS = {
   owners: ["owners"],
   ownerPage: (request: IListRequest<string>) => ["owners", "page", request],
   owner: (id: string) => ["owners", "one", id],
+  ownerRelated: (id: string) => ["owners", "related", id],
   clientCategories: ["client-categories"],
   accounts: ["accounts"],
   accountPage: (request: IListRequest<string>) => ["accounts", request],

@@ -73,6 +73,9 @@ const ARCHIVE_SCOPES = {
 
 type ArchiveScope = (typeof ARCHIVE_SCOPES)[keyof typeof ARCHIVE_SCOPES];
 
+/** Категория «Обычный»: её получает новый владелец, если не выбрана другая. */
+export const CLIENT_CATEGORY_DEFAULT_ID = 1;
+
 /** Параметр фильтра по категории: варианты приходят из справочника, см. buildCategoryFilter. */
 export const OWNER_CATEGORY_PARAM = "categoryId";
 
@@ -149,6 +152,18 @@ export const OWNER_TEXT = {
   createdAt: "Регистрация",
   updatedAt: "Изменён",
   noEmail: "Email не указан",
+  phone: "Телефон",
+  email: "Email",
+  noTags: "Тегов нет",
+  vehiclesTitle: "Автомобили",
+  vehiclesDescription: "Зарегистрированы на владельца",
+  requestsDescription: "Сначала новые, вместе с архивными",
+  noVehicles: "Автомобилей нет",
+  requestsTitle: "Заявки",
+  noRequests: "Заявок нет",
+  requestsShown: "Показаны последние",
+  requestsOf: "из",
+  spot: "Место",
   empty: "Владельцев пока нет",
   searchPlaceholder: "Имя, телефон или email",
 } as const;

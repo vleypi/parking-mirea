@@ -1,5 +1,8 @@
+export { OwnerDetails } from "@/entities/owner/components/OwnerDetails";
+export { OwnerRelatedList } from "@/entities/owner/components/OwnerRelatedList";
 export { OwnerTable } from "@/entities/owner/components/OwnerTable";
 export {
+  CLIENT_CATEGORY_DEFAULT_ID,
   LOYALTY_LABELS,
   LOYALTY_LEVELS,
   LOYALTY_TONES,
@@ -17,6 +20,7 @@ export {
   type OwnerSortField,
   type OwnerStatus,
 } from "@/entities/owner/constants/owner.constant";
+export { useOwner, useOwnerRelated } from "@/entities/owner/hooks/useOwner";
 export { useClientCategories } from "@/entities/owner/hooks/useClientCategories";
 export { useOwnerPage } from "@/entities/owner/hooks/useOwnerPage";
 export type {
@@ -25,7 +29,10 @@ export type {
   IOwnerBulkPayload,
   IOwnerListRequest,
   IOwnerPayload,
+  IOwnerRelated,
+  IOwnerRequestItem,
   IOwnerUpdatePayload,
+  IOwnerVehicle,
 } from "@/entities/owner/interfaces/owner.interface";
 export { ownerService } from "@/entities/owner/services/owner.service";
 export { buildCategoryFilter, buildOwnerListRequest, OWNER_LIST_PARAMS } from "@/entities/owner/utils/owner-list.util";
