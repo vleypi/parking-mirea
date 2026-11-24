@@ -1,5 +1,6 @@
 package ru.mirea.parking.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -25,7 +26,7 @@ import java.net.URI;
 import java.util.List;
 import java.util.UUID;
 
-@Tag(name = "request notes")
+@Tag(name = "request notes", description = "Заметки к заявке")
 @RestController
 @RequestMapping("/api/requests/{requestId}/notes")
 public class RequestNoteController {
@@ -36,12 +37,14 @@ public class RequestNoteController {
         this.noteService = noteService;
     }
 
+    @Operation(summary = "Заметки заявки: закреплённые первыми, затем новые")
     @GetMapping
     public List<RequestNoteResponse> list(@PathVariable UUID requestId,
                                           @AuthenticationPrincipal UserPrincipal principal) {
         return noteService.list(requestId, principal);
     }
 
+    @Operation(summary = "Добавить заметку")
     @PostMapping
     @PreAuthorize("hasRole('OPERATOR')")
     public ResponseEntity<RequestNoteResponse> create(@PathVariable UUID requestId,
@@ -51,6 +54,7 @@ public class RequestNoteController {
         return ResponseEntity.created(URI.create("/api/requests/" + requestId + "/notes/" + created.id())).body(created);
     }
 
+    @Operation(summary = "Изменить заметку (автор или Администратор)")
     @PutMapping("/{noteId}")
     @PreAuthorize("hasRole('OPERATOR')")
     public RequestNoteResponse update(@PathVariable UUID requestId, @PathVariable UUID noteId,
@@ -59,6 +63,7 @@ public class RequestNoteController {
         return noteService.update(requestId, noteId, body, principal);
     }
 
+    @Operation(summary = "Удалить заметку (автор или Администратор)")
     @DeleteMapping("/{noteId}")
     @PreAuthorize("hasRole('OPERATOR')")
     @ResponseStatus(HttpStatus.NO_CONTENT)

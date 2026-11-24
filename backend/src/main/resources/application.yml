@@ -51,6 +51,8 @@ management:
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
+    # Группа, которая открывается в Swagger UI по умолчанию (группы — OpenApiConfig).
+    urls-primary-name: all
   api-docs:
     path: /v3/api-docs
 

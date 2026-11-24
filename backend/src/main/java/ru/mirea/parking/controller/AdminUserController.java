@@ -1,5 +1,6 @@
 package ru.mirea.parking.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -24,7 +25,7 @@ import ru.mirea.parking.service.UserAdminService;
 
 import java.util.UUID;
 
-@Tag(name = "admin users")
+@Tag(name = "admin users", description = "Учётные записи сотрудников")
 @RestController
 @RequestMapping("/api/admin/users")
 @PreAuthorize("hasRole('ADMIN')")
@@ -36,6 +37,7 @@ public class AdminUserController {
         this.userAdminService = userAdminService;
     }
 
+    @Operation(summary = "Учётные записи сотрудников с поиском (Администратор)")
     @GetMapping
     public PageResponse<UserAccountResponse> search(@RequestParam(required = false) String q,
                                                     @RequestParam(defaultValue = "0") int page,
@@ -45,18 +47,21 @@ public class AdminUserController {
         return userAdminService.search(q, page, size, sort, direction);
     }
 
+    @Operation(summary = "Создать учётную запись с временным паролем")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public TemporaryPasswordResponse create(@Valid @RequestBody UserCreateRequest body) {
         return userAdminService.create(body);
     }
 
+    @Operation(summary = "Изменить логин, имя, роли или блокировку учётной записи")
     @PutMapping("/{id}")
     public UserAccountResponse update(@PathVariable UUID id, @Valid @RequestBody UserUpdateRequest body,
                                       @AuthenticationPrincipal UserPrincipal admin) {
         return userAdminService.update(id, body, admin);
     }
 
+    @Operation(summary = "Сбросить пароль: выдаётся новый временный")
     @PostMapping("/{id}/reset-password")
     public TemporaryPasswordResponse resetPassword(@PathVariable UUID id) {
         return userAdminService.resetPassword(id);

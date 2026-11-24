@@ -1,5 +1,6 @@
 package ru.mirea.parking.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -18,7 +19,7 @@ import ru.mirea.parking.service.RequestAnalyticsService;
 import ru.mirea.parking.service.SpotAnalyticsService;
 import ru.mirea.parking.service.VehicleAnalyticsService;
 
-@Tag(name = "analytics")
+@Tag(name = "analytics", description = "Аналитика")
 @RestController
 @RequestMapping("/api/analytics")
 public class AnalyticsController {
@@ -40,6 +41,7 @@ public class AnalyticsController {
      * Общая сводка. Параметры запроса относятся к блоку заявок; блок владельцев считается по всем владельцам
      * (активным и архивным). Блок владельцев с фильтрами списка — GET /api/analytics/owners.
      */
+    @Operation(summary = "Общая сводка: блоки заявок, владельцев, автомобилей и мест")
     @GetMapping("/summary")
     public AnalyticsResponse summary(@ModelAttribute RequestFilter requestFilter) {
         return new AnalyticsResponse(requestAnalytics.summarize(requestFilter), ownerAnalytics.summarize(OwnerFilter.empty()),
@@ -47,18 +49,21 @@ public class AnalyticsController {
     }
 
     /** Аналитика владельцев с теми же параметрами, что у GET /api/owners. */
+    @Operation(summary = "Аналитика владельцев с параметрами списка GET /api/owners")
     @GetMapping("/owners")
     public OwnerAnalytics owners(@ModelAttribute OwnerFilter ownerFilter) {
         return ownerAnalytics.summarize(ownerFilter);
     }
 
     /** Аналитика автомобилей с теми же параметрами, что у GET /api/vehicles. */
+    @Operation(summary = "Аналитика автомобилей с параметрами списка GET /api/vehicles")
     @GetMapping("/vehicles")
     public VehicleAnalytics vehicles(@ModelAttribute VehicleFilter vehicleFilter) {
         return vehicleAnalytics.summarize(vehicleFilter);
     }
 
     /** Аналитика мест с теми же параметрами, что у GET /api/spots. */
+    @Operation(summary = "Аналитика мест с параметрами списка GET /api/spots")
     @GetMapping("/spots")
     public SpotAnalytics spots(@ModelAttribute SpotFilter spotFilter) {
         return spotAnalytics.summarize(spotFilter);

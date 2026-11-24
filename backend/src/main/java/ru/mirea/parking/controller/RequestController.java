@@ -1,5 +1,6 @@
 package ru.mirea.parking.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -29,7 +30,7 @@ import ru.mirea.parking.service.RequestService;
 import java.net.URI;
 import java.util.UUID;
 
-@Tag(name = "requests")
+@Tag(name = "requests", description = "Заявки на парковку")
 @RestController
 @RequestMapping("/api/requests")
 public class RequestController {
@@ -42,6 +43,7 @@ public class RequestController {
         this.bulkService = bulkService;
     }
 
+    @Operation(summary = "Список с поиском, фильтрами, сортировкой и страницами")
     @GetMapping
     public PageResponse<RequestResponse> search(@ModelAttribute RequestFilter filter,
                                                 @RequestParam(defaultValue = "0") int page,
@@ -51,11 +53,13 @@ public class RequestController {
         return requestService.search(filter, page, size, sort, direction);
     }
 
+    @Operation(summary = "Заявка по UUID")
     @GetMapping("/{id}")
     public RequestResponse get(@PathVariable UUID id) {
         return requestService.get(id);
     }
 
+    @Operation(summary = "Оформить заявку: проверяются владелец, автомобиль, место и пересечения")
     @PostMapping
     @PreAuthorize("hasRole('OPERATOR')")
     public ResponseEntity<RequestResponse> create(@Valid @RequestBody RequestCreateRequest body) {
@@ -63,24 +67,28 @@ public class RequestController {
         return ResponseEntity.created(URI.create("/api/requests/" + created.id())).body(created);
     }
 
+    @Operation(summary = "Изменить заявку или её статус; version из карточки, при несовпадении 409")
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('OPERATOR')")
     public RequestResponse update(@PathVariable UUID id, @Valid @RequestBody RequestUpdateRequest body) {
         return requestService.update(id, body);
     }
 
+    @Operation(summary = "Перенести в архив")
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('OPERATOR')")
     public RequestResponse archive(@PathVariable UUID id) {
         return requestService.archive(id);
     }
 
+    @Operation(summary = "Восстановить из архива")
     @PostMapping("/{id}/restore")
     @PreAuthorize("hasRole('OPERATOR')")
     public RequestResponse restore(@PathVariable UUID id) {
         return requestService.restore(id);
     }
 
+    @Operation(summary = "Удалить окончательно (Администратор, PERMANENT_DELETE_ENABLED=true)")
     @DeleteMapping("/{id}/permanent")
     @PreAuthorize("hasRole('ADMIN')")
     @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -88,6 +96,7 @@ public class RequestController {
         requestService.deletePermanently(id);
     }
 
+    @Operation(summary = "Массовая операция над заявками")
     @PostMapping("/bulk")
     @PreAuthorize("hasRole('OPERATOR')")
     public RequestBulkResponse bulk(@Valid @RequestBody RequestBulkRequest body) {

@@ -1,5 +1,6 @@
 package ru.mirea.parking.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -28,7 +29,7 @@ import ru.mirea.parking.service.AuthService.AuthResult;
 import ru.mirea.parking.service.AuthService.IssuedTokens;
 
 
-@Tag(name = "auth")
+@Tag(name = "auth", description = "Вход, обновление токена, выход")
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
@@ -41,6 +42,7 @@ public class AuthController {
         this.cookies = cookies;
     }
 
+    @Operation(summary = "Вход: access и refresh JWT ставятся в HttpOnly-cookie")
     @PostMapping("/login")
     public MeResponse login(@Valid @RequestBody LoginRequest body,
                             HttpServletRequest request, HttpServletResponse response) {
@@ -49,6 +51,7 @@ public class AuthController {
         return MeResponse.from(result.user());
     }
 
+    @Operation(summary = "Обновить access-токен по refresh-cookie")
     @PostMapping("/refresh")
     public ResponseEntity<?> refresh(HttpServletRequest request, HttpServletResponse response) {
         try {
@@ -64,6 +67,7 @@ public class AuthController {
         }
     }
 
+    @Operation(summary = "Выход: refresh-сессия отзывается, cookie очищаются")
     @PostMapping("/logout")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void logout(HttpServletRequest request, HttpServletResponse response) {
@@ -71,16 +75,19 @@ public class AuthController {
         cookies.clear(response);
     }
 
+    @Operation(summary = "Текущий пользователь и его роли")
     @GetMapping("/me")
     public MeResponse me(@AuthenticationPrincipal UserPrincipal principal) {
         return MeResponse.from(authService.me(principal.id()));
     }
 
+    @Operation(summary = "Проверка, что access-токен ещё действителен")
     @GetMapping("/session")
     public SessionResponse session() {
         return new SessionResponse(true);
     }
 
+    @Operation(summary = "Сменить пароль (обязательно после временного)")
     @PostMapping("/change-password")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void changePassword(@AuthenticationPrincipal UserPrincipal principal,

@@ -1,5 +1,6 @@
 package ru.mirea.parking.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -25,7 +26,7 @@ import java.net.URI;
 import java.util.List;
 import java.util.UUID;
 
-@Tag(name = "owner notes")
+@Tag(name = "owner notes", description = "Заметки к владельцу")
 @RestController
 @RequestMapping("/api/owners/{ownerId}/notes")
 public class OwnerNoteController {
@@ -36,11 +37,13 @@ public class OwnerNoteController {
         this.noteService = noteService;
     }
 
+    @Operation(summary = "Заметки владельца: закреплённые первыми, затем новые")
     @GetMapping
     public List<OwnerNoteResponse> list(@PathVariable UUID ownerId, @AuthenticationPrincipal UserPrincipal principal) {
         return noteService.list(ownerId, principal);
     }
 
+    @Operation(summary = "Добавить заметку")
     @PostMapping
     @PreAuthorize("hasRole('OPERATOR')")
     public ResponseEntity<OwnerNoteResponse> create(@PathVariable UUID ownerId,
@@ -50,6 +53,7 @@ public class OwnerNoteController {
         return ResponseEntity.created(URI.create("/api/owners/" + ownerId + "/notes/" + created.id())).body(created);
     }
 
+    @Operation(summary = "Изменить заметку (автор или Администратор)")
     @PutMapping("/{noteId}")
     @PreAuthorize("hasRole('OPERATOR')")
     public OwnerNoteResponse update(@PathVariable UUID ownerId, @PathVariable UUID noteId,
@@ -58,6 +62,7 @@ public class OwnerNoteController {
         return noteService.update(ownerId, noteId, body, principal);
     }
 
+    @Operation(summary = "Удалить заметку (автор или Администратор)")
     @DeleteMapping("/{noteId}")
     @PreAuthorize("hasRole('OPERATOR')")
     @ResponseStatus(HttpStatus.NO_CONTENT)
