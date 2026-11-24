@@ -70,7 +70,7 @@ class RequestArchiveTest {
                         {"vehicleId":"%s","spotId":"%s","startTime":"2030-01-10T09:00:00","endTime":"2030-01-10T11:00:00",
                          "status":"NEW","paid":false,"version":1}""".formatted(vehicle, spot)))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.detail").value("Архивную заявку изменить нельзя"));
+                .andExpect(jsonPath("$.message").value("Архивную заявку изменить нельзя"));
     }
 
     @Test
@@ -95,7 +95,7 @@ class RequestArchiveTest {
     void permanentDeleteIsForbiddenWhileFlagIsOff() throws Exception {
         mvc.perform(delete("/api/requests/" + id + "/permanent"))
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.detail").value("Окончательное удаление отключено настройкой PERMANENT_DELETE_ENABLED"));
+                .andExpect(jsonPath("$.message").value("Окончательное удаление отключено настройкой PERMANENT_DELETE_ENABLED"));
         mvc.perform(get("/api/requests/" + id)).andExpect(status().isOk());
     }
 }

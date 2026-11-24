@@ -55,7 +55,7 @@ class OwnerPermanentDeleteTest {
 
         mvc.perform(delete("/api/owners/" + owner + "/permanent"))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.detail").value(
+                .andExpect(jsonPath("$.message").value(
                         "Владельца Иван Иванов нельзя удалить окончательно: у владельца есть автомобили или заявки"));
         mvc.perform(get("/api/owners/" + owner)).andExpect(status().isOk());
     }

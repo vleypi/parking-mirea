@@ -96,7 +96,7 @@ class RequestBulkTest {
         bulk(Collections.nCopies(201, uuid(1)), "ARCHIVE", null, null).andExpect(status().isBadRequest());
         bulk(List.of(uuid(1)), "CHANGE_STATUS", null, null)
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.detail").value("Для смены статуса укажите status"));
+                .andExpect(jsonPath("$.message").value("Для смены статуса укажите status"));
         bulk(List.of(uuid(1)), "ADD_TAG", null, " ").andExpect(status().isBadRequest());
         bulk(List.of(uuid(1)), "DELETE_ALL", null, null).andExpect(status().isBadRequest());
     }

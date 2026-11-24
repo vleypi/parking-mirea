@@ -137,10 +137,10 @@ class AdminUserTest {
 
         update(id, "admin", "Администратор", List.of("ADMIN"), false, version)
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.detail").value("Нельзя отключить собственную учётную запись"));
+                .andExpect(jsonPath("$.message").value("Нельзя отключить собственную учётную запись"));
         update(id, "admin", "Администратор", List.of("OPERATOR"), true, version)
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.detail").value("Нельзя снять с себя роль администратора"));
+                .andExpect(jsonPath("$.message").value("Нельзя снять с себя роль администратора"));
     }
 
     @Test

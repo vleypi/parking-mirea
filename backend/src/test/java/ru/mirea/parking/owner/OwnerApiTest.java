@@ -88,7 +88,7 @@ class OwnerApiTest {
         create("""
                 {"name":"Двойник","phone":"+7-900-100-00-01","categoryId":1}""")
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.detail").value("Телефон +7-900-100-00-01 уже указан у другого владельца"));
+                .andExpect(jsonPath("$.message").value("Телефон +7-900-100-00-01 уже указан у другого владельца"));
     }
 
     @Test
@@ -96,10 +96,10 @@ class OwnerApiTest {
         create("""
                 {"name":"","phone":"89001000001","email":"not-an-email","categoryId":1,"discountPercent":75}""")
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.errors.phone[0]").value("Телефон в формате +7-XXX-XXX-XX-XX"))
-                .andExpect(jsonPath("$.errors.email[0]").value("Некорректный email"))
-                .andExpect(jsonPath("$.errors.discountPercent[0]").value("Скидка от 0 до 50 %"))
-                .andExpect(jsonPath("$.errors.name").exists());
+                .andExpect(jsonPath("$.fieldErrors[?(@.field == 'phone')].message", hasItem("Телефон в формате +7-XXX-XXX-XX-XX")))
+                .andExpect(jsonPath("$.fieldErrors[?(@.field == 'email')].message", hasItem("Некорректный email")))
+                .andExpect(jsonPath("$.fieldErrors[?(@.field == 'discountPercent')].message", hasItem("Скидка от 0 до 50 %")))
+                .andExpect(jsonPath("$.fieldErrors[?(@.field == 'name')]").isNotEmpty());
     }
 
     @Test
@@ -111,7 +111,7 @@ class OwnerApiTest {
         create("""
                 {"name":"Пётр","phone":"+7-900-100-00-03","categoryId":3}""")
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.detail").value("Категория «Сотрудник» отключена"));
+                .andExpect(jsonPath("$.message").value("Категория «Сотрудник» отключена"));
     }
 
     @Test
@@ -122,7 +122,7 @@ class OwnerApiTest {
                 .andExpect(jsonPath("$.version").value(1));
 
         update(ivan, 0).andExpect(status().isConflict())
-                .andExpect(jsonPath("$.detail").value("Запись изменил другой пользователь, обновите карточку"));
+                .andExpect(jsonPath("$.message").value("Запись изменил другой пользователь, обновите карточку"));
     }
 
     @Test

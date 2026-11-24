@@ -6,7 +6,6 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,6 +15,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
+import ru.mirea.parking.error.ErrorCodes;
+import ru.mirea.parking.error.ErrorResponse;
 import ru.mirea.parking.dto.auth.ChangePasswordRequest;
 import ru.mirea.parking.dto.auth.LoginRequest;
 import ru.mirea.parking.dto.auth.MeResponse;
@@ -26,7 +27,6 @@ import ru.mirea.parking.service.AuthService;
 import ru.mirea.parking.service.AuthService.AuthResult;
 import ru.mirea.parking.service.AuthService.IssuedTokens;
 
-import java.net.URI;
 
 @Tag(name = "auth")
 @RestController
@@ -58,9 +58,9 @@ public class AuthController {
             return ResponseEntity.noContent().build();
         } catch (ResponseStatusException e) {
             cookies.clear(response);
-            ProblemDetail problem = ProblemDetail.forStatusAndDetail(e.getStatusCode(), e.getReason());
-            problem.setInstance(URI.create(request.getRequestURI()));
-            return ResponseEntity.status(e.getStatusCode()).body(problem);
+            int status = e.getStatusCode().value();
+            return ResponseEntity.status(status).body(ErrorResponse.of(status, ErrorCodes.forStatus(status),
+                    e.getReason(), request.getRequestURI()));
         }
     }
 

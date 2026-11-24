@@ -85,7 +85,7 @@ class AuthFlowTest {
     void withoutCookieIs401() throws Exception {
         mvc.perform(get("/api/auth/me"))
                 .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.detail").value(AuthMessages.LOGIN_REQUIRED));
+                .andExpect(jsonPath("$.message").value(AuthMessages.LOGIN_REQUIRED));
         mvc.perform(get("/api/auth/me").cookie(new Cookie(AuthCookies.ACCESS, "garbage")))
                 .andExpect(status().isUnauthorized());
     }
@@ -94,7 +94,7 @@ class AuthFlowTest {
     void wrongPasswordIs401() throws Exception {
         login("viewer", "WrongPass2026")
                 .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.detail").value(AuthMessages.INVALID_CREDENTIALS));
+                .andExpect(jsonPath("$.message").value(AuthMessages.INVALID_CREDENTIALS));
         login("nobody", PASSWORD).andExpect(status().isUnauthorized());
     }
 
@@ -137,7 +137,7 @@ class AuthFlowTest {
         }
         login("viewer", PASSWORD)
                 .andExpect(status().isTooManyRequests())
-                .andExpect(jsonPath("$.detail").value(AuthMessages.LOGIN_LOCKED));
+                .andExpect(jsonPath("$.message").value(AuthMessages.LOGIN_LOCKED));
         assertThat(users.findByLogin("viewer").orElseThrow().getLockedUntil()).isNotNull();
     }
 
@@ -177,7 +177,7 @@ class AuthFlowTest {
         Cookie access = accessCookie("newbie");
         mvc.perform(get("/api/anything").cookie(access))
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.detail").value(AuthMessages.PASSWORD_CHANGE_REQUIRED));
+                .andExpect(jsonPath("$.message").value(AuthMessages.PASSWORD_CHANGE_REQUIRED));
         mvc.perform(get("/api/auth/me").cookie(access))
                 .andExpect(jsonPath("$.mustChangePassword").value(true));
 
