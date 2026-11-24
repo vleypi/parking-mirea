@@ -9,7 +9,7 @@ public final class TestDataCleaner {
 
     private static final List<String> TABLES = List.of(
             "request_note", "request_tag", "requests",
-            "vehicle_note", "vehicle_tag", "vehicles", "spots", "spot_types",
+            "vehicle_note", "vehicle_tag", "vehicles", "spot_note", "spot_tag", "spots", "spot_types",
             "owner_note", "owner_tag", "users", "request_statuses", "audit_event");
 
     private TestDataCleaner() {

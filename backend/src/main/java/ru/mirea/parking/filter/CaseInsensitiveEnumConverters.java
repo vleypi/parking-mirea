@@ -8,6 +8,8 @@ import ru.mirea.parking.domain.AuditEventType;
 import ru.mirea.parking.domain.LoyaltyLevel;
 import ru.mirea.parking.domain.OwnerStatus;
 import ru.mirea.parking.domain.RequestPriority;
+import ru.mirea.parking.domain.SpotAvailability;
+import ru.mirea.parking.domain.SpotStatus;
 import ru.mirea.parking.domain.VehicleActivity;
 import ru.mirea.parking.domain.VehicleStatus;
 
@@ -27,6 +29,8 @@ public class CaseInsensitiveEnumConverters implements WebMvcConfigurer {
         registry.addConverter(String.class, LoyaltyLevel.class, s -> LoyaltyLevel.valueOf(upper(s)));
         registry.addConverter(String.class, VehicleStatus.class, s -> VehicleStatus.valueOf(upper(s)));
         registry.addConverter(String.class, VehicleActivity.class, s -> VehicleActivity.valueOf(upper(s)));
+        registry.addConverter(String.class, SpotStatus.class, s -> SpotStatus.valueOf(upper(s)));
+        registry.addConverter(String.class, SpotAvailability.class, s -> SpotAvailability.valueOf(upper(s)));
     }
 
     private static String upper(String value) {

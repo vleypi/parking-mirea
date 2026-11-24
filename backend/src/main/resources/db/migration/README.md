@@ -13,5 +13,5 @@
 | V10 | Request: `V10__request_kr3.sql` | Вова |
 | V11 | User (сущность Owner): `V11__owner_kr3.sql` | Иракли |
 | V12 | Vehicle: `V12__vehicle_kr3.sql` | Рома |
-| V13 | Spot | Руслан |
+| V13 | Spot: `V13__spot_kr3.sql` | Руслан |
 | V14 | Автор заметки к заявке: внешний ключ на user_account (`V14__request_note_author.sql`) | Вова |

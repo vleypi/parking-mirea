@@ -7,12 +7,15 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import ru.mirea.parking.dto.analytics.AnalyticsResponse;
 import ru.mirea.parking.dto.analytics.OwnerAnalytics;
+import ru.mirea.parking.dto.analytics.SpotAnalytics;
 import ru.mirea.parking.dto.analytics.VehicleAnalytics;
 import ru.mirea.parking.filter.OwnerFilter;
 import ru.mirea.parking.filter.RequestFilter;
+import ru.mirea.parking.filter.SpotFilter;
 import ru.mirea.parking.filter.VehicleFilter;
 import ru.mirea.parking.service.OwnerAnalyticsService;
 import ru.mirea.parking.service.RequestAnalyticsService;
+import ru.mirea.parking.service.SpotAnalyticsService;
 import ru.mirea.parking.service.VehicleAnalyticsService;
 
 @Tag(name = "analytics")
@@ -23,12 +26,14 @@ public class AnalyticsController {
     private final RequestAnalyticsService requestAnalytics;
     private final OwnerAnalyticsService ownerAnalytics;
     private final VehicleAnalyticsService vehicleAnalytics;
+    private final SpotAnalyticsService spotAnalytics;
 
     public AnalyticsController(RequestAnalyticsService requestAnalytics, OwnerAnalyticsService ownerAnalytics,
-                               VehicleAnalyticsService vehicleAnalytics) {
+                               VehicleAnalyticsService vehicleAnalytics, SpotAnalyticsService spotAnalytics) {
         this.requestAnalytics = requestAnalytics;
         this.ownerAnalytics = ownerAnalytics;
         this.vehicleAnalytics = vehicleAnalytics;
+        this.spotAnalytics = spotAnalytics;
     }
 
     /**
@@ -38,7 +43,7 @@ public class AnalyticsController {
     @GetMapping("/summary")
     public AnalyticsResponse summary(@ModelAttribute RequestFilter requestFilter) {
         return new AnalyticsResponse(requestAnalytics.summarize(requestFilter), ownerAnalytics.summarize(OwnerFilter.empty()),
-                vehicleAnalytics.summarize(VehicleFilter.empty()));
+                vehicleAnalytics.summarize(VehicleFilter.empty()), spotAnalytics.summarize(SpotFilter.empty()));
     }
 
     /** Аналитика владельцев с теми же параметрами, что у GET /api/owners. */
@@ -51,5 +56,11 @@ public class AnalyticsController {
     @GetMapping("/vehicles")
     public VehicleAnalytics vehicles(@ModelAttribute VehicleFilter vehicleFilter) {
         return vehicleAnalytics.summarize(vehicleFilter);
+    }
+
+    /** Аналитика мест с теми же параметрами, что у GET /api/spots. */
+    @GetMapping("/spots")
+    public SpotAnalytics spots(@ModelAttribute SpotFilter spotFilter) {
+        return spotAnalytics.summarize(spotFilter);
     }
 }

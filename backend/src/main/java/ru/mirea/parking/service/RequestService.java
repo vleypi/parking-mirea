@@ -105,6 +105,7 @@ public class RequestService {
         Spot spot = findSpot(body.spotId());
 
         checkVehicleUsable(vehicle);
+        checkSpotUsable(spot);
         checkVehicleBelongsToOwner(vehicle, owner);
         checkPeriod(body.startTime(), body.endTime());
         checkAvailability(NO_REQUEST, spot, vehicle, body.startTime(), body.endTime());
@@ -131,6 +132,9 @@ public class RequestService {
         Spot spot = findSpot(body.spotId());
         if (!vehicle.getId().equals(request.getVehicle().getId())) {
             checkVehicleUsable(vehicle);
+        }
+        if (!spot.getId().equals(request.getSpot().getId())) {
+            checkSpotUsable(spot);
         }
         checkVehicleBelongsToOwner(vehicle, request.getOwner());
         checkPeriod(body.startTime(), body.endTime());
@@ -242,6 +246,17 @@ public class RequestService {
         if (vehicle.getStatus() != VehicleStatus.ACTIVE) {
             throw new ResponseStatusException(CONFLICT, "Автомобиль " + vehicle.getLicensePlate() + " в статусе «"
                     + vehicle.getStatus().getTitle() + "»: новую заявку оформить нельзя");
+        }
+    }
+
+    /** На место в архиве, на обслуживании или закрытое новую заявку оформить нельзя. */
+    private void checkSpotUsable(Spot spot) {
+        if (spot.isArchived()) {
+            throw new ResponseStatusException(CONFLICT, "Место " + spot.getSpotNumber() + " в архиве: новую заявку оформить нельзя");
+        }
+        if (!spot.getStatus().acceptsRequests()) {
+            throw new ResponseStatusException(CONFLICT, "Место " + spot.getSpotNumber() + " в статусе «"
+                    + spot.getStatus().getTitle() + "»: новую заявку оформить нельзя");
         }
     }
 
