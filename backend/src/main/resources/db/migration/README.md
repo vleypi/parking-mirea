@@ -12,6 +12,6 @@
 | V9  | `uuid` в users, vehicles, spots (`V9__entity_uuid.sql`), уже сделано | Вова |
 | V10 | Request: `V10__request_kr3.sql` | Вова |
 | V11 | User (сущность Owner): `V11__owner_kr3.sql` | Иракли |
-| V12 | Vehicle | Рома |
+| V12 | Vehicle: `V12__vehicle_kr3.sql` | Рома |
 | V13 | Spot | Руслан |
 | V14 | Автор заметки к заявке: внешний ключ на user_account (`V14__request_note_author.sql`) | Вова |

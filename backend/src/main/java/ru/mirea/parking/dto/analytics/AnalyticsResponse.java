@@ -1,4 +1,5 @@
 package ru.mirea.parking.dto.analytics;
 
-public record AnalyticsResponse(RequestAnalytics requests, OwnerAnalytics owners) {
+/** Общая аналитическая сводка: по блоку на каждую сущность. */
+public record AnalyticsResponse(RequestAnalytics requests, OwnerAnalytics owners, VehicleAnalytics vehicles) {
 }

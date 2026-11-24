@@ -11,6 +11,7 @@ import ru.mirea.parking.domain.Request;
 import ru.mirea.parking.domain.RequestStatus;
 import ru.mirea.parking.domain.Spot;
 import ru.mirea.parking.domain.Vehicle;
+import ru.mirea.parking.domain.VehicleStatus;
 import ru.mirea.parking.dto.PageResponse;
 import ru.mirea.parking.dto.request.RequestCreateRequest;
 import ru.mirea.parking.dto.request.RequestResponse;
@@ -103,6 +104,7 @@ public class RequestService {
         Vehicle vehicle = findVehicle(body.vehicleId());
         Spot spot = findSpot(body.spotId());
 
+        checkVehicleUsable(vehicle);
         checkVehicleBelongsToOwner(vehicle, owner);
         checkPeriod(body.startTime(), body.endTime());
         checkAvailability(NO_REQUEST, spot, vehicle, body.startTime(), body.endTime());
@@ -127,6 +129,9 @@ public class RequestService {
 
         Vehicle vehicle = findVehicle(body.vehicleId());
         Spot spot = findSpot(body.spotId());
+        if (!vehicle.getId().equals(request.getVehicle().getId())) {
+            checkVehicleUsable(vehicle);
+        }
         checkVehicleBelongsToOwner(vehicle, request.getOwner());
         checkPeriod(body.startTime(), body.endTime());
         if (ACTIVE_STATUSES.contains(newStatus.getCode())) {
@@ -227,6 +232,17 @@ public class RequestService {
     private Vehicle findVehicle(UUID id) {
         return vehicles.findByUuid(id)
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Автомобиль " + id + " не найден"));
+    }
+
+    /** Новую заявку можно оформить только на действующий автомобиль не из архива. */
+    private void checkVehicleUsable(Vehicle vehicle) {
+        if (vehicle.isArchived()) {
+            throw new ResponseStatusException(CONFLICT, "Автомобиль " + vehicle.getLicensePlate() + " в архиве: новую заявку оформить нельзя");
+        }
+        if (vehicle.getStatus() != VehicleStatus.ACTIVE) {
+            throw new ResponseStatusException(CONFLICT, "Автомобиль " + vehicle.getLicensePlate() + " в статусе «"
+                    + vehicle.getStatus().getTitle() + "»: новую заявку оформить нельзя");
+        }
     }
 
     private Spot findSpot(UUID id) {
