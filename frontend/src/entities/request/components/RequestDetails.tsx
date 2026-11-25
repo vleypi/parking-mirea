@@ -29,7 +29,8 @@ export const RequestDetails = ({ request }: IRequestDetailsProps) => (
       {request.vehicle.licensePlate}, {request.vehicle.brand} {request.vehicle.model}
     </Detail>
     <Detail label={REQUEST_TEXT.spot}>
-      {REQUEST_TEXT.spotNumber} {request.spot.number}, {request.spot.typeTitle}, {formatMoney(request.spot.hourlyRate)} {REQUEST_TEXT.hourlyRate}
+      {REQUEST_TEXT.spotNumber} {request.spot.number}, {request.spot.typeTitle}, {formatMoney(request.spot.hourlyRate)}
+      {REQUEST_TEXT.hourlyRate}
     </Detail>
     <Detail label={REQUEST_TEXT.status}>
       <span className="flex flex-wrap gap-1">
