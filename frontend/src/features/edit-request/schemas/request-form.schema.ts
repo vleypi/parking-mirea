@@ -4,6 +4,8 @@ import { DESCRIPTION_MAX_LENGTH, EDIT_REQUEST_TEXT } from "@/features/edit-reque
 
 export const requestFormSchema = z
   .object({
+    vehicleId: z.string().min(1, EDIT_REQUEST_TEXT.vehicleRequired),
+    spotId: z.string().min(1, EDIT_REQUEST_TEXT.spotRequired),
     status: z.enum(REQUEST_STATUSES),
     startTime: z.string().min(1, EDIT_REQUEST_TEXT.required),
     endTime: z.string().min(1, EDIT_REQUEST_TEXT.required),

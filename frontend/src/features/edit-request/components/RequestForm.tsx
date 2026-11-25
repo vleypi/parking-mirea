@@ -1,12 +1,14 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { applyServerErrors } from "@/shared/lib";
 import { Button, CheckboxField, FormError, SelectField, TextAreaField, TextField } from "@/shared/ui";
 import { type IRequest, REQUEST_STATUS_LABELS, REQUEST_STATUS_TRANSITIONS } from "@/entities/request";
 import { EDIT_REQUEST_TEXT } from "@/features/edit-request/constants/edit-request.constant";
 import { useUpdateRequest } from "@/features/edit-request/hooks/useUpdateRequest";
+import { SpotSelect } from "@/features/edit-request/components/SpotSelect";
+import { VehicleSelect } from "@/features/edit-request/components/VehicleSelect";
 import { requestFormSchema, type RequestFormValues } from "@/features/edit-request/schemas/request-form.schema";
 import { toRequestFormValues } from "@/features/edit-request/utils/request-form.util";
 
@@ -20,8 +22,10 @@ export const RequestForm = ({ request }: IRequestFormProps) => {
     register,
     handleSubmit,
     setError,
+    control,
     formState: { errors, isDirty },
   } = useForm<RequestFormValues>({ resolver: zodResolver(requestFormSchema), values: toRequestFormValues(request) });
+  const [startTime, endTime] = useWatch({ control, name: ["startTime", "endTime"] });
   const statusOptions = REQUEST_STATUS_TRANSITIONS[request.status.code].map((status) => ({ value: status, label: REQUEST_STATUS_LABELS[status] }));
 
   const onSubmit = (values: RequestFormValues) => update(values, { onError: (error) => applyServerErrors(error, setError) });
@@ -32,6 +36,10 @@ export const RequestForm = ({ request }: IRequestFormProps) => {
         <SelectField label={EDIT_REQUEST_TEXT.status} options={statusOptions} error={errors.status?.message} {...register("status")} />
         <TextField label={EDIT_REQUEST_TEXT.startTime} type="datetime-local" error={errors.startTime?.message} {...register("startTime")} />
         <TextField label={EDIT_REQUEST_TEXT.endTime} type="datetime-local" error={errors.endTime?.message} {...register("endTime")} />
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <VehicleSelect ownerId={request.owner.id} current={request.vehicle} error={errors.vehicleId?.message} {...register("vehicleId")} />
+        <SpotSelect from={startTime} to={endTime} current={request.spot} error={errors.spotId?.message} {...register("spotId")} />
       </div>
       <TextField label={EDIT_REQUEST_TEXT.tags} hint={EDIT_REQUEST_TEXT.tagsHint} error={errors.tags?.message} {...register("tags")} />
       <TextAreaField label={EDIT_REQUEST_TEXT.description} error={errors.description?.message} {...register("description")} />

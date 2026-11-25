@@ -25,7 +25,15 @@ export {
 } from "@/entities/request/constants/request.constant";
 export { useRequest } from "@/entities/request/hooks/useRequest";
 export { useRequestPage } from "@/entities/request/hooks/useRequestPage";
-export type { IRequest, IRequestBulkPayload, IRequestListRequest, IRequestUpdatePayload } from "@/entities/request/interfaces/request.interface";
-export { requestService } from "@/entities/request/services/request.service";
+export type {
+  IRequest,
+  IRequestBulkPayload,
+  IRequestCreatePayload,
+  IRequestListRequest,
+  IRequestSpot,
+  IRequestUpdatePayload,
+  IRequestVehicle,
+} from "@/entities/request/interfaces/request.interface";
+export { REQUESTS_PATH, requestService } from "@/entities/request/services/request.service";
 export { isRequestEditable } from "@/entities/request/utils/request-access.util";
 export { buildRequestListRequest, REQUEST_LIST_PARAMS } from "@/entities/request/utils/request-list.util";

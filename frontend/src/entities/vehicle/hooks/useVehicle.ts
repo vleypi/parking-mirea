@@ -5,8 +5,13 @@ import { QUERY_KEYS } from "@/shared/api";
 import type { IVehicleListRequest } from "@/entities/vehicle/interfaces/vehicle.interface";
 import { vehicleService } from "@/entities/vehicle/services/vehicle.service";
 
-export const useVehiclePage = (request: IVehicleListRequest) =>
-  useQuery({ queryKey: QUERY_KEYS.vehiclePage(request), queryFn: () => vehicleService.getPage(request), placeholderData: keepPreviousData });
+export const useVehiclePage = (request: IVehicleListRequest, enabled = true) =>
+  useQuery({
+    queryKey: QUERY_KEYS.vehiclePage(request),
+    queryFn: () => vehicleService.getPage(request),
+    placeholderData: keepPreviousData,
+    enabled,
+  });
 
 export const useVehicle = (id: string) => useQuery({ queryKey: QUERY_KEYS.vehicle(id), queryFn: () => vehicleService.getById(id) });
 

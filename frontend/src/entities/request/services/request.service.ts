@@ -2,11 +2,12 @@ import { apiClient, type IBulkResult, type IPage } from "@/shared/api";
 import type {
   IRequest,
   IRequestBulkPayload,
+  IRequestCreatePayload,
   IRequestListRequest,
   IRequestUpdatePayload,
 } from "@/entities/request/interfaces/request.interface";
 
-const REQUESTS_PATH = "/requests";
+export const REQUESTS_PATH = "/requests";
 
 class RequestService {
   async getPage(request: IRequestListRequest): Promise<IPage<IRequest>> {
@@ -16,6 +17,11 @@ class RequestService {
 
   async getById(id: string): Promise<IRequest> {
     const { data } = await apiClient.get<IRequest>(`${REQUESTS_PATH}/${id}`);
+    return data;
+  }
+
+  async create(payload: IRequestCreatePayload): Promise<IRequest> {
+    const { data } = await apiClient.post<IRequest>(REQUESTS_PATH, payload);
     return data;
   }
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { QUERY_KEYS } from "@/shared/api";
 import { ROLES } from "@/shared/config";
 import { useEntityModal, useListParams, useRowSelection } from "@/shared/lib";
 import { BulkActionBar, FormError, ListToolbar, Modal, PageHeader, Pagination } from "@/shared/ui";
@@ -12,11 +13,14 @@ import {
   REQUEST_SORT_FIELDS,
   REQUEST_SORT_OPTIONS,
   REQUEST_TEXT,
+  REQUESTS_PATH,
   RequestTable,
   useRequestPage,
 } from "@/entities/request";
 import { hasRole, useViewer } from "@/entities/viewer";
 import { BulkRequestActions } from "@/features/bulk-requests";
+import { CsvTransferActions } from "@/features/csv-transfer";
+import { CreateRequestForm } from "@/features/edit-request";
 import { RequestCard } from "@/widgets/request-card";
 import { REQUESTS_PAGE_TEXT } from "@/views/requests/constants/requests-page.constant";
 
@@ -27,6 +31,7 @@ const REQUEST_LIST_FIELDS = Object.values(REQUEST_FIELDS);
 export const RequestsCatalog = () => {
   const list = useListParams(REQUEST_SORT_FIELD_LIST);
   const { data, isPending, error } = useRequestPage(buildRequestListRequest(list.request, list.getParam));
+  const exportParams = buildRequestListRequest({ ...list.request, page: undefined, size: undefined }, list.getParam);
   const { data: viewer } = useViewer();
   const card = useEntityModal<IRequest>();
   const selection = useRowSelection();
@@ -35,7 +40,20 @@ export const RequestsCatalog = () => {
 
   return (
     <>
-      <PageHeader title={REQUESTS_PAGE_TEXT.title} description={REQUESTS_PAGE_TEXT.description} />
+      <PageHeader
+        title={REQUESTS_PAGE_TEXT.title}
+        description={REQUESTS_PAGE_TEXT.description}
+        actions={
+          <CsvTransferActions
+            basePath={REQUESTS_PATH}
+            invalidateKey={QUERY_KEYS.requests}
+            exportParams={exportParams}
+            fileName={REQUESTS_PAGE_TEXT.csvFileName}
+            canImport={canEdit}
+          />
+        }
+        add={canEdit ? { label: REQUESTS_PAGE_TEXT.add, onClick: card.openCreate } : undefined}
+      />
       <ListToolbar
         list={list}
         placeholder={REQUEST_TEXT.searchPlaceholder}
@@ -60,7 +78,7 @@ export const RequestsCatalog = () => {
         onSelect={card.openEdit}
       />
       <Pagination page={list.page} pageSize={list.pageSize} total={data?.totalElements ?? 0} onChange={list.setPage} />
-      <Modal size="xl" isOpen={card.isOpen} title={card.entity?.code ?? ""} onClose={card.close}>
+      <Modal size="xl" isOpen={card.isOpen && card.entity !== null} title={card.entity?.code ?? ""} onClose={card.close}>
         {card.entity && (
           <RequestCard
             requestId={card.entity.id}
@@ -69,6 +87,9 @@ export const RequestsCatalog = () => {
             onRemoved={card.close}
           />
         )}
+      </Modal>
+      <Modal size="lg" isOpen={card.isOpen && card.entity === null} title={REQUESTS_PAGE_TEXT.createTitle} onClose={card.close}>
+        <CreateRequestForm onDone={card.close} />
       </Modal>
     </>
   );
