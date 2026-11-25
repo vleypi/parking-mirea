@@ -65,6 +65,69 @@ pnpm dev
 
 Приложение откроется по адресу http://localhost:3000. Адрес backend задаётся переменной `API_URL`. Проверка перед коммитом запускается командой `pnpm check`.
 
+## Запуск КР3 в Docker и Swagger
+
+Для КР3 backend и его база запускаются одной командой в Docker. Нужен только Docker Desktop: JDK и Maven ставить не обязательно, приложение собирается внутри контейнера. Эта база отдельная от базы КР2 из `docker/` и слушает порт 55432, поэтому они не мешают друг другу.
+
+Из корня проекта в PowerShell:
+
+```powershell
+.\backend\start-compose.ps1
+```
+
+При первом запуске скрипт создаст в корне файл `.env` со случайными паролем базы, JWT-секретом и паролем администратора и напечатает этот пароль. Затем он соберёт образ, поднимет PostgreSQL и backend, дождётся готовности и выведет адреса. Файл `.env` не коммитится и никому не пересылается.
+
+То же самое без скрипта, если `.env` уже есть:
+
+```powershell
+docker compose --env-file .env -f backend/docker-compose.yml up -d --build --wait
+```
+
+| Что | Адрес |
+|---|---|
+| Web-клиент (после `pnpm dev`) | http://localhost:3000 |
+| Swagger UI | http://localhost:8080/swagger-ui.html |
+| Вход для Swagger | http://localhost:8080/swagger-login.html |
+| REST API | http://localhost:8080/api |
+| OpenAPI JSON | http://localhost:8080/v3/api-docs (группы: `/v3/api-docs/vehicles`, `/spots` и т.д.) |
+| Health | http://localhost:8080/actuator/health |
+| PostgreSQL | `localhost:55432`, база, пользователь и пароль из `.env` |
+
+**Администратор.** Логин и пароль берутся из `BOOTSTRAP_ADMIN_LOGIN` и `BOOTSTRAP_ADMIN_PASSWORD` в `.env`. Учётная запись создаётся при первом старте, пока в базе нет пользователей. Остальных сотрудников администратор заводит в разделе «Пользователи».
+
+**Swagger.** Swagger доступен только Администратору. Сначала нужно войти на `/swagger-login.html`: access-токен ляжет в HttpOnly-cookie, и Swagger будет отправлять его со всеми запросами сам, ничего вставлять в Authorize не нужно. Эндпоинты разбиты на группы по сущностям (переключатель вверху справа), у каждого есть краткое описание.
+
+**Web-клиент в dev-режиме** работает с backend из Docker:
+
+```powershell
+cd frontend
+pnpm install
+pnpm dev
+```
+
+Если pnpm не установлен, подойдёт `npx pnpm install` и `npx pnpm dev`. Запросы `/api` проксируются на адрес из переменной `API_URL` (по умолчанию http://localhost:8080).
+
+**Тесты backend** идут на встроенной H2 и Docker не требуют:
+
+```powershell
+cd backend
+mvn test
+```
+
+**Остановка и сброс базы.** Остановить контейнеры, сохранив данные:
+
+```powershell
+.\backend\stop-compose.ps1
+```
+
+Удалить базу вместе с данными; при следующем запуске Flyway создаст её заново, а администратор появится снова из `.env`:
+
+```powershell
+.\backend\stop-compose.ps1 -Reset
+```
+
+Окончательное удаление записей по умолчанию выключено; чтобы его включить, нужно поставить `PERMANENT_DELETE_ENABLED=true` в `.env` и перезапустить backend.
+
 ## Структура
 
 ```

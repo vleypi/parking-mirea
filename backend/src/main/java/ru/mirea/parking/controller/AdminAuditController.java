@@ -1,5 +1,6 @@
 package ru.mirea.parking.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -13,7 +14,7 @@ import ru.mirea.parking.dto.audit.AuditTypesResponse;
 import ru.mirea.parking.filter.AuditFilter;
 import ru.mirea.parking.service.AuditService;
 
-@Tag(name = "admin audit")
+@Tag(name = "admin audit", description = "Журнал аудита")
 @RestController
 @RequestMapping("/api/admin/audit")
 @PreAuthorize("hasRole('ADMIN')")
@@ -25,6 +26,7 @@ public class AdminAuditController {
         this.auditService = auditService;
     }
 
+    @Operation(summary = "Журнал аудита с фильтрами и страницами (Администратор)")
     @GetMapping
     public PageResponse<AuditEventResponse> search(@ModelAttribute AuditFilter filter,
                                                    @RequestParam(defaultValue = "0") int page,
@@ -34,6 +36,7 @@ public class AdminAuditController {
         return auditService.search(filter, page, size, sort, direction);
     }
 
+    @Operation(summary = "Типы событий и сущностей для фильтров журнала")
     @GetMapping("/types")
     public AuditTypesResponse types() {
         return AuditTypesResponse.all();

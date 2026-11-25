@@ -8,10 +8,10 @@
 | V1  | Каркас: схема и тестовые данные КР1 (`V1__kr1_baseline.sql`) | Вова |
 | V2  | Вход, JWT и refresh-сессии (`V2__security.sql`) | Вова |
 | V3  | Журнал аудита (`V3__audit.sql`) | Иракли |
-| V4  | Справочники (типы мест и др.) | Руслан |
+| V4  | Справочники: `active` и `sort_order` у типов мест (`V4__references.sql`) | Руслан |
 | V9  | `uuid` в users, vehicles, spots (`V9__entity_uuid.sql`), уже сделано | Вова |
 | V10 | Request: `V10__request_kr3.sql` | Вова |
 | V11 | User (сущность Owner): `V11__owner_kr3.sql` | Иракли |
-| V12 | Vehicle | Рома |
-| V13 | Spot | Руслан |
+| V12 | Vehicle: `V12__vehicle_kr3.sql` | Рома |
+| V13 | Spot: `V13__spot_kr3.sql` | Руслан |
 | V14 | Автор заметки к заявке: внешний ключ на user_account (`V14__request_note_author.sql`) | Вова |

@@ -1,12 +1,12 @@
 package ru.mirea.parking.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,6 +16,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
+import ru.mirea.parking.error.ErrorCodes;
+import ru.mirea.parking.error.ErrorResponse;
 import ru.mirea.parking.dto.auth.ChangePasswordRequest;
 import ru.mirea.parking.dto.auth.LoginRequest;
 import ru.mirea.parking.dto.auth.MeResponse;
@@ -26,9 +28,8 @@ import ru.mirea.parking.service.AuthService;
 import ru.mirea.parking.service.AuthService.AuthResult;
 import ru.mirea.parking.service.AuthService.IssuedTokens;
 
-import java.net.URI;
 
-@Tag(name = "auth")
+@Tag(name = "auth", description = "Вход, обновление токена, выход")
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
@@ -41,6 +42,7 @@ public class AuthController {
         this.cookies = cookies;
     }
 
+    @Operation(summary = "Вход: access и refresh JWT ставятся в HttpOnly-cookie")
     @PostMapping("/login")
     public MeResponse login(@Valid @RequestBody LoginRequest body,
                             HttpServletRequest request, HttpServletResponse response) {
@@ -49,6 +51,7 @@ public class AuthController {
         return MeResponse.from(result.user());
     }
 
+    @Operation(summary = "Обновить access-токен по refresh-cookie")
     @PostMapping("/refresh")
     public ResponseEntity<?> refresh(HttpServletRequest request, HttpServletResponse response) {
         try {
@@ -58,12 +61,13 @@ public class AuthController {
             return ResponseEntity.noContent().build();
         } catch (ResponseStatusException e) {
             cookies.clear(response);
-            ProblemDetail problem = ProblemDetail.forStatusAndDetail(e.getStatusCode(), e.getReason());
-            problem.setInstance(URI.create(request.getRequestURI()));
-            return ResponseEntity.status(e.getStatusCode()).body(problem);
+            int status = e.getStatusCode().value();
+            return ResponseEntity.status(status).body(ErrorResponse.of(status, ErrorCodes.forStatus(status),
+                    e.getReason(), request.getRequestURI()));
         }
     }
 
+    @Operation(summary = "Выход: refresh-сессия отзывается, cookie очищаются")
     @PostMapping("/logout")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void logout(HttpServletRequest request, HttpServletResponse response) {
@@ -71,16 +75,19 @@ public class AuthController {
         cookies.clear(response);
     }
 
+    @Operation(summary = "Текущий пользователь и его роли")
     @GetMapping("/me")
     public MeResponse me(@AuthenticationPrincipal UserPrincipal principal) {
         return MeResponse.from(authService.me(principal.id()));
     }
 
+    @Operation(summary = "Проверка, что access-токен ещё действителен")
     @GetMapping("/session")
     public SessionResponse session() {
         return new SessionResponse(true);
     }
 
+    @Operation(summary = "Сменить пароль (обязательно после временного)")
     @PostMapping("/change-password")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void changePassword(@AuthenticationPrincipal UserPrincipal principal,

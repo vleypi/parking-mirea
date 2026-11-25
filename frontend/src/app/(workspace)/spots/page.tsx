@@ -1,11 +1,8 @@
 import type { Metadata } from "next";
-import { ROLES } from "@/shared/config";
-import { SectionPlaceholderPage } from "@/views/section-placeholder";
+import { SpotsPage } from "@/views/spots";
 
-const TITLE = "Места";
-
-export const metadata: Metadata = { title: TITLE };
+export const metadata: Metadata = { title: "Места" };
 
 export default function Page() {
-  return <SectionPlaceholderPage title={TITLE} minRole={ROLES.viewer} />;
+  return <SpotsPage />;
 }

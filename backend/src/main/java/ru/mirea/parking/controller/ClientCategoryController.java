@@ -1,5 +1,6 @@
 package ru.mirea.parking.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -25,6 +26,7 @@ public class ClientCategoryController {
         this.categories = categories;
     }
 
+    @Operation(summary = "Категории клиентов для форм и фильтров")
     @GetMapping
     @Transactional(readOnly = true)
     public List<ClientCategoryResponse> list() {

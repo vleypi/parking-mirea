@@ -99,7 +99,7 @@ class RequestApiTest {
         create(Map.of("ownerId", IVAN.toString())).andExpect(status().isBadRequest());
         create(body(IVAN, IVAN_CAR, SPOT_1, "2026-12-01T10:00:00", "2026-12-01T09:00:00"))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.detail").value("Дата и время окончания должны быть позже даты и времени начала"));
+                .andExpect(jsonPath("$.message").value("Дата и время окончания должны быть позже даты и времени начала"));
     }
 
     @Test
@@ -114,7 +114,7 @@ class RequestApiTest {
 
         create(body(MARIA, MARIA_CAR, SPOT_1, "2026-12-01T11:00:00", "2026-12-01T13:00:00"))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.detail").value("Место 1 уже занято на указанный период"));
+                .andExpect(jsonPath("$.message").value("Место 1 уже занято на указанный период"));
         create(body(IVAN, IVAN_CAR, SPOT_2, "2026-12-01T09:00:00", "2026-12-01T10:00:00"))
                 .andExpect(status().isConflict());
         create(body(MARIA, MARIA_CAR, SPOT_1, "2026-12-01T12:00:00", "2026-12-01T13:00:00"))
@@ -134,7 +134,7 @@ class RequestApiTest {
 
         update(id, updateBody(IVAN_TESLA, SPOT_2, "CONFIRMED", 0))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.detail").value("Запись изменил другой пользователь, обновите карточку"));
+                .andExpect(jsonPath("$.message").value("Запись изменил другой пользователь, обновите карточку"));
 
         update(id, updateBody(IVAN_TESLA, SPOT_2, "NEW", 1)).andExpect(status().isConflict());
         update(id, updateBody(IVAN_TESLA, SPOT_2, "COMPLETED", 1)).andExpect(status().isOk());

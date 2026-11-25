@@ -65,7 +65,7 @@ class OwnerArchiveTest {
                         {"name":"Иван","phone":"+7-900-100-00-01","categoryId":1,"status":"ACTIVE",
                          "discountPercent":0,"notificationsEnabled":true,"version":1}"""))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.detail").value("Архивного владельца изменить нельзя"));
+                .andExpect(jsonPath("$.message").value("Архивного владельца изменить нельзя"));
     }
 
     @Test
@@ -83,7 +83,7 @@ class OwnerArchiveTest {
                         {"ownerId":"%s","vehicleId":"%s","spotId":"%s",
                          "startTime":"2030-01-10T09:00:00","endTime":"2030-01-10T11:00:00"}""".formatted(ivan, car, spot)))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.detail").value("Владелец Иван Иванов в архиве: новую заявку оформить нельзя"));
+                .andExpect(jsonPath("$.message").value("Владелец Иван Иванов в архиве: новую заявку оформить нельзя"));
     }
 
     @Test
@@ -103,7 +103,7 @@ class OwnerArchiveTest {
     void permanentDeleteIsForbiddenWhileFlagIsOff() throws Exception {
         mvc.perform(delete("/api/owners/" + ivan + "/permanent"))
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.detail").value("Окончательное удаление отключено настройкой PERMANENT_DELETE_ENABLED"));
+                .andExpect(jsonPath("$.message").value("Окончательное удаление отключено настройкой PERMANENT_DELETE_ENABLED"));
         mvc.perform(get("/api/owners/" + ivan)).andExpect(status().isOk());
     }
 
