@@ -9,7 +9,7 @@ interface IAvatarProps {
 
 const SIZE_CLASSES: Record<AvatarSize, string> = {
   sm: "size-8 text-xs",
-  md: "size-9 text-sm",
+  md: "size-10 text-sm",
 };
 
 const INITIALS_LENGTH = 2;
@@ -23,7 +23,7 @@ const toInitials = (name: string): string =>
     .join("");
 
 export const Avatar = ({ name, size = "md" }: IAvatarProps) => (
-  <span aria-hidden className={joinClassNames("grid shrink-0 place-items-center rounded-full bg-brand-soft font-semibold text-brand", SIZE_CLASSES[size])}>
+  <span aria-hidden className={joinClassNames("grid shrink-0 place-items-center rounded-full bg-brand font-semibold text-white", SIZE_CLASSES[size])}>
     {toInitials(name)}
   </span>
 );

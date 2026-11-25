@@ -15,13 +15,13 @@ interface ICodeTitleListProps {
 }
 
 const CodeTitleList = ({ title, items }: ICodeTitleListProps) => (
-  <div className={CARD_CLASS_NAME}>
-    <h3 className="mb-3 text-sm font-medium text-ink">{title}</h3>
-    <ul className="flex flex-col gap-1.5 text-sm">
+  <div className={CARD_CLASS_NAME + " p-5"}>
+    <h3 className="mb-4 text-xs font-semibold uppercase tracking-widest text-gray-400">{title}</h3>
+    <ul className="flex flex-col gap-2 text-sm">
       {items.map(({ code, title: itemTitle }) => (
-        <li key={code} className="flex justify-between gap-3">
-          <span>{itemTitle}</span>
-          <span className="font-mono text-xs text-gray-500">{code}</span>
+        <li key={code} className="flex items-center justify-between gap-3">
+          <span className="text-ink">{itemTitle}</span>
+          <span className="rounded-md bg-gray-100 px-2 py-0.5 font-mono text-xs text-gray-500">{code}</span>
         </li>
       ))}
     </ul>

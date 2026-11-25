@@ -23,7 +23,7 @@ export const ParkedVehiclesButton = ({ onSelect }: IParkedVehiclesButtonProps) =
 
   return (
     <>
-      <Button variant="secondary" onClick={() => setIsOpen(true)}>
+      <Button variant="secondary" className="w-full rounded-full" onClick={() => setIsOpen(true)}>
         {PARKED_VEHICLES_TEXT.open}
       </Button>
       <Modal size="xl" isOpen={isOpen} title={PARKED_VEHICLES_TEXT.title} onClose={() => setIsOpen(false)}>

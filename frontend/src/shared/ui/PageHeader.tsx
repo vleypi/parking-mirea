@@ -12,7 +12,7 @@ export const PageHeader = ({ title, description, add, actions }: IPageHeaderProp
   <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
     <div>
       <h1 className="font-display text-4xl font-medium tracking-tight text-ink">{title}</h1>
-      {description && <p className="mt-2 text-[15px] text-gray-500">{description}</p>}
+
     </div>
     {(add || actions) && (
       <div className="flex items-center gap-2">

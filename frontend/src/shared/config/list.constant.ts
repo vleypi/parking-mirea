@@ -35,5 +35,6 @@ export const LIST_TEXT = {
   nextPage: "Следующая страница",
   pagination: "Страницы",
   sort: "Сортировка",
+  filters: "Фильтры",
   resetFilters: "Сбросить фильтры",
 } as const;

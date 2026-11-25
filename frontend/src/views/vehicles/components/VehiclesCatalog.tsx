@@ -49,16 +49,13 @@ export const VehiclesCatalog = () => {
         title={VEHICLES_PAGE_TEXT.title}
         description={VEHICLES_PAGE_TEXT.description}
         actions={
-          <>
-            <ParkedVehiclesButton onSelect={modal.openEdit} />
-            <CsvTransferActions
-              basePath={VEHICLES_PATH}
-              invalidateKey={QUERY_KEYS.vehicles}
-              exportParams={exportParams}
-              fileName={VEHICLES_PAGE_TEXT.csvFileName}
-              canImport={canEdit}
-            />
-          </>
+          <CsvTransferActions
+            basePath={VEHICLES_PATH}
+            invalidateKey={QUERY_KEYS.vehicles}
+            exportParams={exportParams}
+            fileName={VEHICLES_PAGE_TEXT.csvFileName}
+            canImport={canEdit}
+          />
         }
         add={canEdit ? { label: VEHICLES_PAGE_TEXT.add, onClick: modal.openCreate } : undefined}
       />
@@ -69,6 +66,7 @@ export const VehiclesCatalog = () => {
         filters={filters}
         fields={VEHICLE_LIST_FIELDS}
         sortOptions={VEHICLE_SORT_OPTIONS}
+        extraFilters={<ParkedVehiclesButton onSelect={modal.openEdit} />}
       />
       <FormError message={error?.message} />
       {canEdit && (

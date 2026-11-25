@@ -54,11 +54,11 @@ export const CsvTransferActions = ({ basePath, invalidateKey, exportParams, file
 
   return (
     <>
-      <Button variant="secondary" isLoading={exportFile.isPending} onClick={() => exportFile.mutate({ params: exportParams, fallbackName: fileName })}>
+      <Button variant="secondary" className="h-9 rounded-full" isLoading={exportFile.isPending} onClick={() => exportFile.mutate({ params: exportParams, fallbackName: fileName })}>
         {CSV_TRANSFER_TEXT.export}
       </Button>
       {canImport && (
-        <Button variant="secondary" onClick={() => setIsOpen(true)}>
+        <Button variant="secondary" className="h-9 rounded-full" onClick={() => setIsOpen(true)}>
           {CSV_TRANSFER_TEXT.import}
         </Button>
       )}

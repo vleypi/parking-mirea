@@ -1,10 +1,6 @@
-import { LOGO_TEXT } from "@/shared/ui/ui.constant";
-
 export const Logo = () => (
-  <span className="flex shrink-0 items-center gap-2">
-    <span aria-hidden className="grid size-8 place-items-center rounded-lg bg-brand font-display text-lg font-bold text-white">
-      {LOGO_TEXT.mark}
-    </span>
-    <span className="font-display text-base font-semibold text-ink">{LOGO_TEXT.label}</span>
+  <span className="flex shrink-0 items-center" aria-label="Парковка">
+    <span className="font-display text-xl font-black tracking-tight text-brand" aria-hidden>П</span>
+    <span className="font-display text-xl font-black tracking-tight text-ink" aria-hidden>арковка</span>
   </span>
 );

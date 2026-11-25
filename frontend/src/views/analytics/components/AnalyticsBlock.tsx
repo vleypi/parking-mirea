@@ -24,18 +24,18 @@ const GroupTable = ({ title, groups, labels }: IAnalyticsGroup) => {
   const total = rows.reduce((sum, [, count]) => sum + count, 0);
 
   return (
-    <div className={CARD_CLASS_NAME}>
-      <h3 className="mb-3 text-sm font-medium text-ink">{title}</h3>
+    <div className={CARD_CLASS_NAME + " p-5"}>
+      <h3 className="mb-4 font-display text-sm font-semibold text-ink">{title}</h3>
       {rows.length === 0 && <p className="text-sm text-gray-500">{ANALYTICS_PAGE_TEXT.noData}</p>}
-      <ul className="flex flex-col gap-2 text-sm">
+      <ul className="flex flex-col gap-3 text-sm">
         {rows.map(([key, count]) => (
-          <li key={key} className="flex flex-col gap-1">
+          <li key={key} className="flex flex-col gap-1.5">
             <span className="flex justify-between gap-3">
-              <span>{labels?.[key] ?? key}</span>
-              <span className="tabular-nums text-gray-600">{count}</span>
+              <span className="text-gray-700">{labels?.[key] ?? key}</span>
+              <span className="font-medium tabular-nums text-ink">{count}</span>
             </span>
-            <span className="h-1.5 overflow-hidden rounded-full bg-gray-100">
-              <span className="block h-full rounded-full bg-brand" style={{ width: total > 0 ? `${(count / total) * 100}%` : 0 }} />
+            <span className="h-1.5 overflow-hidden rounded-full bg-brand-soft">
+              <span className="block h-full rounded-full bg-brand transition-all duration-500" style={{ width: total > 0 ? `${(count / total) * 100}%` : 0 }} />
             </span>
           </li>
         ))}
@@ -50,9 +50,9 @@ export const AnalyticsBlock = ({ title, stats, groups }: IAnalyticsBlockProps) =
     <SectionHeader title={title} description="" />
     <dl className="mb-4 grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
       {stats.map(({ label, value }) => (
-        <div key={label} className={CARD_CLASS_NAME}>
+        <div key={label} className={CARD_CLASS_NAME + " p-4"}>
           <dt className="text-xs text-gray-500">{label}</dt>
-          <dd className="mt-1 text-2xl font-medium tabular-nums text-ink">{value}</dd>
+          <dd className="mt-1.5 font-display text-2xl font-semibold tabular-nums text-ink">{value}</dd>
         </div>
       ))}
     </dl>
