@@ -13,6 +13,10 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
+import ru.mirea.parking.domain.AuditEntityType;
+import ru.mirea.parking.domain.AuditEvent;
+import ru.mirea.parking.domain.AuditEventType;
+import ru.mirea.parking.repository.AuditEventRepository;
 import ru.mirea.parking.repository.RefreshSessionRepository;
 import ru.mirea.parking.repository.UserAccountRepository;
 
@@ -45,6 +49,8 @@ class AdminUserTest {
     private UserAccountRepository users;
     @Autowired
     private RefreshSessionRepository sessions;
+    @Autowired
+    private AuditEventRepository events;
 
     private Cookie admin;
 
@@ -159,6 +165,25 @@ class AdminUserTest {
         assertThat(newPassword).isNotEqualTo(oldPassword);
         login("ivan", oldPassword).andExpect(status().isUnauthorized());
         login("ivan", newPassword).andExpect(status().isOk()).andExpect(jsonPath("$.mustChangePassword").value(true));
+    }
+
+    @Test
+    void createUpdateAndResetAreAudited() throws Exception {
+        JsonNode created = body(create("oper.audit", "Аудит", "OPERATOR")).get("user");
+        String id = created.get("id").asText();
+        update(id, "oper.audit", "Аудит", List.of("OPERATOR"), false, created.get("version").asLong()).andExpect(status().isOk());
+        mvc.perform(post("/api/admin/users/" + id + "/reset-password").cookie(admin)).andExpect(status().isOk());
+
+        List<AuditEvent> recorded = events.findAll().stream()
+                .filter(e -> e.getEntityType() == AuditEntityType.USER_ACCOUNT && id.equals(String.valueOf(e.getEntityId())))
+                .filter(e -> e.getEventType() != AuditEventType.LOGIN_SUCCESS)
+                .toList();
+        assertThat(recorded).extracting(AuditEvent::getEventType)
+                .containsExactlyInAnyOrder(AuditEventType.CREATE, AuditEventType.UPDATE, AuditEventType.UPDATE);
+        assertThat(recorded).allMatch(e -> "admin".equals(e.getActorLogin()));
+        assertThat(recorded).extracting(AuditEvent::getSummary)
+                .anyMatch(s -> s.contains("учётная запись отключена"))
+                .anyMatch(s -> s.contains("сброшен пароль"));
     }
 
     @Test

@@ -6,6 +6,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+import ru.mirea.parking.domain.AuditEntityType;
+import ru.mirea.parking.domain.AuditEventType;
 import ru.mirea.parking.domain.Role;
 import ru.mirea.parking.domain.UserAccount;
 import ru.mirea.parking.dto.PageResponse;
@@ -38,13 +40,16 @@ public class UserAdminService {
     private final RefreshSessionRepository sessions;
     private final PasswordEncoder passwordEncoder;
     private final TemporaryPasswordGenerator passwordGenerator;
+    private final AuditService audit;
 
     public UserAdminService(UserAccountRepository users, RefreshSessionRepository sessions,
-                            PasswordEncoder passwordEncoder, TemporaryPasswordGenerator passwordGenerator) {
+                            PasswordEncoder passwordEncoder, TemporaryPasswordGenerator passwordGenerator,
+                            AuditService audit) {
         this.users = users;
         this.sessions = sessions;
         this.passwordEncoder = passwordEncoder;
         this.passwordGenerator = passwordGenerator;
+        this.audit = audit;
     }
 
     @Transactional(readOnly = true)
@@ -61,7 +66,10 @@ public class UserAdminService {
         }
         String temporaryPassword = passwordGenerator.generate();
         UserAccount user = new UserAccount(login, body.displayName().trim(), passwordEncoder.encode(temporaryPassword), body.roles());
-        return new TemporaryPasswordResponse(UserAccountResponse.from(users.saveAndFlush(user)), temporaryPassword);
+        UserAccount saved = users.saveAndFlush(user);
+        audit.record(AuditEventType.CREATE, AuditEntityType.USER_ACCOUNT, saved.getId(),
+                "Создан пользователь " + saved.getLogin() + " с ролями " + saved.getRoles());
+        return new TemporaryPasswordResponse(UserAccountResponse.from(saved), temporaryPassword);
     }
 
     @Transactional
@@ -79,6 +87,7 @@ public class UserAdminService {
         }
 
         boolean losesAccess = user.isEnabled() && !body.enabled();
+        boolean activationChanged = user.isEnabled() != body.enabled();
         user.setLogin(login);
         user.setDisplayName(body.displayName().trim());
         user.setRoles(body.roles());
@@ -91,6 +100,11 @@ public class UserAdminService {
         if (losesAccess) {
             sessions.revokeAllForUser(user.getId(), Instant.now());
         }
+        String summary = "Изменён пользователь " + user.getLogin() + ": роли " + user.getRoles();
+        if (activationChanged) {
+            summary += user.isEnabled() ? ", учётная запись включена" : ", учётная запись отключена";
+        }
+        audit.record(AuditEventType.UPDATE, AuditEntityType.USER_ACCOUNT, user.getId(), summary);
         return UserAccountResponse.from(user);
     }
 
@@ -104,6 +118,8 @@ public class UserAdminService {
         user.setLockedUntil(null);
         users.saveAndFlush(user);
         sessions.revokeAllForUser(user.getId(), Instant.now());
+        audit.record(AuditEventType.UPDATE, AuditEntityType.USER_ACCOUNT, user.getId(),
+                "Пользователю " + user.getLogin() + " сброшен пароль");
         return new TemporaryPasswordResponse(UserAccountResponse.from(user), temporaryPassword);
     }
 

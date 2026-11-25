@@ -4,6 +4,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.server.ResponseStatusException;
+import ru.mirea.parking.domain.AuditEntityType;
+import ru.mirea.parking.domain.AuditEventType;
 import ru.mirea.parking.domain.Request;
 import ru.mirea.parking.dto.request.BulkAction;
 import ru.mirea.parking.dto.request.RequestBulkRequest;
@@ -26,11 +28,14 @@ public class RequestBulkService {
 
     private final RequestService requestService;
     private final RequestRepository requests;
+    private final AuditService audit;
     private final TransactionTemplate transaction;
 
-    public RequestBulkService(RequestService requestService, RequestRepository requests, PlatformTransactionManager transactionManager) {
+    public RequestBulkService(RequestService requestService, RequestRepository requests, AuditService audit,
+                              PlatformTransactionManager transactionManager) {
         this.requestService = requestService;
         this.requests = requests;
+        this.audit = audit;
         this.transaction = new TransactionTemplate(transactionManager);
     }
 
@@ -68,14 +73,22 @@ public class RequestBulkService {
                 requestService.checkNotArchived(request);
                 requestService.checkActive(request);
                 request.setStatus(requestService.resolveTransition(request, body.status()));
+                audit.record(AuditEventType.UPDATE, AuditEntityType.REQUEST, request.getUuid(),
+                        "Заявке " + request.getCode() + " установлен статус «" + request.getStatus().getTitle() + "»");
             };
             case ADD_TAG -> request -> {
                 requestService.checkNotArchived(request);
-                request.getTags().add(RequestService.normalizeTag(body.tag()));
+                String tag = RequestService.normalizeTag(body.tag());
+                request.getTags().add(tag);
+                audit.record(AuditEventType.UPDATE, AuditEntityType.REQUEST, request.getUuid(),
+                        "Заявке " + request.getCode() + " добавлен тег «" + tag + "»");
             };
             case REMOVE_TAG -> request -> {
                 requestService.checkNotArchived(request);
-                request.getTags().remove(RequestService.normalizeTag(body.tag()));
+                String tag = RequestService.normalizeTag(body.tag());
+                request.getTags().remove(tag);
+                audit.record(AuditEventType.UPDATE, AuditEntityType.REQUEST, request.getUuid(),
+                        "У заявки " + request.getCode() + " удалён тег «" + tag + "»");
             };
         };
     }

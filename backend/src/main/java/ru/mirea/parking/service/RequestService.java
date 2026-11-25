@@ -6,6 +6,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import ru.mirea.parking.config.AppProperties;
+import ru.mirea.parking.domain.AuditEntityType;
+import ru.mirea.parking.domain.AuditEventType;
 import ru.mirea.parking.domain.Owner;
 import ru.mirea.parking.domain.Request;
 import ru.mirea.parking.domain.RequestStatus;
@@ -65,12 +67,13 @@ public class RequestService {
     private final SpotRepository spots;
     private final RequestStatusRepository statuses;
     private final RequestPriorityCalculator priorityCalculator;
+    private final AuditService audit;
     private final Clock clock;
     private final boolean permanentDeleteEnabled;
 
     public RequestService(RequestRepository requests, OwnerRepository owners, VehicleRepository vehicles,
                           SpotRepository spots, RequestStatusRepository statuses,
-                          RequestPriorityCalculator priorityCalculator, Clock clock,
+                          RequestPriorityCalculator priorityCalculator, AuditService audit, Clock clock,
                           AppProperties properties) {
         this.requests = requests;
         this.owners = owners;
@@ -78,6 +81,7 @@ public class RequestService {
         this.spots = spots;
         this.statuses = statuses;
         this.priorityCalculator = priorityCalculator;
+        this.audit = audit;
         this.clock = clock;
         this.permanentDeleteEnabled = properties.permanentDeleteEnabled();
     }
@@ -115,7 +119,9 @@ public class RequestService {
         request.setPaid(Boolean.TRUE.equals(body.paid()));
         request.setTags(normalizeTags(body.tags()));
         request.setCost(calculateCost(spot, body.startTime(), body.endTime()));
-        return toResponse(requests.saveAndFlush(request));
+        Request saved = requests.saveAndFlush(request);
+        audit.record(AuditEventType.CREATE, AuditEntityType.REQUEST, saved.getUuid(), "Создана заявка " + describe(saved));
+        return toResponse(saved);
     }
 
     @Transactional
@@ -152,7 +158,9 @@ public class RequestService {
         request.setTags(normalizeTags(body.tags()));
         request.setCost(calculateCost(spot, body.startTime(), body.endTime()));
         try {
-            return toResponse(requests.saveAndFlush(request));
+            Request saved = requests.saveAndFlush(request);
+            audit.record(AuditEventType.UPDATE, AuditEntityType.REQUEST, saved.getUuid(), "Изменена заявка " + describe(saved));
+            return toResponse(saved);
         } catch (ObjectOptimisticLockingFailureException e) {
             throw new ResponseStatusException(CONFLICT, "Запись изменил другой пользователь, обновите карточку");
         }
@@ -160,6 +168,11 @@ public class RequestService {
 
     private RequestResponse toResponse(Request request) {
         return RequestResponse.from(request, priorityCalculator.calculate(request));
+    }
+
+    private static String describe(Request request) {
+        return request.getCode() + " (" + request.getVehicle().getLicensePlate() + ", место "
+                + request.getSpot().getSpotNumber() + ", " + request.getStatus().getTitle() + ")";
     }
 
     static BigDecimal calculateCost(Spot spot, LocalDateTime start, LocalDateTime end) {
@@ -188,7 +201,10 @@ public class RequestService {
         if (!permanentDeleteEnabled) {
             throw new ResponseStatusException(FORBIDDEN, "Окончательное удаление отключено настройкой PERMANENT_DELETE_ENABLED");
         }
-        requests.delete(findRequest(id));
+        Request request = findRequest(id);
+        requests.delete(request);
+        audit.record(AuditEventType.DELETE, AuditEntityType.REQUEST, request.getUuid(),
+                "Заявка " + request.getCode() + " удалена окончательно");
     }
 
     void checkNotArchived(Request request) {
@@ -219,6 +235,8 @@ public class RequestService {
             throw new ResponseStatusException(CONFLICT, "Заявка " + request.getCode() + " уже в архиве");
         }
         request.setArchived(true);
+        audit.record(AuditEventType.ARCHIVE, AuditEntityType.REQUEST, request.getUuid(),
+                "Заявка " + request.getCode() + " перенесена в архив");
     }
 
     void restore(Request request) {
@@ -226,6 +244,8 @@ public class RequestService {
             throw new ResponseStatusException(CONFLICT, "Заявка " + request.getCode() + " не в архиве");
         }
         request.setArchived(false);
+        audit.record(AuditEventType.RESTORE, AuditEntityType.REQUEST, request.getUuid(),
+                "Заявка " + request.getCode() + " восстановлена из архива");
     }
 
     Request findRequest(UUID id) {
