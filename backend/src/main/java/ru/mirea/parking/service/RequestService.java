@@ -1,6 +1,7 @@
 package ru.mirea.parking.service;
 
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,6 +34,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -91,6 +93,13 @@ public class RequestService {
         Pageable pageable = PageRequestFactory.create(page, size, sort, direction, SORT_FIELDS);
         var spec = RequestSpecifications.byFilter(filter, LocalDateTime.now(clock));
         return PageResponse.from(requests.findAll(spec, pageable), this::toResponse);
+    }
+
+    /** Все заявки по фильтрам списка без страниц, для экспорта в CSV. */
+    @Transactional(readOnly = true)
+    public List<RequestResponse> searchAll(RequestFilter filter) {
+        var spec = RequestSpecifications.byFilter(filter, LocalDateTime.now(clock));
+        return requests.findAll(spec, Sort.by("createdAt", "id")).stream().map(this::toResponse).toList();
     }
 
     @Transactional(readOnly = true)
