@@ -1,0 +1,3471 @@
+{
+  "info": {
+    "_postman_id": "f4f44790-1f2d-50c5-bc0b-1ccfb4497dcb",
+    "name": "Parking MIREA — КР3 API",
+    "description": "Все эндпоинты REST API парковки с автотестами. Запуск: окружение «Parking local», затем Run collection (папки по порядку). Перед запуском backend должен работать на {{baseUrl}}; для папки 9 нужен PERMANENT_DELETE_ENABLED=true.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "pm.test(\"Нет ошибок сервера 5xx\", () => pm.expect(pm.response.code).to.be.below(500));",
+          "pm.test(\"Ответ быстрее 3 секунд\", () => pm.expect(pm.response.responseTime).to.be.below(3000));"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Авторизация",
+      "description": "Вход по логину и паролю: access и refresh приходят в HttpOnly-cookie, Postman хранит их сам.",
+      "item": [
+        {
+          "name": "Вход с неверным логином → 401",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"login\": \"no_such_user\",\n  \"password\": \"WrongPassword1\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 401\", () => pm.response.to.have.status(401));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Ошибка в общем формате\", () => { pm.expect(body.status).to.eql(401); pm.expect(body.message).to.be.a(\"string\"); pm.expect(body.correlationId).to.be.a(\"string\"); });",
+                  "pm.test(\"Текст ошибки: Неверный логин или пароль\", () => pm.expect(body.message).to.include(\"Неверный логин или пароль\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Вход администратора",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"login\": \"{{adminLogin}}\",\n  \"password\": \"{{adminPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Роль ADMIN\", () => pm.expect(body.roles).to.include(\"ADMIN\"));",
+                  "pm.test(\"Токен в HttpOnly-cookie\", () => { const c = pm.response.headers.filter(h => h.key.toLowerCase() === \"set-cookie\").map(h => h.value).join(\"\\n\"); pm.expect(c).to.include(\"parking_access\"); pm.expect(c.toLowerCase()).to.include(\"httponly\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Текущий пользователь",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/auth/me"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Логин совпадает\", () => pm.expect(body.login).to.eql(pm.environment.get(\"adminLogin\")));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Проверка сессии",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/auth/session"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"authenticated = true\", () => pm.expect(body.authenticated).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Обновить токены (refresh)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/auth/refresh"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 204\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Справочники",
+      "description": "Типы мест, статусы заявок, категории клиентов; изменение типов мест — только Администратор.",
+      "item": [
+        {
+          "name": "Все справочники",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/references"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Три справочника\", () => { pm.expect(body.spotTypes).to.be.an(\"array\").that.is.not.empty; pm.expect(body.requestStatuses).to.have.lengthOf(4); pm.expect(body.clientCategories).to.be.an(\"array\").that.is.not.empty; });",
+                  "pm.collectionVariables.set(\"spotTypeCode\", body.spotTypes[0].code);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Типы мест",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/references/spot-types"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Список\", () => pm.expect(body).to.be.an(\"array\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Категории клиентов",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/references/client-categories"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Список\", () => pm.expect(body).to.be.an(\"array\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Добавить тип места",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/references/spot-types",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"{{newSpotTypeCode}}\",\n  \"title\": \"Тип {{newSpotTypeCode}}\",\n  \"sortOrder\": 900\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set(\"newSpotTypeCode\", \"PM\" + Date.now().toString().slice(-8));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 201\", () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set(\"spotTypeId\", body.id);",
+                  "pm.test(\"Активен по умолчанию\", () => pm.expect(body.active).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Повторный код → 409",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/references/spot-types",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"{{newSpotTypeCode}}\",\n  \"title\": \"Дубликат\",\n  \"sortOrder\": 901\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 409\", () => pm.response.to.have.status(409));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Ошибка в общем формате\", () => { pm.expect(body.status).to.eql(409); pm.expect(body.message).to.be.a(\"string\"); pm.expect(body.correlationId).to.be.a(\"string\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Переименовать тип места",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/references/spot-types/{{spotTypeId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"{{newSpotTypeCode}}\",\n  \"title\": \"Тип {{newSpotTypeCode}} (изменён)\",\n  \"sortOrder\": 900\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Название изменилось\", () => pm.expect(body.title).to.include(\"изменён\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Отключить тип места",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/references/spot-types/{{spotTypeId}}/active",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"active\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"active = false\", () => pm.expect(body.active).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. Владельцы",
+      "description": "CRUD, поиск, фильтры, связанные записи, заметки, массовые операции, архив.",
+      "item": [
+        {
+          "name": "Список: поиск, фильтр, сортировка",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/owners?q=иван&status=ACTIVE&sort=name&direction=asc&size=5"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Страница: content, totalElements\", () => { pm.expect(body.content).to.be.an(\"array\"); pm.expect(body.totalElements).to.be.a(\"number\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Сортировка по неизвестному полю → 400",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/owners?sort=password"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 400\", () => pm.response.to.have.status(400));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Ошибка в общем формате\", () => { pm.expect(body.status).to.eql(400); pm.expect(body.message).to.be.a(\"string\"); pm.expect(body.correlationId).to.be.a(\"string\"); });",
+                  "pm.test(\"Текст ошибки: не поддерживается\", () => pm.expect(body.message).to.include(\"не поддерживается\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Создать с ошибками → 400 по полям",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/owners",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"\",\n  \"phone\": \"123\",\n  \"categoryId\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 400\", () => pm.response.to.have.status(400));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Ошибка в общем формате\", () => { pm.expect(body.status).to.eql(400); pm.expect(body.message).to.be.a(\"string\"); pm.expect(body.correlationId).to.be.a(\"string\"); });",
+                  "pm.test(\"Ошибки по полям name и phone\", () => { const f = body.fieldErrors.map(e => e.field); pm.expect(f).to.include.members([\"name\", \"phone\"]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Создать владельца",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/owners",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Пётр Постманов\",\n  \"phone\": \"{{ownerPhone}}\",\n  \"email\": \"petr@example.com\",\n  \"categoryId\": 1,\n  \"discountPercent\": 5,\n  \"notificationsEnabled\": true,\n  \"tags\": [\n    \"postman\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const rnd = (n) => Math.floor(Math.random() * n);",
+                  "const pad = (v, n) => String(v).padStart(n, '0');",
+                  "pm.collectionVariables.set(\"ownerPhone\", `+7-9${pad(rnd(100), 2)}-${pad(rnd(1000), 3)}-${pad(rnd(100), 2)}-${pad(rnd(100), 2)}`);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 201\", () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set(\"ownerId\", body.id);",
+                  "pm.collectionVariables.set(\"ownerVersion\", body.version);",
+                  "pm.test(\"Есть Location\", () => pm.response.to.have.header(\"Location\"));",
+                  "pm.test(\"Поля сохранены\", () => { pm.expect(body.phone).to.eql(pm.collectionVariables.get(\"ownerPhone\")); pm.expect(body.archived).to.eql(false); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Тот же телефон → 409",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/owners",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Дубликат\",\n  \"phone\": \"{{ownerPhone}}\",\n  \"categoryId\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 409\", () => pm.response.to.have.status(409));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Ошибка в общем формате\", () => { pm.expect(body.status).to.eql(409); pm.expect(body.message).to.be.a(\"string\"); pm.expect(body.correlationId).to.be.a(\"string\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Карточка владельца",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/owners/{{ownerId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Тот же id\", () => pm.expect(body.id).to.eql(pm.collectionVariables.get(\"ownerId\")));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Неизвестный id → 404",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/owners/00000000-0000-0000-0000-000000000000"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 404\", () => pm.response.to.have.status(404));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Ошибка в общем формате\", () => { pm.expect(body.status).to.eql(404); pm.expect(body.message).to.be.a(\"string\"); pm.expect(body.correlationId).to.be.a(\"string\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Изменить владельца",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/owners/{{ownerId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Пётр Постманов\",\n  \"phone\": \"{{ownerPhone}}\",\n  \"email\": \"petr@example.com\",\n  \"categoryId\": 2,\n  \"status\": \"ACTIVE\",\n  \"discountPercent\": 10,\n  \"notificationsEnabled\": false,\n  \"tags\": [\n    \"postman\",\n    \"vip\"\n  ],\n  \"version\": \"{{ownerVersion}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set(\"ownerStaleVersion\", pm.collectionVariables.get('ownerVersion'));",
+                  "pm.collectionVariables.set(\"ownerVersion\", body.version);",
+                  "pm.test(\"Версия выросла\", () => pm.expect(body.version).to.be.above(Number(pm.collectionVariables.get(\"ownerStaleVersion\"))));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Старая version → 409 (оптимистическая блокировка)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/owners/{{ownerId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Чужая правка\",\n  \"phone\": \"{{ownerPhone}}\",\n  \"categoryId\": 1,\n  \"status\": \"ACTIVE\",\n  \"discountPercent\": 0,\n  \"notificationsEnabled\": true,\n  \"tags\": [],\n  \"version\": \"{{ownerStaleVersion}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 409\", () => pm.response.to.have.status(409));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Ошибка в общем формате\", () => { pm.expect(body.status).to.eql(409); pm.expect(body.message).to.be.a(\"string\"); pm.expect(body.correlationId).to.be.a(\"string\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Заметки (владелец)",
+          "description": "Заметки к записи: создание, список, правка с version, удаление.",
+          "item": [
+            {
+              "name": "Добавить заметку",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/owners/{{ownerId}}/notes",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"body\": \"Заметка из Postman\",\n  \"pinned\": false\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Статус 201\", () => pm.response.to.have.status(201));",
+                      "const body = pm.response.json();",
+                      "pm.collectionVariables.set(\"noteId\", body.id);",
+                      "pm.collectionVariables.set(\"noteVersion\", body.version);",
+                      "pm.test(\"Текст сохранён\", () => pm.expect(body.body).to.eql(\"Заметка из Postman\"));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Список заметок",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/api/owners/{{ownerId}}/notes"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                      "const body = pm.response.json();",
+                      "pm.test(\"Заметка в списке\", () => pm.expect(JSON.stringify(body)).to.include(pm.collectionVariables.get(\"noteId\")));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Закрепить заметку",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/owners/{{ownerId}}/notes/{{noteId}}",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"body\": \"Заметка из Postman (закреплена)\",\n  \"pinned\": true,\n  \"version\": \"{{noteVersion}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                      "const body = pm.response.json();",
+                      "pm.test(\"Закреплена\", () => pm.expect(body.pinned).to.eql(true));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Удалить заметку",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": "{{baseUrl}}/api/owners/{{ownerId}}/notes/{{noteId}}"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Статус 204\", () => pm.response.to.have.status(204));"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Массово: добавить тег (владельцы)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/owners/bulk",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ids\": [\n    \"{{ownerId}}\",\n    \"00000000-0000-0000-0000-000000000000\"\n  ],\n  \"action\": \"ADD_TAG\",\n  \"tag\": \"postman\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Своя запись обработана\", () => pm.expect(body.succeeded).to.include(pm.collectionVariables.get(\"ownerId\")));",
+                  "pm.test(\"Несуществующая попала в failed с причиной\", () => { pm.expect(body.failed).to.have.lengthOf(1); pm.expect(body.failed[0].reason).to.be.a(\"string\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "В архив (владелец)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/owners/{{ownerId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"archived = true\", () => pm.expect(body.archived).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Повторный архив → 409 (владелец)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/owners/{{ownerId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 409\", () => pm.response.to.have.status(409));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Ошибка в общем формате\", () => { pm.expect(body.status).to.eql(409); pm.expect(body.message).to.be.a(\"string\"); pm.expect(body.correlationId).to.be.a(\"string\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Восстановить (владелец)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/owners/{{ownerId}}/restore"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"archived = false\", () => pm.expect(body.archived).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4. Автомобили",
+      "description": "CRUD, фильтры, «стояли на парковке», заметки, bulk, архив, CSV.",
+      "item": [
+        {
+          "name": "Список: фильтры и сортировка",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/vehicles?status=ACTIVE&year=2015&yearOp=gte&sort=licensePlate&direction=asc"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Страница: content, totalElements\", () => { pm.expect(body.content).to.be.an(\"array\"); pm.expect(body.totalElements).to.be.a(\"number\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Неверный гос. номер → 400",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/vehicles",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ownerId\": \"{{ownerId}}\",\n  \"licensePlate\": \"12345\",\n  \"brand\": \"Lada\",\n  \"model\": \"Vesta\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 400\", () => pm.response.to.have.status(400));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Ошибка в общем формате\", () => { pm.expect(body.status).to.eql(400); pm.expect(body.message).to.be.a(\"string\"); pm.expect(body.correlationId).to.be.a(\"string\"); });",
+                  "pm.test(\"Ошибка у поля licensePlate\", () => pm.expect(body.fieldErrors.map(e => e.field)).to.include(\"licensePlate\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Добавить автомобиль",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/vehicles",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ownerId\": \"{{ownerId}}\",\n  \"licensePlate\": \"{{plate}}\",\n  \"brand\": \"Lada\",\n  \"model\": \"Vesta\",\n  \"color\": \"белый\",\n  \"releaseYear\": 2021,\n  \"electric\": false,\n  \"tags\": [\n    \"postman\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const rnd = (n) => Math.floor(Math.random() * n);",
+                  "const pad = (v, n) => String(v).padStart(n, '0');",
+                  "const L = 'АВЕКМНОРСТУХ'; const l = () => L[rnd(L.length)];",
+                  "pm.collectionVariables.set(\"plate\", `${l()}${pad(rnd(1000), 3)}${l()}${l()}77`);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 201\", () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set(\"vehicleId\", body.id);",
+                  "pm.collectionVariables.set(\"vehicleVersion\", body.version);",
+                  "pm.test(\"Номер сохранён\", () => pm.expect(body.licensePlate).to.eql(pm.collectionVariables.get(\"plate\")));",
+                  "pm.test(\"Владелец тот же\", () => pm.expect(body.owner.id).to.eql(pm.collectionVariables.get(\"ownerId\")));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Тот же номер → 409",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/vehicles",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ownerId\": \"{{ownerId}}\",\n  \"licensePlate\": \"{{plate}}\",\n  \"brand\": \"Kia\",\n  \"model\": \"Rio\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 409\", () => pm.response.to.have.status(409));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Ошибка в общем формате\", () => { pm.expect(body.status).to.eql(409); pm.expect(body.message).to.be.a(\"string\"); pm.expect(body.correlationId).to.be.a(\"string\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Карточка автомобиля",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/vehicles/{{vehicleId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Есть активность\", () => pm.expect(body.activity.code).to.be.oneOf([\"LOW\", \"MEDIUM\", \"HIGH\"]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Изменить автомобиль",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/vehicles/{{vehicleId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ownerId\": \"{{ownerId}}\",\n  \"licensePlate\": \"{{plate}}\",\n  \"brand\": \"Lada\",\n  \"model\": \"Vesta SW\",\n  \"color\": \"серый\",\n  \"releaseYear\": 2022,\n  \"electric\": false,\n  \"status\": \"ACTIVE\",\n  \"tags\": [\n    \"postman\"\n  ],\n  \"version\": \"{{vehicleVersion}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set(\"vehicleVersion\", body.version);",
+                  "pm.test(\"Модель изменилась\", () => pm.expect(body.model).to.eql(\"Vesta SW\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Экспорт в CSV",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/vehicles/export?status=ACTIVE"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Отдаётся CSV\", () => pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"text/csv\"));",
+                  "pm.test(\"Есть заголовок файла\", () => pm.expect(pm.response.text()).to.include(\";\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Импорт: проверка файла (preview)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/vehicles/import/preview",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "data/vehicles.csv"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set(\"importToken\", body.importToken);",
+                  "pm.test(\"Есть importToken и счётчики строк\", () => { pm.expect(body.importToken).to.be.a(\"string\"); pm.expect(body.totalRows).to.eql(2); pm.expect(body.validRows).to.eql(1); });",
+                  "pm.test(\"Ошибка показана по номеру строки\", () => { pm.expect(body.errors).to.have.lengthOf(1); pm.expect(body.errors[0].row).to.eql(3); pm.expect(body.errors[0].message).to.include(\"гос. номер\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Импорт: применить UPSERT",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/vehicles/import/apply",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"importToken\": \"{{importToken}}\",\n  \"mode\": \"UPSERT\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Одна запись обновлена, одна строка с ошибкой\", () => { pm.expect(body.created + body.updated).to.eql(1); pm.expect(body.errors).to.have.lengthOf(1); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Импорт: токен одноразовый → 400",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/vehicles/import/apply",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"importToken\": \"{{importToken}}\",\n  \"mode\": \"UPSERT\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Заметки (автомобиль)",
+          "description": "Заметки к записи: создание, список, правка с version, удаление.",
+          "item": [
+            {
+              "name": "Добавить заметку",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/vehicles/{{vehicleId}}/notes",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"body\": \"Заметка из Postman\",\n  \"pinned\": false\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Статус 201\", () => pm.response.to.have.status(201));",
+                      "const body = pm.response.json();",
+                      "pm.collectionVariables.set(\"noteId\", body.id);",
+                      "pm.collectionVariables.set(\"noteVersion\", body.version);",
+                      "pm.test(\"Текст сохранён\", () => pm.expect(body.body).to.eql(\"Заметка из Postman\"));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Список заметок",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/api/vehicles/{{vehicleId}}/notes"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                      "const body = pm.response.json();",
+                      "pm.test(\"Заметка в списке\", () => pm.expect(JSON.stringify(body)).to.include(pm.collectionVariables.get(\"noteId\")));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Закрепить заметку",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/vehicles/{{vehicleId}}/notes/{{noteId}}",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"body\": \"Заметка из Postman (закреплена)\",\n  \"pinned\": true,\n  \"version\": \"{{noteVersion}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                      "const body = pm.response.json();",
+                      "pm.test(\"Закреплена\", () => pm.expect(body.pinned).to.eql(true));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Удалить заметку",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": "{{baseUrl}}/api/vehicles/{{vehicleId}}/notes/{{noteId}}"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Статус 204\", () => pm.response.to.have.status(204));"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Массово: добавить тег (автомобили)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/vehicles/bulk",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ids\": [\n    \"{{vehicleId}}\",\n    \"00000000-0000-0000-0000-000000000000\"\n  ],\n  \"action\": \"ADD_TAG\",\n  \"tag\": \"postman\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Своя запись обработана\", () => pm.expect(body.succeeded).to.include(pm.collectionVariables.get(\"vehicleId\")));",
+                  "pm.test(\"Несуществующая попала в failed с причиной\", () => { pm.expect(body.failed).to.have.lengthOf(1); pm.expect(body.failed[0].reason).to.be.a(\"string\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "В архив (автомобиль)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/vehicles/{{vehicleId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"archived = true\", () => pm.expect(body.archived).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Повторный архив → 409 (автомобиль)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/vehicles/{{vehicleId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 409\", () => pm.response.to.have.status(409));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Ошибка в общем формате\", () => { pm.expect(body.status).to.eql(409); pm.expect(body.message).to.be.a(\"string\"); pm.expect(body.correlationId).to.be.a(\"string\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Восстановить (автомобиль)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/vehicles/{{vehicleId}}/restore"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"archived = false\", () => pm.expect(body.archived).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "5. Места",
+      "description": "CRUD, свободные места на период, заметки, bulk, архив, CSV.",
+      "item": [
+        {
+          "name": "Список: фильтр по типу и тарифу",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/spots?spotType=STANDARD&sort=spotNumber&direction=asc"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Страница: content, totalElements\", () => { pm.expect(body.content).to.be.an(\"array\"); pm.expect(body.totalElements).to.be.a(\"number\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Отрицательный тариф → 400",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/spots",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"spotNumber\": 1,\n  \"spotTypeId\": 1,\n  \"hourlyRate\": -5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 400\", () => pm.response.to.have.status(400));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Ошибка в общем формате\", () => { pm.expect(body.status).to.eql(400); pm.expect(body.message).to.be.a(\"string\"); pm.expect(body.correlationId).to.be.a(\"string\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Добавить место",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/spots",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"spotNumber\": \"{{spotNumber}}\",\n  \"spotTypeId\": 1,\n  \"hourlyRate\": 120.5,\n  \"zone\": \"P\",\n  \"description\": \"Место из Postman\",\n  \"covered\": true,\n  \"tags\": [\n    \"postman\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const rnd = (n) => Math.floor(Math.random() * n);",
+                  "const pad = (v, n) => String(v).padStart(n, '0');",
+                  "pm.collectionVariables.set(\"spotNumber\", 10000 + rnd(80000));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 201\", () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set(\"spotId\", body.id);",
+                  "pm.collectionVariables.set(\"spotVersion\", body.version);",
+                  "pm.test(\"Номер сохранён\", () => pm.expect(body.spotNumber).to.eql(Number(pm.collectionVariables.get(\"spotNumber\"))));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Тот же номер → 409",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/spots",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"spotNumber\": \"{{spotNumber}}\",\n  \"spotTypeId\": 1,\n  \"hourlyRate\": 100\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 409\", () => pm.response.to.have.status(409));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Ошибка в общем формате\", () => { pm.expect(body.status).to.eql(409); pm.expect(body.message).to.be.a(\"string\"); pm.expect(body.correlationId).to.be.a(\"string\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Карточка места",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/spots/{{spotId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Есть доступность\", () => pm.expect(body.availability.code).to.be.a(\"string\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Изменить место",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/spots/{{spotId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"spotNumber\": \"{{spotNumber}}\",\n  \"spotTypeId\": 1,\n  \"hourlyRate\": 100,\n  \"zone\": \"P\",\n  \"description\": \"Место из Postman\",\n  \"status\": \"AVAILABLE\",\n  \"covered\": true,\n  \"tags\": [\n    \"postman\"\n  ],\n  \"version\": \"{{spotVersion}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set(\"spotVersion\", body.version);",
+                  "pm.test(\"Тариф 100\", () => pm.expect(body.hourlyRate).to.eql(100));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Свободные места на период",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/spots/free?from={{start}}&to={{end}}"
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const day = new Date(Date.now() + (400 + Math.floor(Math.random() * 300)) * 86400000);",
+                  "const d = day.toISOString().slice(0, 10);",
+                  "pm.collectionVariables.set(\"start\", `${d}T10:00:00`);",
+                  "pm.collectionVariables.set(\"end\", `${d}T13:30:00`);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Новое место свободно\", () => pm.expect(body.map(s => s.id)).to.include(pm.collectionVariables.get(\"spotId\")));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Экспорт в CSV",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/spots/export"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Отдаётся CSV\", () => pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"text/csv\"));",
+                  "pm.test(\"Есть заголовок файла\", () => pm.expect(pm.response.text()).to.include(\";\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Импорт: проверка файла (preview)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/spots/import/preview",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "data/spots.csv"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set(\"importToken\", body.importToken);",
+                  "pm.test(\"Есть importToken и счётчики строк\", () => { pm.expect(body.importToken).to.be.a(\"string\"); pm.expect(body.totalRows).to.eql(2); pm.expect(body.validRows).to.eql(1); });",
+                  "pm.test(\"Ошибка показана по номеру строки\", () => { pm.expect(body.errors).to.have.lengthOf(1); pm.expect(body.errors[0].row).to.eql(3); pm.expect(body.errors[0].message).to.include(\"номер\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Импорт: применить UPSERT",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/spots/import/apply",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"importToken\": \"{{importToken}}\",\n  \"mode\": \"UPSERT\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Одна запись обновлена, одна строка с ошибкой\", () => { pm.expect(body.created + body.updated).to.eql(1); pm.expect(body.errors).to.have.lengthOf(1); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Импорт: токен одноразовый → 400",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/spots/import/apply",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"importToken\": \"{{importToken}}\",\n  \"mode\": \"UPSERT\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Заметки (место)",
+          "description": "Заметки к записи: создание, список, правка с version, удаление.",
+          "item": [
+            {
+              "name": "Добавить заметку",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/spots/{{spotId}}/notes",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"body\": \"Заметка из Postman\",\n  \"pinned\": false\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Статус 201\", () => pm.response.to.have.status(201));",
+                      "const body = pm.response.json();",
+                      "pm.collectionVariables.set(\"noteId\", body.id);",
+                      "pm.collectionVariables.set(\"noteVersion\", body.version);",
+                      "pm.test(\"Текст сохранён\", () => pm.expect(body.body).to.eql(\"Заметка из Postman\"));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Список заметок",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/api/spots/{{spotId}}/notes"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                      "const body = pm.response.json();",
+                      "pm.test(\"Заметка в списке\", () => pm.expect(JSON.stringify(body)).to.include(pm.collectionVariables.get(\"noteId\")));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Закрепить заметку",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/spots/{{spotId}}/notes/{{noteId}}",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"body\": \"Заметка из Postman (закреплена)\",\n  \"pinned\": true,\n  \"version\": \"{{noteVersion}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                      "const body = pm.response.json();",
+                      "pm.test(\"Закреплена\", () => pm.expect(body.pinned).to.eql(true));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Удалить заметку",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": "{{baseUrl}}/api/spots/{{spotId}}/notes/{{noteId}}"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Статус 204\", () => pm.response.to.have.status(204));"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Массово: добавить тег (места)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/spots/bulk",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ids\": [\n    \"{{spotId}}\",\n    \"00000000-0000-0000-0000-000000000000\"\n  ],\n  \"action\": \"ADD_TAG\",\n  \"tag\": \"postman\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Своя запись обработана\", () => pm.expect(body.succeeded).to.include(pm.collectionVariables.get(\"spotId\")));",
+                  "pm.test(\"Несуществующая попала в failed с причиной\", () => { pm.expect(body.failed).to.have.lengthOf(1); pm.expect(body.failed[0].reason).to.be.a(\"string\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "В архив (место)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/spots/{{spotId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"archived = true\", () => pm.expect(body.archived).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Повторный архив → 409 (место)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/spots/{{spotId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 409\", () => pm.response.to.have.status(409));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Ошибка в общем формате\", () => { pm.expect(body.status).to.eql(409); pm.expect(body.message).to.be.a(\"string\"); pm.expect(body.correlationId).to.be.a(\"string\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Восстановить (место)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/spots/{{spotId}}/restore"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"archived = false\", () => pm.expect(body.archived).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "6. Заявки",
+      "description": "Оформление с проверками, пересечения, статусы, приоритет, поиск, заметки, bulk, архив, CSV.",
+      "item": [
+        {
+          "name": "Окончание раньше начала → 400",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/requests",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ownerId\": \"{{ownerId}}\",\n  \"vehicleId\": \"{{vehicleId}}\",\n  \"spotId\": \"{{spotId}}\",\n  \"startTime\": \"{{end}}\",\n  \"endTime\": \"{{start}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 400\", () => pm.response.to.have.status(400));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Ошибка в общем формате\", () => { pm.expect(body.status).to.eql(400); pm.expect(body.message).to.be.a(\"string\"); pm.expect(body.correlationId).to.be.a(\"string\"); });",
+                  "pm.test(\"Текст ошибки: позже\", () => pm.expect(body.message).to.include(\"позже\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Оформить заявку",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/requests",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ownerId\": \"{{ownerId}}\",\n  \"vehicleId\": \"{{vehicleId}}\",\n  \"spotId\": \"{{spotId}}\",\n  \"startTime\": \"{{start}}\",\n  \"endTime\": \"{{end}}\",\n  \"description\": \"Заявка из Postman\",\n  \"paid\": false,\n  \"tags\": [\n    \"postman\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 201\", () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set(\"requestId\", body.id);",
+                  "pm.collectionVariables.set(\"requestVersion\", body.version);",
+                  "pm.collectionVariables.set(\"requestCode\", body.code);",
+                  "pm.test(\"Код REQ-xxxxxx\", () => pm.expect(body.code).to.match(/^REQ-\\d{6}$/));",
+                  "pm.test(\"Статус NEW\", () => pm.expect(body.status.code).to.eql(\"NEW\"));",
+                  "pm.test(\"Стоимость: 100 ₽/ч × 3,5 ч = 350\", () => pm.expect(body.cost).to.eql(350));",
+                  "pm.test(\"Приоритет посчитан\", () => pm.expect(body.priority).to.be.oneOf([\"HIGH\", \"MEDIUM\", \"LOW\"]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "То же место на тот же период → 409",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/requests",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ownerId\": \"{{ownerId}}\",\n  \"vehicleId\": \"{{vehicleId}}\",\n  \"spotId\": \"{{spotId}}\",\n  \"startTime\": \"{{start}}\",\n  \"endTime\": \"{{end}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 409\", () => pm.response.to.have.status(409));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Ошибка в общем формате\", () => { pm.expect(body.status).to.eql(409); pm.expect(body.message).to.be.a(\"string\"); pm.expect(body.correlationId).to.be.a(\"string\"); });",
+                  "pm.test(\"Текст ошибки: занято\", () => pm.expect(body.message).to.include(\"занято\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Место больше не свободно на период",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/spots/free?from={{start}}&to={{end}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Места нет в списке свободных\", () => pm.expect(body.map(s => s.id)).to.not.include(pm.collectionVariables.get(\"spotId\")));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Карточка заявки",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/requests/{{requestId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Владелец, автомобиль, место\", () => { pm.expect(body.owner.id).to.eql(pm.collectionVariables.get(\"ownerId\")); pm.expect(body.vehicle.id).to.eql(pm.collectionVariables.get(\"vehicleId\")); pm.expect(body.spot.id).to.eql(pm.collectionVariables.get(\"spotId\")); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Поиск по коду",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/requests?q={{requestCode}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Страница: content, totalElements\", () => { pm.expect(body.content).to.be.an(\"array\"); pm.expect(body.totalElements).to.be.a(\"number\"); });",
+                  "pm.test(\"Найдена одна заявка\", () => { pm.expect(body.totalElements).to.eql(1); pm.expect(body.content[0].id).to.eql(pm.collectionVariables.get(\"requestId\")); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Фильтры: статус, оплата, тег, сортировка",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/requests?status=NEW&paid=false&tag=postman&sort=startTime&direction=asc"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Страница: content, totalElements\", () => { pm.expect(body.content).to.be.an(\"array\"); pm.expect(body.totalElements).to.be.a(\"number\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Фильтр по приоритету",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/requests?priority=LOW"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Страница: content, totalElements\", () => { pm.expect(body.content).to.be.an(\"array\"); pm.expect(body.totalElements).to.be.a(\"number\"); });",
+                  "pm.test(\"Все LOW\", () => body.content.forEach(r => pm.expect(r.priority).to.eql(\"LOW\")));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Подтвердить и отметить оплату",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/requests/{{requestId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vehicleId\": \"{{vehicleId}}\",\n  \"spotId\": \"{{spotId}}\",\n  \"startTime\": \"{{start}}\",\n  \"endTime\": \"{{end}}\",\n  \"status\": \"CONFIRMED\",\n  \"description\": \"Подтверждена из Postman\",\n  \"paid\": true,\n  \"tags\": [\n    \"postman\"\n  ],\n  \"version\": \"{{requestVersion}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set(\"requestVersion\", body.version);",
+                  "pm.test(\"CONFIRMED и оплачена\", () => { pm.expect(body.status.code).to.eql(\"CONFIRMED\"); pm.expect(body.paid).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Недопустимый переход CONFIRMED → NEW → 409",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/requests/{{requestId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vehicleId\": \"{{vehicleId}}\",\n  \"spotId\": \"{{spotId}}\",\n  \"startTime\": \"{{start}}\",\n  \"endTime\": \"{{end}}\",\n  \"status\": \"NEW\",\n  \"paid\": true,\n  \"tags\": [],\n  \"version\": \"{{requestVersion}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 409\", () => pm.response.to.have.status(409));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Ошибка в общем формате\", () => { pm.expect(body.status).to.eql(409); pm.expect(body.message).to.be.a(\"string\"); pm.expect(body.correlationId).to.be.a(\"string\"); });",
+                  "pm.test(\"Текст ошибки: переход\", () => pm.expect(body.message).to.include(\"переход\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Экспорт в CSV с фильтром",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/requests/export?tag=postman"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Отдаётся CSV\", () => pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"text/csv\"));",
+                  "pm.test(\"Есть заголовок файла\", () => pm.expect(pm.response.text()).to.include(\";\"));",
+                  "pm.test(\"В файле новая заявка\", () => pm.expect(pm.response.text()).to.include(pm.collectionVariables.get(\"requestCode\")));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Импорт: проверка файла (preview)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/requests/import/preview",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "data/requests.csv"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set(\"importToken\", body.importToken);",
+                  "pm.test(\"Есть importToken и счётчики строк\", () => { pm.expect(body.importToken).to.be.a(\"string\"); pm.expect(body.totalRows).to.eql(2); pm.expect(body.validRows).to.eql(1); });",
+                  "pm.test(\"Ошибка показана по номеру строки\", () => { pm.expect(body.errors).to.have.lengthOf(1); pm.expect(body.errors[0].row).to.eql(3); pm.expect(body.errors[0].message).to.include(\"не принадлежит\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Импорт: применить UPSERT",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/requests/import/apply",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"importToken\": \"{{importToken}}\",\n  \"mode\": \"UPSERT\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Одна запись обновлена, одна строка с ошибкой\", () => { pm.expect(body.created + body.updated).to.eql(1); pm.expect(body.errors).to.have.lengthOf(1); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Импорт: токен одноразовый → 400",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/requests/import/apply",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"importToken\": \"{{importToken}}\",\n  \"mode\": \"UPSERT\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Заметки (заявка)",
+          "description": "Заметки к записи: создание, список, правка с version, удаление.",
+          "item": [
+            {
+              "name": "Добавить заметку",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/requests/{{requestId}}/notes",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"body\": \"Заметка из Postman\",\n  \"pinned\": false\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Статус 201\", () => pm.response.to.have.status(201));",
+                      "const body = pm.response.json();",
+                      "pm.collectionVariables.set(\"noteId\", body.id);",
+                      "pm.collectionVariables.set(\"noteVersion\", body.version);",
+                      "pm.test(\"Текст сохранён\", () => pm.expect(body.body).to.eql(\"Заметка из Postman\"));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Список заметок",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/api/requests/{{requestId}}/notes"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                      "const body = pm.response.json();",
+                      "pm.test(\"Заметка в списке\", () => pm.expect(JSON.stringify(body)).to.include(pm.collectionVariables.get(\"noteId\")));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Закрепить заметку",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/requests/{{requestId}}/notes/{{noteId}}",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"body\": \"Заметка из Postman (закреплена)\",\n  \"pinned\": true,\n  \"version\": \"{{noteVersion}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                      "const body = pm.response.json();",
+                      "pm.test(\"Закреплена\", () => pm.expect(body.pinned).to.eql(true));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Удалить заметку",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": "{{baseUrl}}/api/requests/{{requestId}}/notes/{{noteId}}"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Статус 204\", () => pm.response.to.have.status(204));"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Массово: добавить тег (заявки)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/requests/bulk",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ids\": [\n    \"{{requestId}}\",\n    \"00000000-0000-0000-0000-000000000000\"\n  ],\n  \"action\": \"ADD_TAG\",\n  \"tag\": \"postman\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Своя запись обработана\", () => pm.expect(body.succeeded).to.include(pm.collectionVariables.get(\"requestId\")));",
+                  "pm.test(\"Несуществующая попала в failed с причиной\", () => { pm.expect(body.failed).to.have.lengthOf(1); pm.expect(body.failed[0].reason).to.be.a(\"string\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "В архив (заявка)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/requests/{{requestId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"archived = true\", () => pm.expect(body.archived).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Повторный архив → 409 (заявка)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/requests/{{requestId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 409\", () => pm.response.to.have.status(409));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Ошибка в общем формате\", () => { pm.expect(body.status).to.eql(409); pm.expect(body.message).to.be.a(\"string\"); pm.expect(body.correlationId).to.be.a(\"string\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Восстановить (заявка)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/requests/{{requestId}}/restore"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"archived = false\", () => pm.expect(body.archived).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Связанные записи владельца",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/owners/{{ownerId}}/related"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Есть автомобиль и заявка\", () => { const s = JSON.stringify(body); pm.expect(s).to.include(pm.collectionVariables.get(\"vehicleId\")); pm.expect(s).to.include(pm.collectionVariables.get(\"requestId\")); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Заявки автомобиля",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/vehicles/{{vehicleId}}/requests"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Есть новая заявка\", () => pm.expect(pm.response.text()).to.include(pm.collectionVariables.get(\"requestId\")));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Заявки места",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/spots/{{spotId}}/requests"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Есть новая заявка\", () => pm.expect(pm.response.text()).to.include(pm.collectionVariables.get(\"requestId\")));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Стояли на парковке в период",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/vehicles/parked?from={{start}}&to={{end}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Новый автомобиль в списке\", () => pm.expect(body.map(v => v.id)).to.include(pm.collectionVariables.get(\"vehicleId\")));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "7. Аналитика",
+      "description": "Сводка по всем сущностям и отдельные блоки с фильтрами списков.",
+      "item": [
+        {
+          "name": "Общая сводка",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/analytics/summary"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Все блоки\", () => { [\"requests\", \"owners\", \"vehicles\", \"spots\"].forEach(k => pm.expect(body).to.have.property(k)); });",
+                  "pm.test(\"Заявки по статусам\", () => pm.expect(body.requests.byStatus).to.have.all.keys(\"NEW\", \"CONFIRMED\", \"COMPLETED\", \"CANCELLED\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Сводка по заявкам с фильтром",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/analytics/summary?tag=postman"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Учтена хотя бы одна заявка\", () => pm.expect(body.requests.total).to.be.at.least(1));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Владельцы",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/analytics/owners"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"total\", () => pm.expect(body.total).to.be.a(\"number\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Автомобили",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/analytics/vehicles"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"total\", () => pm.expect(body.total).to.be.a(\"number\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Места",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/analytics/spots"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"total\", () => pm.expect(body.total).to.be.a(\"number\"));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "8. Пользователи и роли",
+      "description": "Администратор заводит сотрудника, тот обязан сменить временный пароль; Наблюдатель не может изменять данные.",
+      "item": [
+        {
+          "name": "Список пользователей",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/admin/users?sort=login&direction=asc"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Страница: content, totalElements\", () => { pm.expect(body.content).to.be.an(\"array\"); pm.expect(body.totalElements).to.be.a(\"number\"); });",
+                  "pm.test(\"Хэш пароля не отдаётся\", () => body.content.forEach(u => pm.expect(u).to.not.have.property(\"passwordHash\")));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Создать Наблюдателя",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/admin/users",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"login\": \"{{viewerLogin}}\",\n  \"displayName\": \"Наблюдатель Postman\",\n  \"roles\": [\n    \"VIEWER\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set(\"viewerLogin\", \"viewer.\" + Date.now().toString().slice(-8));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 201\", () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set(\"userId\", body.user.id);",
+                  "pm.collectionVariables.set(\"tempPassword\", body.temporaryPassword);",
+                  "pm.test(\"Выдан временный пароль\", () => pm.expect(body.temporaryPassword).to.have.lengthOf(12));",
+                  "pm.test(\"Нужно сменить пароль\", () => pm.expect(body.user.mustChangePassword).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Сбросить пароль",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/admin/users/{{userId}}/reset-password"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set(\"tempPassword\", body.temporaryPassword);",
+                  "pm.test(\"Новый временный пароль\", () => pm.expect(body.temporaryPassword).to.be.a(\"string\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Вход Наблюдателя с временным паролем",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"login\": \"{{viewerLogin}}\",\n  \"password\": \"{{tempPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"mustChangePassword = true\", () => pm.expect(body.mustChangePassword).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "До смены пароля данные закрыты → 403",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/owners"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 403\", () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Сменить пароль",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/change-password",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"{{tempPassword}}\",\n  \"newPassword\": \"ViewerPass2026\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 204\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Наблюдатель читает список",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/owners?size=1"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Наблюдатель не может создавать → 403",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/owners",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Нельзя\",\n  \"phone\": \"+7-900-000-00-00\",\n  \"categoryId\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 403\", () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Наблюдатель не видит админку → 403",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/admin/users"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 403\", () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Выход",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/auth/logout"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 204\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "После выхода → 401",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/auth/me"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Снова вход администратора",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"login\": \"{{adminLogin}}\",\n  \"password\": \"{{adminPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Найти пользователя (version)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/admin/users?q={{viewerLogin}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set(\"userVersion\", body.content[0].version);",
+                  "pm.test(\"Найден\", () => pm.expect(body.totalElements).to.eql(1));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Отключить пользователя",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/admin/users/{{userId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"login\": \"{{viewerLogin}}\",\n  \"displayName\": \"Наблюдатель Postman\",\n  \"roles\": [\n    \"VIEWER\"\n  ],\n  \"enabled\": false,\n  \"version\": \"{{userVersion}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"enabled = false\", () => pm.expect(body.enabled).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Отключённый не может войти → 403",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"login\": \"{{viewerLogin}}\",\n  \"password\": \"ViewerPass2026\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 403\", () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "9. Окончательное удаление и аудит",
+      "description": "Удаление (Администратор, PERMANENT_DELETE_ENABLED=true) и проверка журнала аудита.",
+      "item": [
+        {
+          "name": "Удалить заявку окончательно",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/requests/{{requestId}}/permanent"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 204\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Заявки больше нет → 404",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/requests/{{requestId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 404\", () => pm.response.to.have.status(404));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Ошибка в общем формате\", () => { pm.expect(body.status).to.eql(404); pm.expect(body.message).to.be.a(\"string\"); pm.expect(body.correlationId).to.be.a(\"string\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Удалить автомобиль окончательно",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/vehicles/{{vehicleId}}/permanent"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 204\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Удалить место окончательно",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/spots/{{spotId}}/permanent"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 204\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Удалить владельца окончательно",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/owners/{{ownerId}}/permanent"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 204\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Типы событий аудита",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/admin/audit/types"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Есть типы событий и сущностей\", () => { pm.expect(body.eventTypes).to.be.an(\"array\").that.is.not.empty; pm.expect(body.entityTypes).to.be.an(\"array\").that.is.not.empty; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Журнал по заявке",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/admin/audit?entityType=REQUEST&entityId={{requestId}}&size=50"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Страница: content, totalElements\", () => { pm.expect(body.content).to.be.an(\"array\"); pm.expect(body.totalElements).to.be.a(\"number\"); });",
+                  "pm.test(\"Вся история заявки в журнале\", () => { const t = body.content.map(e => e.eventType.code); pm.expect(t).to.include.members([\"CREATE\", \"UPDATE\", \"ARCHIVE\", \"RESTORE\", \"DELETE\"]); });",
+                  "pm.test(\"Автор — администратор\", () => body.content.forEach(e => pm.expect(e.actor.login).to.eql(pm.environment.get(\"adminLogin\"))));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Журнал по пользователю",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/admin/audit?entityType=USER_ACCOUNT&entityId={{userId}}&size=50"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Страница: content, totalElements\", () => { pm.expect(body.content).to.be.an(\"array\"); pm.expect(body.totalElements).to.be.a(\"number\"); });",
+                  "pm.test(\"Создание, сброс пароля, отключение, входы\", () => { const t = body.content.map(e => e.eventType.code); pm.expect(t).to.include.members([\"CREATE\", \"UPDATE\", \"LOGIN_SUCCESS\", \"LOGIN_FAILURE\"]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Неуспешные входы",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/admin/audit?eventType=LOGIN_FAILURE&sort=occurredAt&direction=desc&size=5"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Страница: content, totalElements\", () => { pm.expect(body.content).to.be.an(\"array\"); pm.expect(body.totalElements).to.be.a(\"number\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Вернуть тип места",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/references/spot-types/{{spotTypeId}}/active",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"active\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variable": []
+}
