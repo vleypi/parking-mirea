@@ -13,7 +13,8 @@ import { ANALYTICS_PAGE_TEXT } from "@/views/analytics/constants/analytics-page.
 
 const toLabels = (items: readonly ICodeTitle[] = []): Record<string, string> => Object.fromEntries(items.map(({ code, title }) => [code, title]));
 
-const formatAverage = (value: number | null, format: (value: number) => string = String) => (value === null ? "—" : format(value));
+const formatAverage = (value: number | null | undefined, format: (value: number) => string = String) =>
+  value === null || value === undefined ? "—" : format(value);
 
 /** Общая аналитика GET /api/analytics/summary: коды групп переводим в названия по справочникам. */
 export const AnalyticsOverview = () => {
@@ -65,7 +66,6 @@ export const AnalyticsOverview = () => {
               { label: ANALYTICS_PAGE_TEXT.active, value: data.vehicles.active },
               { label: ANALYTICS_PAGE_TEXT.archived, value: data.vehicles.archived },
               { label: ANALYTICS_PAGE_TEXT.electric, value: data.vehicles.electric },
-              { label: ANALYTICS_PAGE_TEXT.averageReleaseYear, value: formatAverage(data.vehicles.averageReleaseYear) },
             ]}
             groups={[
               { title: ANALYTICS_PAGE_TEXT.byBrand, groups: data.vehicles.byBrand },

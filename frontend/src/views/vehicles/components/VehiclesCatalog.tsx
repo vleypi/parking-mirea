@@ -22,7 +22,6 @@ import {
 import { hasRole, useViewer } from "@/entities/viewer";
 import { BulkVehicleActions } from "@/features/bulk-vehicles";
 import { CsvTransferActions } from "@/features/csv-transfer";
-import { ParkedVehiclesButton } from "@/features/parked-vehicles";
 import { VehicleForm } from "@/features/save-vehicle";
 import { VehicleCard } from "@/widgets/vehicle-card";
 import { OWNER_FILTER_REQUEST, VEHICLES_PAGE_TEXT } from "@/views/vehicles/constants/vehicles-page.constant";
@@ -66,7 +65,6 @@ export const VehiclesCatalog = () => {
         filters={filters}
         fields={VEHICLE_LIST_FIELDS}
         sortOptions={VEHICLE_SORT_OPTIONS}
-        extraFilters={<ParkedVehiclesButton onSelect={modal.openEdit} />}
       />
       <FormError message={error?.message} />
       {canEdit && (

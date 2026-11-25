@@ -69,6 +69,7 @@ const getColumns = (search: string): IDataTableColumn<IRequest, RequestSortField
   {
     key: "priority",
     header: REQUEST_TEXT.priority,
+    className: "hidden lg:table-cell",
     render: ({ priority }) => <Badge tone={REQUEST_PRIORITY_TONES[priority]}>{REQUEST_PRIORITY_LABELS[priority]}</Badge>,
   },
 ];
@@ -83,5 +84,6 @@ export const RequestTable = ({ requests, isLoading, search, emptyText, sorting, 
     emptyText={emptyText}
     selection={selection}
     onRowClick={onSelect}
+    fixed
   />
 );

@@ -17,11 +17,3 @@ export const useVehicle = (id: string) => useQuery({ queryKey: QUERY_KEYS.vehicl
 
 export const useVehicleRequests = (id: string) =>
   useQuery({ queryKey: QUERY_KEYS.vehicleRequests(id), queryFn: () => vehicleService.getRequests(id) });
-
-/** Запрос уходит, только когда оба конца периода заданы. */
-export const useParkedVehicles = (from: string, to: string) =>
-  useQuery({
-    queryKey: QUERY_KEYS.parkedVehicles(from, to),
-    queryFn: () => vehicleService.getParked(from, to),
-    enabled: Boolean(from && to),
-  });

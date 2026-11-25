@@ -128,6 +128,8 @@ export const VEHICLE_FIELDS = {
   year: { param: "year", label: "Год", type: "number" },
   region: { param: "region", label: "Регион", type: "text" },
   tag: { param: "tag", label: "Тег", type: "text" },
+  parkedFrom: { param: "parkedFrom", label: "На парковке с", type: "datetime-local" },
+  parkedTo: { param: "parkedTo", label: "по", type: "datetime-local" },
 } satisfies Record<string, IListField>;
 
 export const VEHICLE_SORT_OPTIONS = [

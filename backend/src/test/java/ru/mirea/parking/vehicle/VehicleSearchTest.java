@@ -125,6 +125,13 @@ class VehicleSearchTest {
                 .andExpect(status().isBadRequest());
     }
 
+    @Test
+    void parkedPeriodFilterInList() throws Exception {
+        LocalDateTime start = LocalDateTime.now().withNano(0).minusDays(1);
+        plates(search("parkedFrom", start.toString(), "parkedTo", start.plusHours(3).toString()), "А123ВС777");
+        search("parkedFrom", start.toString()).andExpect(status().isBadRequest());
+    }
+
     private ResultActions search(String... params) throws Exception {
         var request = get("/api/vehicles");
         for (int i = 0; i < params.length; i += 2) {

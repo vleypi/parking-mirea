@@ -125,6 +125,8 @@ export const SPOT_FILTERS = {
 export const SPOT_FIELDS = {
   rate: { param: "rate", label: "Тариф, ₽/ч", type: "number" },
   tag: { param: "tag", label: "Тег", type: "text" },
+  freeFrom: { param: "freeFrom", label: "Свободно с", type: "datetime-local" },
+  freeTo: { param: "freeTo", label: "по", type: "datetime-local" },
 } satisfies Record<string, IListField>;
 
 export const SPOT_SORT_OPTIONS = [

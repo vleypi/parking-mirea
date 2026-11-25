@@ -23,7 +23,7 @@ export {
   type VehicleSortField,
   type VehicleStatus,
 } from "@/entities/vehicle/constants/vehicle.constant";
-export { useParkedVehicles, useVehicle, useVehiclePage, useVehicleRequests } from "@/entities/vehicle/hooks/useVehicle";
+export { useVehicle, useVehiclePage, useVehicleRequests } from "@/entities/vehicle/hooks/useVehicle";
 export type {
   IVehicle,
   IVehicleBulkPayload,

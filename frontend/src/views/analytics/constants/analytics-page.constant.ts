@@ -20,7 +20,6 @@ export const ANALYTICS_PAGE_TEXT = {
   byLoyalty: "По лояльности",
   vehicles: "Автомобили",
   electric: "Электромобилей",
-  averageReleaseYear: "Средний год выпуска",
   byBrand: "По марке",
   byActivity: "По активности",
   spots: "Места",

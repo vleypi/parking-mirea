@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import type { ISelectOption } from "@/shared/ui/SelectControl";
 import { LIST_TEXT } from "@/shared/config";
 import { joinClassNames } from "@/shared/lib";
@@ -20,15 +20,14 @@ interface IListToolbarProps {
   filters?: readonly IListFilter[];
   fields?: readonly IListField[];
   sortOptions?: readonly ISelectOption[];
-  extraFilters?: ReactNode;
 }
 
-export const ListToolbar = ({ list, placeholder, total, filters = [], fields = [], sortOptions, extraFilters }: IListToolbarProps) => {
+export const ListToolbar = ({ list, placeholder, total, filters = [], fields = [], sortOptions }: IListToolbarProps) => {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const filterParams = [...filters, ...fields].map(({ param }) => param);
   const hasActiveFilters = filterParams.some((param) => list.getParam(param) !== "");
   const isFiltered = Boolean(list.search) || hasActiveFilters;
-  const hasAnyFilter = filters.length > 0 || fields.length > 0 || Boolean(extraFilters);
+  const hasAnyFilter = filters.length > 0 || fields.length > 0;
 
   const resetFilters = () => list.resetParams(filterParams);
 
@@ -110,7 +109,6 @@ export const ListToolbar = ({ list, placeholder, total, filters = [], fields = [
               ))}
             </div>
           )}
-          {extraFilters && <div className="border-t border-gray-100 pt-4">{extraFilters}</div>}
           <div className="flex items-center justify-between border-t border-gray-100 pt-4">
             {hasActiveFilters ? (
               <Button variant="ghost" onClick={resetFilters}>

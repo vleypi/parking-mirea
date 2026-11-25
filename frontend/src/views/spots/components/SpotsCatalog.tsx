@@ -22,7 +22,6 @@ import {
 import { hasRole, useViewer } from "@/entities/viewer";
 import { BulkSpotActions } from "@/features/bulk-spots";
 import { CsvTransferActions } from "@/features/csv-transfer";
-import { FreeSpotsButton } from "@/features/free-spots";
 import { SpotForm } from "@/features/save-spot";
 import { SpotCard } from "@/widgets/spot-card";
 import { SPOTS_PAGE_TEXT } from "@/views/spots/constants/spots-page.constant";
@@ -48,16 +47,13 @@ export const SpotsCatalog = () => {
         title={SPOTS_PAGE_TEXT.title}
         description={SPOTS_PAGE_TEXT.description}
         actions={
-          <>
-            <FreeSpotsButton onSelect={modal.openEdit} />
-            <CsvTransferActions
-              basePath={SPOTS_PATH}
-              invalidateKey={QUERY_KEYS.spots}
-              exportParams={exportParams}
-              fileName={SPOTS_PAGE_TEXT.csvFileName}
-              canImport={canEdit}
-            />
-          </>
+          <CsvTransferActions
+            basePath={SPOTS_PATH}
+            invalidateKey={QUERY_KEYS.spots}
+            exportParams={exportParams}
+            fileName={SPOTS_PAGE_TEXT.csvFileName}
+            canImport={canEdit}
+          />
         }
         add={canEdit ? { label: SPOTS_PAGE_TEXT.add, onClick: modal.openCreate } : undefined}
       />

@@ -29,6 +29,7 @@ interface IDataTableProps<TRow, TSort extends string> {
   onRowClick?: (row: TRow) => void;
   isRowClickable?: (row: TRow) => boolean;
   selection?: IRowSelection;
+  fixed?: boolean;
 }
 
 const SKELETON_ROW_KEYS = ["first", "second", "third", "fourth"] as const;
@@ -60,6 +61,7 @@ export const DataTable = <TRow, TSort extends string = string>({
   onRowClick,
   isRowClickable = () => true,
   selection,
+  fixed = false,
 }: IDataTableProps<TRow, TSort>) => {
   const pageKeys = rows?.map(getRowKey) ?? [];
   const isPageSelected = pageKeys.length > 0 && pageKeys.every((key) => selection?.isSelected(key));
@@ -74,7 +76,12 @@ export const DataTable = <TRow, TSort extends string = string>({
 
   return (
     <div className="-mx-4 overflow-x-auto">
-      <table className="w-full min-w-xl border-separate border-spacing-0 text-left text-[15px]">
+      <table
+        className={joinClassNames(
+          "w-full border-separate border-spacing-0 text-left text-[15px]",
+          fixed ? "table-fixed min-w-[44rem] lg:min-w-0" : "min-w-xl",
+        )}
+      >
         <thead className="text-sm text-gray-600">
           <tr>
             {selection && (

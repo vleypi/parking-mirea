@@ -15,7 +15,6 @@ export const QUERY_KEYS = {
   vehiclePage: (request: IListRequest<string>) => ["vehicles", "page", request],
   vehicle: (id: string) => ["vehicles", "one", id],
   vehicleRequests: (id: string) => ["vehicles", "requests", id],
-  parkedVehicles: (from: string, to: string) => ["vehicles", "parked", from, to],
   spots: ["spots"],
   spotPage: (request: IListRequest<string>) => ["spots", "page", request],
   spot: (id: string) => ["spots", "one", id],

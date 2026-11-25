@@ -47,7 +47,7 @@ export const BulkSpotActions = ({ ids, getLabel, onDone }: IBulkSpotActionsProps
         options={BULK_ACTION_OPTIONS}
         value={action}
         onChange={(event) => setAction(event.target.value as SpotBulkAction)}
-        className={TOOLBAR_CONTROL_CLASS_NAME}
+        className={joinClassNames(TOOLBAR_CONTROL_CLASS_NAME, "w-auto")}
       />
       {action === SPOT_BULK_ACTIONS.changeStatus && (
         <SelectControl
@@ -55,7 +55,7 @@ export const BulkSpotActions = ({ ids, getLabel, onDone }: IBulkSpotActionsProps
           options={STATUS_OPTIONS}
           value={status}
           onChange={(event) => setStatus(event.target.value as SpotStatus)}
-          className={TOOLBAR_CONTROL_CLASS_NAME}
+          className={joinClassNames(TOOLBAR_CONTROL_CLASS_NAME, "w-auto")}
         />
       )}
       {needsTag && (

@@ -47,7 +47,7 @@ export const BulkVehicleActions = ({ ids, getLabel, onDone }: IBulkVehicleAction
         options={BULK_ACTION_OPTIONS}
         value={action}
         onChange={(event) => setAction(event.target.value as VehicleBulkAction)}
-        className={TOOLBAR_CONTROL_CLASS_NAME}
+        className={joinClassNames(TOOLBAR_CONTROL_CLASS_NAME, "w-auto")}
       />
       {action === VEHICLE_BULK_ACTIONS.changeStatus && (
         <SelectControl
@@ -55,7 +55,7 @@ export const BulkVehicleActions = ({ ids, getLabel, onDone }: IBulkVehicleAction
           options={STATUS_OPTIONS}
           value={status}
           onChange={(event) => setStatus(event.target.value as VehicleStatus)}
-          className={TOOLBAR_CONTROL_CLASS_NAME}
+          className={joinClassNames(TOOLBAR_CONTROL_CLASS_NAME, "w-auto")}
         />
       )}
       {needsTag && (

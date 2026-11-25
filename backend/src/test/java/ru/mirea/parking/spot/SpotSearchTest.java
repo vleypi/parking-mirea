@@ -126,6 +126,13 @@ class SpotSearchTest {
                 .andExpect(status().isBadRequest());
     }
 
+    @Test
+    void freePeriodFilterInList() throws Exception {
+        LocalDateTime from = now.plusHours(2);
+        numbers(search("freeFrom", from.toString(), "freeTo", from.plusHours(1).toString()), 1, 2, 5);
+        search("freeFrom", from.toString()).andExpect(status().isBadRequest());
+    }
+
     private ResultActions search(String... params) throws Exception {
         var request = get("/api/spots");
         for (int i = 0; i < params.length; i += 2) {

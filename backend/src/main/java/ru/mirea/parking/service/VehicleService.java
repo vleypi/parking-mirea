@@ -4,6 +4,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.mirea.parking.config.AppProperties;
@@ -78,16 +79,26 @@ public class VehicleService {
                 .and(Sort.by(Sort.Direction.ASC, "id"));
         Pageable pageable = PageRequest.of(requested.getPageNumber(), requested.getPageSize(), order);
 
-        Page<Vehicle> result = vehicles.findAll(VehicleSpecification.byFilter(filter, now()), pageable);
+        Page<Vehicle> result = vehicles.findAll(specification(filter), pageable);
         Map<Long, Long> recent = recentRequests(result.getContent().stream().map(Vehicle::getId).toList());
         return PageResponse.from(result, v -> VehicleResponse.from(v, recent.getOrDefault(v.getId(), 0L)));
+    }
+
+    private Specification<Vehicle> specification(VehicleFilter filter) {
+        Specification<Vehicle> spec = VehicleSpecification.byFilter(filter, now());
+        if (filter.parkedFrom() == null && filter.parkedTo() == null) {
+            return spec;
+        }
+        if (filter.parkedFrom() == null || filter.parkedTo() == null || !filter.parkedTo().isAfter(filter.parkedFrom())) {
+            throw new BadRequestException("parkedTo", "Укажите начало и конец периода, конец позже начала");
+        }
+        return spec.and(VehicleSpecification.parkedDuring(filter.parkedFrom(), filter.parkedTo()));
     }
 
     /** Все строки по фильтру без страниц — для экспорта CSV. */
     @Transactional(readOnly = true)
     public List<VehicleResponse> searchAll(VehicleFilter filter) {
-        List<Vehicle> list = vehicles.findAll(VehicleSpecification.byFilter(filter, now()),
-                Sort.by("plateDigits", "licensePlate"));
+        List<Vehicle> list = vehicles.findAll(specification(filter), Sort.by("plateDigits", "licensePlate"));
         Map<Long, Long> recent = recentRequests(list.stream().map(Vehicle::getId).toList());
         return list.stream().map(v -> VehicleResponse.from(v, recent.getOrDefault(v.getId(), 0L))).toList();
     }

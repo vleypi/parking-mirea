@@ -47,7 +47,7 @@ export const BulkRequestActions = ({ ids, getLabel, onDone }: IBulkRequestAction
         options={BULK_ACTION_OPTIONS}
         value={action}
         onChange={(event) => setAction(event.target.value as RequestBulkAction)}
-        className={TOOLBAR_CONTROL_CLASS_NAME}
+        className={joinClassNames(TOOLBAR_CONTROL_CLASS_NAME, "w-auto")}
       />
       {action === REQUEST_BULK_ACTIONS.changeStatus && (
         <SelectControl
@@ -55,7 +55,7 @@ export const BulkRequestActions = ({ ids, getLabel, onDone }: IBulkRequestAction
           options={STATUS_OPTIONS}
           value={status}
           onChange={(event) => setStatus(event.target.value as RequestStatus)}
-          className={TOOLBAR_CONTROL_CLASS_NAME}
+          className={joinClassNames(TOOLBAR_CONTROL_CLASS_NAME, "w-auto")}
         />
       )}
       {needsTag && (

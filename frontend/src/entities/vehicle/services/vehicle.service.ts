@@ -26,12 +26,6 @@ class VehicleService {
     return data;
   }
 
-  /** Машины с неотменёнными заявками, пересекающими период (from и to — локальное время ISO). */
-  async getParked(from: string, to: string): Promise<IVehicle[]> {
-    const { data } = await apiClient.get<IVehicle[]>(`${VEHICLES_PATH}/parked`, { params: { from, to } });
-    return data;
-  }
-
   async create(payload: IVehiclePayload): Promise<IVehicle> {
     const { data } = await apiClient.post<IVehicle>(VEHICLES_PATH, payload);
     return data;

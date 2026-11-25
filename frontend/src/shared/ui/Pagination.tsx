@@ -30,7 +30,7 @@ export const Pagination = ({ page, pageSize, total, onChange }: IPaginationProps
   if (pageCount <= 1 || isOutOfRange) return null;
 
   return (
-    <nav aria-label={LIST_TEXT.pagination} className="mt-4 flex items-center justify-end gap-1 text-sm">
+    <nav aria-label={LIST_TEXT.pagination} className="mt-4 flex items-center justify-center gap-1 text-sm">
       <button type="button" onClick={() => onChange(page - 1)} disabled={page === 1} aria-label={LIST_TEXT.previousPage} className={joinClassNames(PAGE_BUTTON_CLASS_NAME, IDLE_PAGE_CLASS_NAME)}>
         <Icon name="chevronLeft" className="size-4" />
       </button>

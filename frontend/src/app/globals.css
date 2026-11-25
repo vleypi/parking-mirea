@@ -32,3 +32,29 @@
     @apply bg-white font-sans text-ink antialiased;
   }
 }
+
+@keyframes marquee {
+  0%,
+  10% {
+    transform: translateX(0);
+  }
+  45%,
+  60% {
+    transform: translateX(calc(-1 * var(--marquee-distance, 0px)));
+  }
+  95%,
+  100% {
+    transform: translateX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marquee {
+    overflow: visible;
+  }
+
+  .marquee-content {
+    animation: none !important;
+    white-space: normal;
+  }
+}

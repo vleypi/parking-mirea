@@ -4,6 +4,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.mirea.parking.config.AppProperties;
@@ -77,15 +78,26 @@ public class SpotService {
                 .and(Sort.by(Sort.Direction.ASC, "id"));
         Pageable pageable = PageRequest.of(requested.getPageNumber(), requested.getPageSize(), order);
 
-        Page<Spot> result = spots.findAll(SpotSpecification.byFilter(filter, now()), pageable);
+        Page<Spot> result = spots.findAll(specification(filter), pageable);
         Set<Long> occupied = occupiedNow(result.getContent().stream().map(Spot::getId).toList());
         return PageResponse.from(result, s -> SpotResponse.from(s, occupied.contains(s.getId())));
+    }
+
+    private Specification<Spot> specification(SpotFilter filter) {
+        Specification<Spot> spec = SpotSpecification.byFilter(filter, now());
+        if (filter.freeFrom() == null && filter.freeTo() == null) {
+            return spec;
+        }
+        if (filter.freeFrom() == null || filter.freeTo() == null || !filter.freeTo().isAfter(filter.freeFrom())) {
+            throw new BadRequestException("freeTo", "Укажите начало и конец периода, конец позже начала");
+        }
+        return spec.and(SpotSpecification.freeDuring(filter.freeFrom(), filter.freeTo()));
     }
 
     /** Все строки по фильтру без страниц — для экспорта CSV. */
     @Transactional(readOnly = true)
     public List<SpotResponse> searchAll(SpotFilter filter) {
-        return toResponses(spots.findAll(SpotSpecification.byFilter(filter, now()), Sort.by("spotNumber")));
+        return toResponses(spots.findAll(specification(filter), Sort.by("spotNumber")));
     }
 
     /** Свободные места на период (findFreeDuring из КР2): работающие, не в архиве, без активной заявки в периоде. */

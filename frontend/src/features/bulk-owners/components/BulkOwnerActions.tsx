@@ -47,7 +47,7 @@ export const BulkOwnerActions = ({ ids, getLabel, onDone }: IBulkOwnerActionsPro
         options={BULK_ACTION_OPTIONS}
         value={action}
         onChange={(event) => setAction(event.target.value as OwnerBulkAction)}
-        className={TOOLBAR_CONTROL_CLASS_NAME}
+        className={joinClassNames(TOOLBAR_CONTROL_CLASS_NAME, "w-auto")}
       />
       {action === OWNER_BULK_ACTIONS.changeStatus && (
         <SelectControl
@@ -55,7 +55,7 @@ export const BulkOwnerActions = ({ ids, getLabel, onDone }: IBulkOwnerActionsPro
           options={STATUS_OPTIONS}
           value={status}
           onChange={(event) => setStatus(event.target.value as OwnerStatus)}
-          className={TOOLBAR_CONTROL_CLASS_NAME}
+          className={joinClassNames(TOOLBAR_CONTROL_CLASS_NAME, "w-auto")}
         />
       )}
       {needsTag && (
