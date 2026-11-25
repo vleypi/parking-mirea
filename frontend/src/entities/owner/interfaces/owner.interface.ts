@@ -76,3 +76,11 @@ export interface IOwnerRelated {
   requests: IOwnerRequestItem[];
   requestsTotal: number;
 }
+
+/** Владелец в выпадающем выборе: форма автомобиля и форма заявки. */
+export interface IOwnerOption {
+  id: string;
+  name: string;
+  phone: string;
+  archived: boolean;
+}

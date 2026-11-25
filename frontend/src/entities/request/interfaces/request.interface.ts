@@ -49,6 +49,17 @@ export interface IRequest {
 
 export type IRequestListRequest = IListRequest<RequestSortField> & Record<string, string | number | undefined>;
 
+export interface IRequestCreatePayload {
+  ownerId: string;
+  vehicleId: string;
+  spotId: string;
+  startTime: string;
+  endTime: string;
+  description: string;
+  paid: boolean;
+  tags: string[];
+}
+
 export interface IRequestUpdatePayload {
   vehicleId: string;
   spotId: string;

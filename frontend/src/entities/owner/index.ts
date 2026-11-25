@@ -1,4 +1,5 @@
 export { OwnerDetails } from "@/entities/owner/components/OwnerDetails";
+export { OwnerPicker } from "@/entities/owner/components/OwnerPicker";
 export { OwnerRelatedList } from "@/entities/owner/components/OwnerRelatedList";
 export { OwnerTable } from "@/entities/owner/components/OwnerTable";
 export {
@@ -9,6 +10,8 @@ export {
   OWNER_BULK_ACTIONS,
   OWNER_FIELDS,
   OWNER_FILTERS,
+  OWNER_PICKER_TEXT,
+  OWNER_SEARCH_LIMIT,
   OWNER_SORT_FIELDS,
   OWNER_SORT_OPTIONS,
   OWNER_STATUS_LABELS,
@@ -28,6 +31,7 @@ export type {
   IOwner,
   IOwnerBulkPayload,
   IOwnerListRequest,
+  IOwnerOption,
   IOwnerPayload,
   IOwnerRelated,
   IOwnerRequestItem,

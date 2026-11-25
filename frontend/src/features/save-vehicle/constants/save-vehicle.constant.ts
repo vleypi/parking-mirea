@@ -2,9 +2,6 @@ import { LICENSE_PLATE_EXAMPLE, MIN_RELEASE_YEAR } from "@/entities/vehicle";
 
 export const SAVE_VEHICLE_TEXT = {
   owner: "Владелец",
-  ownerSearch: "Имя или телефон владельца",
-  ownerNotFound: "Никого не нашли",
-  ownerChange: "Сменить",
   ownerRequired: "Выберите владельца из списка",
   licensePlate: "Гос. номер",
   licensePlateHint: `Например, ${LICENSE_PLATE_EXAMPLE}; латиница заменится на кириллицу`,
@@ -30,7 +27,6 @@ export const SAVE_VEHICLE_TEXT = {
 
 export const VEHICLE_TITLE_MAX_LENGTH = 50;
 export const VEHICLE_COLOR_MAX_LENGTH = 30;
-export const OWNER_SEARCH_LIMIT = 8;
 
 /** Допускаются латинские двойники букв и пробелы — сервер нормализует номер сам. */
 export const LICENSE_PLATE_PATTERN = /^[АВЕКМНОРСТУХABEKMHOPCTYX]\d{3}[АВЕКМНОРСТУХABEKMHOPCTYX]{2}\d{2,3}$/i;

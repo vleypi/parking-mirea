@@ -2,6 +2,7 @@ package ru.mirea.parking.repository;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -20,6 +21,13 @@ public interface RequestRepository extends JpaRepository<Request, Long>, JpaSpec
 
     @EntityGraph(attributePaths = {"owner", "vehicle", "spot", "spot.spotType", "status", "tags"})
     Optional<Request> findByUuid(UUID uuid);
+
+    @EntityGraph(attributePaths = {"owner", "vehicle", "spot", "status", "tags"})
+    Optional<Request> findByCode(String code);
+
+    /** Все заявки по фильтру для экспорта в CSV. */
+    @EntityGraph(attributePaths = {"owner", "vehicle", "spot", "spot.spotType", "status", "tags"})
+    List<Request> findAll(Specification<Request> spec, Sort sort);
 
     @Override
     @EntityGraph(attributePaths = {"owner", "vehicle", "spot", "spot.spotType", "status"})

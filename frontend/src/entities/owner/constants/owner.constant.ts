@@ -167,3 +167,12 @@ export const OWNER_TEXT = {
   empty: "Владельцев пока нет",
   searchPlaceholder: "Имя, телефон или email",
 } as const;
+
+export const OWNER_PICKER_TEXT = {
+  owner: "Владелец",
+  search: "Имя или телефон владельца",
+  notFound: "Никого не нашли",
+  change: "Сменить",
+} as const;
+
+export const OWNER_SEARCH_LIMIT = 8;

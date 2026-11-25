@@ -181,7 +181,7 @@ export const REQUEST_TEXT = {
   description: "Описание",
   createdAt: "Создана",
   updatedAt: "Изменена",
-  hourlyRate: "₽/ч",
+  hourlyRate: "/ч",
   empty: "Заявок пока нет",
   searchPlaceholder: "Номер, госномер или владелец",
 } as const;
